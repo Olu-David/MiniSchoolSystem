@@ -1,0 +1,104 @@
+﻿@{
+    ViewData["Title"] = "Lessons";
+    ViewData["Breadcrumb"] = "Dashboard";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section TopBarActions {
+    @if (User.IsInRole("SuperAdmin") || User.IsInRole("Teacher"))
+    {
+        <a href="@Url.Action("CreateLesson")" class="btn btn-primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+            New Lesson
+        </a>
+    }
+}
+
+<!-- Stats -->
+<div class="stats-grid stagger">
+    <div class="stat-card">
+        <div class="stat-icon stat-icon-orange">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>
+        </div>
+        <div class="stat-body">
+            <div class="stat-number" id="statLessons">—</div>
+            <div class="stat-label">Active Lessons</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon stat-icon-blue">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg>
+        </div>
+        <div class="stat-body">
+            <div class="stat-number" id="statCourses">—</div>
+            <div class="stat-label">Courses</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon stat-icon-green">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" /></svg>
+        </div>
+        <div class="stat-body">
+            <div class="stat-number" id="statModules">—</div>
+            <div class="stat-label">Modules</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon stat-icon-purple">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+        </div>
+        <div class="stat-body">
+            <div class="stat-number" id="statStudents">—</div>
+            <div class="stat-label">Students</div>
+        </div>
+    </div>
+</div>
+
+<!-- Lessons Table -->
+<div class="card fade-in">
+    <div class="card-header">
+        <div>
+            <div class="card-title">All Lessons</div>
+            <div class="card-subtitle">Active, non-archived content</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;">
+            <input type="text" id="searchLessons" placeholder="Search lessons…" style="width:200px;padding:8px 12px;font-size:0.85rem;" />
+        </div>
+    </div>
+
+    <div class="table-wrapper" id="lessonsTableWrap">
+        <table id="lessonsTable">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Title</th>
+                    <th>Section</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="lessonsBody">
+                <tr>
+                    <td colspan="6">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>
+                            </div>
+                            <h3>Loading lessons…</h3>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+@section Scripts {
+    @* 1. Link to the built-in validation scripts (jQuery Validation) *@
+   @* Include standard validation first *@
+    <partial name="_ValidationScriptsPartial" />
+
+    @* Link your custom index.js file *@
+    <script src="~/js/index.js" asp-append-version="true"></script>
+
+}
