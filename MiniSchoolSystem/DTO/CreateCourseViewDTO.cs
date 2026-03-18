@@ -11,6 +11,8 @@ namespace MiniSchoolSystem.DTO
         public DateTime CreatedAt { get; set; }
         public string? Slug { get; set; }
         public Sections SelectedSection {  get; set; }
+        [EmailAddress]
+        public string? Email { get; set; }
         public ICollection<CreateCourseModulesViewDTO> CreateCourseModules { get; set; }=new List<CreateCourseModulesViewDTO>(); 
     }
 }

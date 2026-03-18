@@ -3,12 +3,13 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using MiniSchoolSystem.DTO;
 using MiniSchoolSystem.Enums;
+using MiniSchoolSystem.Implementation.Interfaces;
 using MiniSchoolSystem.Models;
 using System;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace MiniSchoolSystem.Implementation.Interfaces
+namespace MiniSchoolSystem.Implementation.Services
 {
     public class UserService : IUserService
     {
@@ -27,168 +28,130 @@ namespace MiniSchoolSystem.Implementation.Interfaces
             _emailService = emailService;
         }
 
-       
-        public async Task<IdentityResult> RegisterUserAsync(RegisterViewModel model)
+        public bool BelongToASection(UserDb user, Sections sections)
         {
+            return user.UserSection.HasValue && sections == user.UserSection.Value;
+        }
 
-            var user = new UserDb()
+        public Task<IdentityResult> ConfirmMailAsync(UserDb user, string? token)
+        {
+            throw new NotImplementedException();
+        }
+
+        public async Task<bool> DeactivateAccountAsync(UserDb user)
+        {
+            user.LockoutEnabled = true;
+            user.LockoutEnd = DateTimeOffset.MaxValue;
+            var Deactivate = await _userManager.UpdateAsync(user);
+            return Deactivate.Succeeded;
+
+        }
+
+        public async Task<bool> ForgotPasswordAsync(string email)
+        {
+            _logger.LogInformation("Resseting Password for User");
+            if (string.IsNullOrWhiteSpace(email))
             {
-                UserName = model.UserName,
+                _logger.LogError("Email Found Empty, Try Again");
+                throw new ArgumentNullException(nameof(email), "Email input cannot be empty.");
+            }
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null || !await _userManager.IsEmailConfirmedAsync(user))
+                return false;
+            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+            await _emailService.SendEmailAsync(user.Email ?? "null", "ForgotPassword", $"Your Reset Code is <b>{token}</b>");
+
+            return true;
+
+        }
+
+        public async Task<(SignInResult Result, bool requires2FA)> LoginUserAsync(LoginViewDTO model)
+        {
+            var user = await _userManager.FindByEmailAsync(model.Email);
+            if (user == null || !await _userManager.IsEmailConfirmedAsync(user)) return (SignInResult.Failed, false);
+
+            var result = await _signInManager.PasswordSignInAsync(user, model.Password, false, lockoutOnFailure: false);
+            if (result.RequiresTwoFactor)
+            {
+                await Send2FAAsync(user);
+                return (SignInResult.TwoFactorRequired, true);
+            }
+            if (result.Succeeded)
+            {
+                return (SignInResult.Success, false);
+
+            }
+            return (SignInResult.Failed, false);
+
+
+        }
+
+        public async Task<IdentityResult> RegistrationAsync(RegisterViewModel model, string? ConfirmationLink)
+        {
+            var user = new UserDb
+            {
                 Email = model.Email,
-                FullName = model.FirstName + "" + model.LastName,
-                UserSection = model.Role == "Student" && model.Role != "Parent" ? model.Section : null,
                 EmailConfirmed = false,
                 TwoFactorEnabled = false,
-                PhoneNumber = model.PhoneNumber,
-
+                FullName = $"{model.FirstName} {model.LastName}",
+                UserSection = model.Role == "Student" ? model.Section : null,
+                PhoneNumber = model.PhoneNumber
             };
             var result = await _userManager.CreateAsync(user, model.Password);
-            if(!result.Succeeded)
+            if (result.Succeeded)
             {
-                if (model.Role == "Student" && model.Role == "Parent")
+                if (model.Role == "Student" || model.Role == "Parent")
                 {
                     if (!await _roleManager.RoleExistsAsync(model.Role))
                     {
-                        await _userManager.AddToRoleAsync(user, model.Role);
+                        await _roleManager.CreateAsync(new IdentityRole(model.Role));
+
                     }
+                    await _userManager.AddToRoleAsync(user, model.Role);
                 }
-            };
-            //GenerateToken
-            var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-            //Encoded Token
-            var Encodedtoken= Uri.EscapeDataString(token);
-            var confirmationLink = $"https;//Thinkly.com//\account/Confirm-Email?userId{user.Id}&token={Encodedtoken}";
 
-            await _emailService.SendEmailAsync(user.Email, "Confirm Your ThinklyAccount", $"Click this link to confirm your account: <a href='{confirmationLink}'>ConfirmEmail </a>");
-            return result;
 
-        }
-        public async Task<(SignInResult result, bool requires2FA)> LoginUserAsync(LoginViewDTO model)
-        {
-            var user = await _userManager.FindByEmailAsync(model.Email);
-
-            // 1. Basic checks
-            if (user == null) return (SignInResult.Failed, false);
-            if (!user.EmailConfirmed) return (SignInResult.NotAllowed, false);
-
-            // 2. Perform the sign-in check (this handles password AND 2FA status)
-            var signInResult = await _signInManager.PasswordSignInAsync(user, model.Password, model.RememberMe, lockoutOnFailure: false);
-
-            // 3. Handle 2FA Requirement
-            if (signInResult.RequiresTwoFactor)
-            {
-                await SendTwoFactorCodeAsync(user);
-                return (SignInResult.TwoFactorRequired, true);
             }
-
-            // 4. Handle Success
-            if (signInResult.Succeeded)
+            if (!string.IsNullOrEmpty(ConfirmationLink))
             {
-                return (SignInResult.Success, false);
+                await _emailService.SendEmailAsync(user.Email!, "Email Confirmation",
+                    $"Confirm your Account By clicking this link <a href='{ConfirmationLink}'>Click Here</a>");
             }
-
-            // 5. Default to Failure (Incorrect password, etc.)
-            return (SignInResult.Failed, false);
-        }
-
-        
-        public async Task<UserDb?> FindByIdAsync(string id)
-        {
-            var result = await _userManager.FindByIdAsync(id);
-
-            if (result == null)
-            {
-                return null;
-            }
-
             return result;
         }
-        public  bool BelongsToSection(UserDb user, Sections sections)
+        public async Task<IdentityResult> ResetPasswordAsync(string email, string token, string password)
         {
-           return user.UserSection.HasValue && user.UserSection.Value == sections;  
+            if (string.IsNullOrEmpty(token)) throw new ArgumentNullException(nameof(token), "Token is missing.");
+            if (string.IsNullOrEmpty(password)) throw new ArgumentException("New password is required.", nameof(password));
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null) return IdentityResult.Failed(new IdentityError { Description = "User not found." });
+            var result = await _userManager.ResetPasswordAsync(user, email, password);
+            return result;
         }
 
-        public async Task<bool> DeactivateUserAsync(UserDb user)
+        public async Task Send2FAAsync(UserDb user)
         {
-            if (user == null)
-                return false;
+            if (user == null) throw new ArgumentNullException(nameof(user), "Token is missing.");
 
-            user.LockoutEnabled = true;
-            user.LockoutEnd = DateTimeOffset.MaxValue;
-            var result = await _userManager.UpdateAsync(user);
-            return result.Succeeded;
-        }
-
-
-     public async Task SendTwoFactorCodeAsync(UserDb user)
-        {
             var token = await _userManager.GenerateTwoFactorTokenAsync(user, TokenOptions.DefaultEmailProvider);
-            await _emailService.SendEmailAsync(user.Email??"null", "Your Thinkly 2FA code", $"Your 2FA code is <b>{token}</b>");
+
+            await _emailService.SendEmailAsync(user.Email ?? "null", "TwoFactorAuthenticator Code", $"Your Code is {token}");
         }
-        public async Task<IdentityResult> ConfirmEmailAsync(UserDb user, string token)
+
+        public async Task<SignInResult> Verify2FAAsync(Verify2FAViewModel model)
         {
-        return await _userManager.ConfirmEmailAsync(user, token);   
-        }
-       
-        public async Task<SignInResult> VerifyTwoFactorCodeAsync(Verify2FAViewModel model)
-        {
-            var user = await _userManager.FindByIdAsync(model.Email);
-            if (user == null) return SignInResult.Failed;
+            if (model.Email == null)
+                if (model.Email == null) throw new ArgumentNullException(nameof(model.Email), "Token is missing.");
+
             var result = await _signInManager.TwoFactorSignInAsync(TokenOptions.DefaultEmailProvider, model.Code, false, false);
             return result;
-        }
-        public async Task LogoutUserAsync()
-        {
-             await _signInManager.SignOutAsync();
-            
-        }
-        public async Task ForgotPasswordAsync(string email)
-        {
-            var user = await _userManager.FindByEmailAsync(email);
 
-            if (user == null || !(await _userManager.IsEmailConfirmedAsync(user)))
-                return;
 
-            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
 
-            var link = $"https://yourdomain.com/Account/ResetPassword?email={email}&token={Uri.EscapeDataString(token)}";
-
-            await _emailService.SendEmailAsync(
-                email,
-                "Reset Password",
-                $"Click here to reset your password: <a href='{link}'>Reset Password</a>");
-        }
-        public async Task<IdentityResult> ResetPasswordAsync(ResetPasswordViewModel model)
-        {
-            var user = await _userManager.FindByEmailAsync(model.Email);
-
-            if (user == null)
-                return IdentityResult.Failed();
-
-            var result = await _userManager.ResetPasswordAsync(user, model.Token, model.NewPassword);
-
-            return result;
-        }
-        public async Task ChangeEmailAsync(string userId, string newEmail)
-        {
-            var user = await _userManager.FindByIdAsync(userId);
-
-            var token = await _userManager.GenerateChangeEmailTokenAsync(user, newEmail);
-
-            var link = $"https://yourdomain.com/Account/ConfirmChangeEmail?userId={user.Id}&newEmail={newEmail}&token={Uri.EscapeDataString(token)}";
-
-            await _emailService.SendEmailAsync(
-                newEmail,
-                "Confirm Email Change",
-                $"Confirm your new email: <a href='{link}'>Confirm</a>");
-        }
-        public async Task<IdentityResult> ConfirmChangeEmailAsync(string userId, string newEmail, string token)
-        {
-            var user = await _userManager.FindByIdAsync(userId);
-            if (user == null) return IdentityResult.Failed();
-            var result = await _userManager.ChangeEmailAsync(user, newEmail, token);
-
-            return result;
         }
     }
 }
+
+       
+

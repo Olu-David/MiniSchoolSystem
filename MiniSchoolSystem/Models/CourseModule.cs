@@ -20,6 +20,6 @@ namespace MiniSchoolSystem.Models
         public Teacher? Teacher { get; set; }
         public Sections? CourseSections { get; internal set; }
         public bool IsDeleted { get; internal set; }
-        public object DeletedAt { get; internal set; }
+        public DateTime? DeletedAt { get; internal set; }
     }
 }

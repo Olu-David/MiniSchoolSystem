@@ -7,22 +7,17 @@ namespace MiniSchoolSystem.Implementation.Interfaces
 {
     public interface IUserService
     {
-        Task<IdentityResult> RegisterUserAsync(RegisterViewModel model);
-        bool BelongsToSection(UserDb user, Sections sections);
-        Task<bool>DeactivateUserAsync(UserDb user);
-        Task<(SignInResult result, bool requires2FA )>LoginUserAsync(LoginViewDTO model);
-        Task<IdentityResult> ConfirmEmailAsync(UserDb user, string token);
-        Task SendTwoFactorCodeAsync(UserDb user);
-        Task<SignInResult> VerifyTwoFactorCodeAsync(Verify2FAViewModel model);
-        Task LogoutUserAsync();
-        Task<UserDb?>FindByIdAsync(string Userid);
-         Task ForgotPasswordAsync(string email);
+        Task<IdentityResult> RegistrationAsync(RegisterViewModel model, string? ConfirmationLink);
+        Task<(SignInResult Result, bool requires2FA)> LoginUserAsync(LoginViewDTO model);
+        Task<IdentityResult> ConfirmMailAsync(UserDb user, string? token);
+        Task<SignInResult> Verify2FAAsync(Verify2FAViewModel model);
+        Task Send2FAAsync(UserDb user);
+        Task<bool> DeactivateAccountAsync(UserDb user);
+        Task<bool> ForgotPasswordAsync(string email);
+        Task<IdentityResult> ResetPasswordAsync(string email, string token, string password);
+        bool BelongToASection(UserDb user, Sections sections);
 
-         Task<IdentityResult> ResetPasswordAsync(ResetPasswordViewModel model);
-
-        Task ChangeEmailAsync(string userId, string newEmail);
-
-          
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
 
     }
 }

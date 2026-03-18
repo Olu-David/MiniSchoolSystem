@@ -104,10 +104,7 @@ namespace MiniSchoolSystem.Migrations
                     StudentId = table.Column<int>(type: "int", nullable: true),
                     LessonId = table.Column<int>(type: "int", nullable: true),
                     UserSection = table.Column<int>(type: "int", nullable: true),
-                    CourseId = table.Column<int>(type: "int", nullable: true),
                     CourseModuleId = table.Column<int>(type: "int", nullable: true),
-                    LessonEnrollmentId = table.Column<int>(type: "int", nullable: true),
-                    LessonContentId = table.Column<int>(type: "int", nullable: true),
                     UserName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
                     NormalizedUserName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
                     Email = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
@@ -197,7 +194,7 @@ namespace MiniSchoolSystem.Migrations
                         column: x => x.TeacherID,
                         principalTable: "DbTeacher",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -255,19 +252,15 @@ namespace MiniSchoolSystem.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     CourseId = table.Column<int>(type: "int", nullable: false),
                     TeacherId = table.Column<int>(type: "int", nullable: false),
-                    TeacherDbId = table.Column<string>(type: "nvarchar(450)", nullable: true),
                     Order = table.Column<int>(type: "int", nullable: false),
                     Title = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    CourseSections = table.Column<int>(type: "int", nullable: true)
+                    CourseSections = table.Column<int>(type: "int", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_DbModules", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_DbModules_AspNetUsers_TeacherDbId",
-                        column: x => x.TeacherDbId,
-                        principalTable: "AspNetUsers",
-                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_DbModules_DbCourse_CourseId",
                         column: x => x.CourseId,
@@ -289,11 +282,17 @@ namespace MiniSchoolSystem.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     StudentId = table.Column<int>(type: "int", nullable: false),
-                    CourseId = table.Column<int>(type: "int", nullable: false)
+                    CourseId = table.Column<int>(type: "int", nullable: false),
+                    UserDbID = table.Column<string>(type: "nvarchar(450)", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_DbStudentCourses", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_DbStudentCourses_AspNetUsers_UserDbID",
+                        column: x => x.UserDbID,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_DbStudentCourses_DbCourse_CourseId",
                         column: x => x.CourseId,
@@ -395,28 +394,35 @@ namespace MiniSchoolSystem.Migrations
                     EnrolledTime = table.Column<DateTime>(type: "datetime2", nullable: false),
                     CompletedTime = table.Column<DateTime>(type: "datetime2", nullable: false),
                     Sections = table.Column<int>(type: "int", nullable: false),
-                    StudentName = table.Column<int>(type: "int", nullable: true)
+                    StudentName = table.Column<int>(type: "int", nullable: true),
+                    UserDbId = table.Column<string>(type: "nvarchar(450)", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_DbLessonEnrollments", x => x.Id);
                     table.ForeignKey(
+                        name: "FK_DbLessonEnrollments_AspNetUsers_UserDbId",
+                        column: x => x.UserDbId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id");
+                    table.ForeignKey(
                         name: "FK_DbLessonEnrollments_AspNetUsers_UserId",
                         column: x => x.UserId,
                         principalTable: "AspNetUsers",
-                        principalColumn: "Id");
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_DbLessonEnrollments_DbLesson_LessonId",
                         column: x => x.LessonId,
                         principalTable: "DbLesson",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_DbLessonEnrollments_DbStudents_StudentId",
                         column: x => x.StudentId,
                         principalTable: "DbStudents",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.InsertData(
@@ -433,14 +439,14 @@ namespace MiniSchoolSystem.Migrations
 
             migrationBuilder.InsertData(
                 table: "AspNetUsers",
-                columns: new[] { "Id", "AccessFailedCount", "ConcurrencyStamp", "CourseId", "CourseModuleId", "Email", "EmailConfirmed", "FullName", "LessonContentId", "LessonEnrollmentId", "LessonId", "LockoutEnabled", "LockoutEnd", "NormalizedEmail", "NormalizedUserName", "PasswordHash", "PhoneNumber", "PhoneNumberConfirmed", "SecurityStamp", "StudentId", "TwoFactorEnabled", "UserName", "UserSection" },
+                columns: new[] { "Id", "AccessFailedCount", "ConcurrencyStamp", "CourseModuleId", "Email", "EmailConfirmed", "FullName", "LessonId", "LockoutEnabled", "LockoutEnd", "NormalizedEmail", "NormalizedUserName", "PasswordHash", "PhoneNumber", "PhoneNumberConfirmed", "SecurityStamp", "StudentId", "TwoFactorEnabled", "UserName", "UserSection" },
                 values: new object[,]
                 {
-                    { "100", 0, "CONC100", null, null, "olusanyadavid@yahoo.com", true, "Olusanya David Victor", null, null, null, false, null, "OLUSANYADAVID@YAHOO.COM", "OLUSANYADAVID@YAHOO.COM", "AQAAAAIAAYagAAAAEO/wDgZa3SXbvAinf5H5wn3wW8k/4Y4FSZ2CAhd36rDbrNnCdwLtDaNVD4/LJ8XakQ==", "0807212372", false, "STAMP100", null, false, "Olusanyadavid@yahoo.com", null },
-                    { "101", 0, "CONC101", null, null, "Admin@school.com", true, " ADMIN", null, null, null, false, null, "ADMIN@SCHOOL.COM", "ADMIN@SCHOOL.COM", "AQAAAAIAAYagAAAAEHbk0S0IRKy2yTHDWyZiwqiejlvoyxiFDP+35Mw27gsIeUvwvgPZcb8MMLQA/93Szw==", "0812329221", false, "STAMP101", null, false, "Admin@school.com", null },
-                    { "102", 0, "CONC102", null, null, "Teacher@school.com", true, "Teacher", null, null, null, false, null, "TEACHER@SCHOOL.COM", "TEACHER@SCHOOL.COM", "AQAAAAIAAYagAAAAEPhMyl1O+utBkbLjVSJyzjZYJ5Xy/lnwm7s3x703v797dgf4SBP80c8ijkKV5pF1EQ==", "09120292232", false, "STAMP102", null, false, "Teacher@school.com", null },
-                    { "103", 0, "CONC103", null, null, "Student@school.com", true, "Student User", null, null, null, false, null, "STUDENT@SCHOOL.COM", "STUDENT@SCHOOL.COM", "AQAAAAIAAYagAAAAEMq+bPXz+HWyyLdpSrHEVvSn+laPSngO7R9AAuFMv94ZAHHejw/s8M8RM4+F07yfqQ==", "01290322332", false, "STAMP103", null, false, "Student@school.com", null },
-                    { "104", 0, "CONC104", null, null, "Parent@school.com", true, "Parent User", null, null, null, false, null, "PARENT@SCHOOL.COM", "PARENT@SCHOOL.COM", "AQAAAAIAAYagAAAAEBibolMRvjbAvc4/LoZUWNtpIxgcb98xG5u7ahqpvPg/btzq564NxKM8ksZGmV5HoQ==", "0810000000", false, "STAMP104", null, false, "Parent@school.com", null }
+                    { "100", 0, "CONC100", null, "olusanyadavid@yahoo.com", true, "Olusanya David Victor", null, false, null, "OLUSANYADAVID@YAHOO.COM", "OLUSANYADAVID@YAHOO.COM", "AQAAAAIAAYagAAAAEGa64htVQzybg2u/avK4d3XjHmoKtwaMwadBWy2qt5ikr2UXO7P9qPF5HeSFPleohA==", "0807212372", false, "STAMP100", null, false, "Olusanyadavid@yahoo.com", null },
+                    { "101", 0, "CONC101", null, "Admin@school.com", true, " ADMIN", null, false, null, "ADMIN@SCHOOL.COM", "ADMIN@SCHOOL.COM", "AQAAAAIAAYagAAAAEIy8NOSanRCKHABKFTSTeP1JRKNX7yGr3wrypZdMEZ0tplubK/k0eicqS/TAKYBAxQ==", "0812329221", false, "STAMP101", null, false, "Admin@school.com", null },
+                    { "102", 0, "CONC102", null, "Teacher@school.com", true, "Teacher", null, false, null, "TEACHER@SCHOOL.COM", "TEACHER@SCHOOL.COM", "AQAAAAIAAYagAAAAEJwB0j59B2FQYUSBQMUdzycvChhz9aPFtHq0lPjzMG67pGhjnofLYsP4OUjfTq8+lg==", "09120292232", false, "STAMP102", null, false, "Teacher@school.com", null },
+                    { "103", 0, "CONC103", null, "Student@school.com", true, "Student User", null, false, null, "STUDENT@SCHOOL.COM", "STUDENT@SCHOOL.COM", "AQAAAAIAAYagAAAAEA/51iEnEdERXGrx8hc2YcJMSKTSIYg+vU0yWsc03+YzEU+n27nN0BPWI8bEKWLxbA==", "01290322332", false, "STAMP103", null, false, "Student@school.com", null },
+                    { "104", 0, "CONC104", null, "Parent@school.com", true, "Parent User", null, false, null, "PARENT@SCHOOL.COM", "PARENT@SCHOOL.COM", "AQAAAAIAAYagAAAAEO8Eoh7DlIuT6BlIVztJvJ+m08YL36GTXK069JGLfqRJk3TPLm1zq6RjDR3DQZLoFQ==", "0810000000", false, "STAMP104", null, false, "Parent@school.com", null }
                 });
 
             migrationBuilder.InsertData(
@@ -488,9 +494,9 @@ namespace MiniSchoolSystem.Migrations
                 column: "NormalizedEmail");
 
             migrationBuilder.CreateIndex(
-                name: "IX_AspNetUsers_LessonContentId",
+                name: "IX_AspNetUsers_CourseModuleId",
                 table: "AspNetUsers",
-                column: "LessonContentId");
+                column: "CourseModuleId");
 
             migrationBuilder.CreateIndex(
                 name: "UserNameIndex",
@@ -502,9 +508,7 @@ namespace MiniSchoolSystem.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_DbCourse_CourseUserbID",
                 table: "DbCourse",
-                column: "CourseUserbID",
-                unique: true,
-                filter: "[CourseUserbID] IS NOT NULL");
+                column: "CourseUserbID");
 
             migrationBuilder.CreateIndex(
                 name: "IX_DbCourse_TeacherID",
@@ -519,9 +523,7 @@ namespace MiniSchoolSystem.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_DbLesson_LessonUserID",
                 table: "DbLesson",
-                column: "LessonUserID",
-                unique: true,
-                filter: "[LessonUserID] IS NOT NULL");
+                column: "LessonUserID");
 
             migrationBuilder.CreateIndex(
                 name: "IX_DbLesson_StudentId",
@@ -554,23 +556,19 @@ namespace MiniSchoolSystem.Migrations
                 column: "StudentId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_DbLessonEnrollments_UserDbId",
+                table: "DbLessonEnrollments",
+                column: "UserDbId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_DbLessonEnrollments_UserId",
                 table: "DbLessonEnrollments",
-                column: "UserId",
-                unique: true,
-                filter: "[UserId] IS NOT NULL");
+                column: "UserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_DbModules_CourseId",
                 table: "DbModules",
                 column: "CourseId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_DbModules_TeacherDbId",
-                table: "DbModules",
-                column: "TeacherDbId",
-                unique: true,
-                filter: "[TeacherDbId] IS NOT NULL");
 
             migrationBuilder.CreateIndex(
                 name: "IX_DbModules_TeacherId",
@@ -586,6 +584,11 @@ namespace MiniSchoolSystem.Migrations
                 name: "IX_DbStudentCourses_StudentId",
                 table: "DbStudentCourses",
                 column: "StudentId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DbStudentCourses_UserDbID",
+                table: "DbStudentCourses",
+                column: "UserDbID");
 
             migrationBuilder.CreateIndex(
                 name: "IX_DbStudents_StudentId",
@@ -634,10 +637,10 @@ namespace MiniSchoolSystem.Migrations
                 onDelete: ReferentialAction.Cascade);
 
             migrationBuilder.AddForeignKey(
-                name: "FK_AspNetUsers_DbLessonContent_LessonContentId",
+                name: "FK_AspNetUsers_DbModules_CourseModuleId",
                 table: "AspNetUsers",
-                column: "LessonContentId",
-                principalTable: "DbLessonContent",
+                column: "CourseModuleId",
+                principalTable: "DbModules",
                 principalColumn: "Id");
         }
 
@@ -647,18 +650,6 @@ namespace MiniSchoolSystem.Migrations
             migrationBuilder.DropForeignKey(
                 name: "FK_DbCourse_AspNetUsers_CourseUserbID",
                 table: "DbCourse");
-
-            migrationBuilder.DropForeignKey(
-                name: "FK_DbLesson_AspNetUsers_LessonUserID",
-                table: "DbLesson");
-
-            migrationBuilder.DropForeignKey(
-                name: "FK_DbModules_AspNetUsers_TeacherDbId",
-                table: "DbModules");
-
-            migrationBuilder.DropForeignKey(
-                name: "FK_DbStudents_AspNetUsers_StudentId",
-                table: "DbStudents");
 
             migrationBuilder.DropForeignKey(
                 name: "FK_DbTeacher_AspNetUsers_TeacherId",
@@ -680,6 +671,9 @@ namespace MiniSchoolSystem.Migrations
                 name: "AspNetUserTokens");
 
             migrationBuilder.DropTable(
+                name: "DbLessonContent");
+
+            migrationBuilder.DropTable(
                 name: "DbLessonEnrollments");
 
             migrationBuilder.DropTable(
@@ -692,19 +686,16 @@ namespace MiniSchoolSystem.Migrations
                 name: "AspNetRoles");
 
             migrationBuilder.DropTable(
-                name: "AspNetUsers");
-
-            migrationBuilder.DropTable(
-                name: "DbLessonContent");
-
-            migrationBuilder.DropTable(
                 name: "DbLesson");
 
             migrationBuilder.DropTable(
-                name: "DbModules");
+                name: "DbStudents");
 
             migrationBuilder.DropTable(
-                name: "DbStudents");
+                name: "AspNetUsers");
+
+            migrationBuilder.DropTable(
+                name: "DbModules");
 
             migrationBuilder.DropTable(
                 name: "DbCourse");
