@@ -1,72 +1,65 @@
-﻿<script>
-        // Get lesson ID from URL
-    const lessonId = window.location.pathname.split('/').filter(Boolean).pop();
+﻿// 1. Get the ID at the very top
+const lessonId = window.location.pathname.split('/').filter(Boolean).pop();
 
-    async function loadLesson() {
-            try {
-                const res = await fetch('/Lesson/GetLessons');
-    const data = await res.json();
-                const lesson = data.find(l => String(l.id) === String(lessonId));
+async function loadLesson(id) {
+    // Guard: Stop immediately if there is no ID
+    if (!id) {
+        console.warn("No ID found in URL");
+        return;
+    }
 
-    document.getElementById('loadingSkeleton').style.display = 'none';
-    document.getElementById('lessonContent').style.display = '';
+    try {
+        const res = await fetch('/Lesson/GetLessons');
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
 
-    if (!lesson) {
-        document.getElementById('lessonContent').innerHTML = `
-                        <div class="empty-state card">
-                            <div class="empty-state-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
-                            <h3>Lesson not found</h3>
-                            <p>It may have been deleted or archived.</p>
-                        </div>`;
-    return;
-                }
+        const data = await res.json();
 
-    document.getElementById('lessonTitle').textContent = lesson.title || '(No title)';
-    document.getElementById('lessonDescription').textContent = lesson.description || '';
-    document.getElementById('lessonSectionBadge').textContent = lesson.lessonSection || 'General';
-    document.getElementById('lessonBody').innerHTML = lesson.content || '<p style="color:var(--text-muted)">No content available.</p>';
-    document.getElementById('lessonCreated').textContent = lesson.createdAt
-    ? new Date(lesson.createdAt).toLocaleDateString('en-US', {year: 'numeric', month: 'long', day: 'numeric' })
-    : '—';
+        // Ensure we actually got an array back before calling .find()
+        if (!Array.isArray(data)) return;
 
-    if (lesson.fileUrl) {
-        document.getElementById('attachmentRow').style.display = '';
-    document.getElementById('attachmentLink').href = lesson.fileUrl;
-                }
+        const lesson = data.find(l => String(l.id) === String(id));
 
-    // Edit btn
-    const editBtn = document.getElementById('editLessonBtn');
-    if (editBtn) editBtn.href = '/Lesson/EditLesson/' + lesson.id;
+        // Helper: Safe visibility toggle
+        const toggle = (elId, display) => {
+            const el = document.getElementById(elId);
+            if (el) el.style.display = display;
+        };
 
-    // Delete
-    const deleteBtn = document.getElementById('deleteLessonBtn');
-    if (deleteBtn) {
-        deleteBtn.addEventListener('click', () => openModal('deleteModal'));
-                }
-                document.getElementById('confirmDeleteBtn').addEventListener('click', async () => {
-        closeModal('deleteModal');
-    const r = await fetch('/Lesson/' + lesson.id, {method: 'DELETE' });
-    if (r.ok) {
-        window.showToast('Lesson scheduled for deletion.', 'success');
-                        setTimeout(() => window.location = '/Lesson', 1500);
-                    }
-                });
+        toggle('loadingSkeleton', 'none');
+        toggle('lessonContent', '');
 
-    // Archive
-    const archiveBtn = document.getElementById('archiveLessonBtn');
-    if (archiveBtn) {
-        archiveBtn.addEventListener('click', async () => {
-            const ok = await window.confirmAction('Archive this lesson? Students will no longer see it.', 'Archive');
-            if (!ok) return;
-            const r = await fetch('/Lesson/archive/' + lesson.id, { method: 'PUT' });
-            if (r.ok) window.showToast('Lesson archived.', 'success');
-        });
-                }
-
-            } catch (e) {
-        console.error(e);
-            }
+        if (!lesson) {
+            const content = document.getElementById('lessonContent');
+            if (content) content.innerHTML = `<div class="alert">Lesson not found</div>`;
+            return;
         }
 
-    loadLesson();
-</script>
+        // --- Safe Assignments ---
+        const setTxt = (elId, val) => {
+            const el = document.getElementById(elId);
+            if (el) el.textContent = val || '';
+        };
+
+        setTxt('lessonTitle', lesson.title);
+        setTxt('lessonDescription', lesson.description);
+        setTxt('lessonSectionBadge', lesson.lessonSection);
+
+        // For HTML content (the lesson body)
+        const bodyEl = document.getElementById('lessonBody');
+        if (bodyEl) bodyEl.innerHTML = lesson.content || '';
+
+        // Date formatting
+        const dateEl = document.getElementById('lessonCreated');
+        if (dateEl && lesson.createdAt) {
+            dateEl.textContent = new Date(lesson.createdAt).toLocaleDateString();
+        }
+
+    } catch (e) {
+        console.error("Critical Load Error:", e);
+        const skeleton = document.getElementById('loadingSkeleton');
+        if (skeleton) skeleton.textContent = "Error loading content.";
+    }
+}
+
+// 2. Call it by passing the variable in
+loadLesson(lessonId);
