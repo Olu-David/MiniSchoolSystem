@@ -25,12 +25,11 @@ namespace MiniSchoolSystem
             });
 
             // ── 3. Database ───────────────────────────────────────
-            // FIX: Only register DbContext ONCE, resolving connection string properly
             if (builder.Environment.IsDevelopment())
             {
                 var localConn = builder.Configuration.GetConnectionString("DefaultConnection");
                 builder.Services.AddDbContext<AppDbContext>(options =>
-                    options.UseSqlServer(localConn)   
+                    options.UseSqlServer(localConn)
                         .EnableSensitiveDataLogging()
                         .ConfigureWarnings(w =>
                             w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics
@@ -38,15 +37,13 @@ namespace MiniSchoolSystem
             }
             else
             {
-                // FIX: Render gives DATABASE_URL in postgres://user:pass@host/db format
-                // Npgsql needs host=...;database=... format — convert it here
-                var rawUrl = Environment.GetEnvironmentVariable("postgresql://sabispacedb_user:Mi5f6JIoFv44SO5tHAqAGLnkKVBJ06ar@dpg-d6t912hj16oc73f6c740-a/sabispacedb")
+                var rawUrl = Environment.GetEnvironmentVariable("DATABASE_URL")
                              ?? builder.Configuration.GetConnectionString("DefaultConnection");
 
                 var npgsqlConn = ConvertPostgresUrl(rawUrl!);
 
                 builder.Services.AddDbContext<AppDbContext>(options =>
-                    options.UseNpgsql(npgsqlConn));   // FIX: pass converted string
+                    options.UseNpgsql(npgsqlConn));
             }
 
             // ── 4. Identity ───────────────────────────────────────
@@ -61,9 +58,6 @@ namespace MiniSchoolSystem
                 options.Lockout.MaxFailedAccessAttempts = 5;
 
                 options.User.RequireUniqueEmail = true;
-
-                // FIX: Set to false unless your EmailService is confirmed working on Render.
-                // Flip back to true only after testing email confirmation end-to-end.
                 options.SignIn.RequireConfirmedEmail = false;
             })
             .AddEntityFrameworkStores<AppDbContext>()
@@ -88,14 +82,26 @@ namespace MiniSchoolSystem
             // ── 7. File Service ───────────────────────────────────
             builder.Services.AddScoped<IFileService, FileService>();
 
-            // FIX: Removed the fragile ILogger singleton — ASP.NET Core's built-in
-            // logging already provides ILogger<T>. Inject ILogger<LessonController>
-            // directly in your controller constructor instead.
-
             // ─────────────────────────────────────────────────────
             var app = builder.Build();
             // ─────────────────────────────────────────────────────
 
+            // ── Auto-migrate on startup ───────────────────────────
+            using (var scope = app.Services.CreateScope())
+            {
+                try
+                {
+                    var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                    context.Database.Migrate();
+                    Console.WriteLine("✓ Database migrations applied.");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"✗ Migration failed: {ex.Message}");
+                }
+            }
+
+            // ── Middleware Pipeline ───────────────────────────────
             if (!app.Environment.IsDevelopment())
             {
                 app.UseExceptionHandler("/Home/Error");
@@ -116,7 +122,6 @@ namespace MiniSchoolSystem
             app.Run();
         }
 
-       
         private static string ConvertPostgresUrl(string url)
         {
             var uri = new Uri(url);
