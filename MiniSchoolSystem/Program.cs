@@ -14,6 +14,8 @@ namespace MiniSchoolSystem
         {
             var builder = WebApplication.CreateBuilder(args);
 
+            builder.Services.AddScoped<IUserService, UserService>();
+
             // ── 1. MVC ────────────────────────────────────────────
             builder.Services.AddControllersWithViews();
 
@@ -81,7 +83,7 @@ namespace MiniSchoolSystem
 
             // ── 7. File Service ───────────────────────────────────
             builder.Services.AddScoped<IFileService, FileService>();
-
+            builder.Services.AddScoped<IUserService, UserService>();
             // ─────────────────────────────────────────────────────
             var app = builder.Build();
             // ─────────────────────────────────────────────────────

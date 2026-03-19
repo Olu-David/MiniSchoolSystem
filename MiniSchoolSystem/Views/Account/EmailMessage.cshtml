@@ -1,0 +1,413 @@
+﻿@{
+    ViewData["Title"] = "EmailConfirm — SabiSpace";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    // Passed from controller after ConfirmMailAsync:
+    // ViewBag.Success = true/false
+    // ViewBag.Email   = user's email (masked)
+    bool success = ViewBag.Success == true;
+}
+
+@section Styles {
+    <style>
+
+        :root {
+            --sabi: #ff5c1a;
+            --sabi-h: #ff7340;
+            --sabi-dim: rgba(255,92,26,.14);
+            --sabi-ring: rgba(255,92,26,.24);
+            --sage: #3dba8c;
+            --ink: #0b0c0f;
+            --ink2: #13151c;
+            --ink3: #1a1d27;
+            --muted: #6b7280;
+            --cream: #fffdf7;
+            --border: rgba(255,255,255,.07);
+            --border2: rgba(255,255,255,.13)
+        }
+
+        .ce-page {
+            min-height: calc(100vh - 72px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            background: var(--ink);
+            position: relative;
+            overflow: hidden
+        }
+
+            .ce-page::before {
+                content: '';
+                position: absolute;
+                inset: 0;
+                background-image: radial-gradient(circle,rgba(255,253,247,.04) 1px,transparent 1px);
+                background-size: 28px 28px;
+                pointer-events: none
+            }
+
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(90px);
+            pointer-events: none
+        }
+
+        .b1 {
+            width: 500px;
+            height: 500px;
+            background: rgba(255,92,26,.12);
+            top: -150px;
+            left: -150px;
+            animation: d1 14s ease-in-out infinite alternate
+        }
+
+        .b2 {
+            width: 360px;
+            height: 360px;
+            background: rgba(61,186,140,.09);
+            bottom: -100px;
+            right: -100px;
+            animation: d2 10s ease-in-out infinite alternate
+        }
+
+        @@keyframes d1 {
+            to {
+                transform: translate(25px,18px) scale(1.05)
+            }
+        }
+
+        @@keyframes d2 {
+            to {
+                transform: translate(-18px,25px) scale(1.07)
+            }
+        }
+
+        .ce-card {
+            position: relative;
+            z-index: 1;
+            background: var(--ink2);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 52px 44px;
+            width: 100%;
+            max-width: 480px;
+            box-shadow: 0 32px 80px rgba(0,0,0,.5);
+            text-align: center
+        }
+
+        /* Success icon */
+        .ce-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 24px;
+            display: grid;
+            place-items: center;
+            font-size: 36px;
+            margin: 0 auto 28px
+        }
+
+            .ce-icon.ok {
+                background: rgba(61,186,140,.15);
+                border: 1px solid rgba(61,186,140,.25);
+                animation: icon-pulse-ok 3s ease-in-out infinite
+            }
+
+            .ce-icon.err {
+                background: rgba(248,113,113,.12);
+                border: 1px solid rgba(248,113,113,.25);
+                animation: icon-pulse-err 3s ease-in-out infinite
+            }
+
+        @@keyframes icon-pulse-ok {
+            0%, 100% {
+                box-shadow: 0 0 0 0 rgba(61,186,140,.2)
+            }
+
+            50% {
+                box-shadow: 0 0 0 10px rgba(61,186,140,0)
+            }
+        }
+
+        @@keyframes icon-pulse-err {
+            0%, 100% {
+                box-shadow: 0 0 0 0 rgba(248,113,113,.2)
+            }
+
+            50% {
+                box-shadow: 0 0 0 10px rgba(248,113,113,0)
+            }
+        }
+
+        .ce-title {
+            font-family: 'Syne',sans-serif;
+            font-weight: 800;
+            font-size: 1.7rem;
+            letter-spacing: -.6px;
+            color: var(--cream);
+            margin-bottom: 10px
+        }
+
+        .ce-body {
+            font-size: 14px;
+            color: var(--muted);
+            line-height: 1.75;
+            margin-bottom: 32px
+        }
+
+            .ce-body strong {
+                color: var(--cream)
+            }
+
+        /* Checklist (success state) */
+        .check-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            text-align: left;
+            margin-bottom: 32px
+        }
+
+        .check-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 13px 16px;
+            background: rgba(61,186,140,.07);
+            border: 1px solid rgba(61,186,140,.15);
+            border-radius: 12px;
+            font-size: 13px;
+            color: rgba(255,253,247,.8)
+        }
+
+        .check-dot {
+            width: 22px;
+            height: 22px;
+            border-radius: 7px;
+            background: rgba(61,186,140,.2);
+            border: 1px solid rgba(61,186,140,.3);
+            display: grid;
+            place-items: center;
+            font-size: 12px;
+            flex-shrink: 0
+        }
+
+        /* Resend box (for email not confirmed yet) */
+        .resend-box {
+            background: var(--ink3);
+            border: 1px solid var(--border2);
+            border-radius: 14px;
+            padding: 20px;
+            margin-bottom: 28px;
+            text-align: left
+        }
+
+            .resend-box p {
+                font-size: 13px;
+                color: var(--muted);
+                line-height: 1.65;
+                margin-bottom: 14px
+            }
+
+        .resend-form {
+            display: flex;
+            gap: 10px
+        }
+
+        .resend-input {
+            flex: 1;
+            padding: 10px 14px;
+            background: var(--ink2);
+            border: 1.5px solid var(--border2);
+            border-radius: 10px;
+            color: var(--cream);
+            font-family: 'DM Sans',sans-serif;
+            font-size: 13px;
+            transition: border-color .2s
+        }
+
+            .resend-input:focus {
+                border-color: var(--sabi);
+                box-shadow: 0 0 0 3px var(--sabi-ring);
+                outline: none
+            }
+
+        .resend-btn {
+            padding: 10px 18px;
+            background: var(--sabi);
+            border: none;
+            border-radius: 10px;
+            color: #fff;
+            font-family: 'DM Sans',sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background .2s;
+            white-space: nowrap
+        }
+
+            .resend-btn:hover {
+                background: var(--sabi-h)
+            }
+
+            .resend-btn:disabled {
+                opacity: .6;
+                cursor: not-allowed
+            }
+
+        /* Primary CTA */
+        .cta-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 14px;
+            border-radius: 12px;
+            background: var(--sabi);
+            border: none;
+            color: #fff;
+            font-family: 'DM Sans',sans-serif;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+            box-shadow: 0 6px 20px rgba(255,92,26,.3);
+            transition: background .2s,box-shadow .2s,transform .2s
+        }
+
+            .cta-btn:hover {
+                background: var(--sabi-h);
+                box-shadow: 0 8px 28px rgba(255,92,26,.45);
+                transform: translateY(-1px);
+                color: #fff
+            }
+
+            .cta-btn.outline {
+                background: transparent;
+                border: 1.5px solid var(--border2);
+                color: var(--cream);
+                box-shadow: none
+            }
+
+                .cta-btn.outline:hover {
+                    background: rgba(255,255,255,.06);
+                    transform: translateY(-1px);
+                    color: var(--cream)
+                }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 16px;
+            font-size: 13px;
+            color: var(--muted);
+            text-decoration: none;
+            transition: color .2s
+        }
+
+            .back-link:hover {
+                color: var(--cream)
+            }
+    </style>
+}
+
+<div class="ce-page">
+    <div class="blob b1"></div>
+    <div class="blob b2"></div>
+
+    <div class="ce-card">
+
+        @if (success)
+        {
+            <!-- ═══ SUCCESS STATE ═══ -->
+            <div class="ce-icon ok">✅</div>
+            <h1 class="ce-title">Email confirmed!</h1>
+            <p class="ce-body">
+                Your SabiSpace account is now fully activated.<br>
+                <strong>You're all set to start learning.</strong>
+            </p>
+
+            <div class="check-list">
+                <div class="check-item">
+                    <div class="check-dot">✓</div>
+                    <span>Account created &amp; verified</span>
+                </div>
+                <div class="check-item">
+                    <div class="check-dot">✓</div>
+                    <span>Access to all SabiSpace lessons unlocked</span>
+                </div>
+                <div class="check-item">
+                    <div class="check-dot">✓</div>
+                    <span>Progress tracking &amp; certificates enabled</span>
+                </div>
+            </div>
+
+            <a asp-controller="Auth" asp-action="Login" class="cta-btn">
+                Sign In and Start Learning →
+            </a>
+        }
+        else
+        {
+            <!-- ═══ PENDING / INVALID TOKEN STATE ═══ -->
+            <div class="ce-icon err">📬</div>
+            <h1 class="ce-title">Check your inbox</h1>
+            <p class="ce-body">
+                We sent a confirmation link to
+                @if (ViewBag.Email != null)
+                {
+                    <strong>@ViewBag.Email</strong>
+                }
+                else
+                {
+                    <strong>your email address</strong>
+                }
+                .
+                Click the link in that email to activate your account.
+            </p>
+
+            <!-- Resend -->
+            <div class="resend-box">
+                <p>Didn't receive it? Check your spam folder, or resend below.</p>
+                <form asp-controller="Auth" asp-action="ResendConfirmation" method="post" class="resend-form" id="resendForm">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="email" value="@ViewBag.Email" />
+                    <button type="submit" class="resend-btn" id="resendBtn">Resend email</button>
+                </form>
+            </div>
+
+            @if (TempData["Error"] != null)
+            {
+                <p style="font-size:13px;color:#f87171;margin-bottom:20px">⚠️ @TempData["Error"]</p>
+            }
+            @if (TempData["Success"] != null)
+            {
+                <p style="font-size:13px;color:var(--sage);margin-bottom:20px">✅ @TempData["Success"]</p>
+            }
+
+            <a asp-controller="Auth" asp-action="Login" class="cta-btn outline">
+                ← Back to Sign In
+            </a>
+        }
+
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const resendForm = document.getElementById('resendForm');
+        if (resendForm) {
+          resendForm.addEventListener('submit', function () {
+            const btn = document.getElementById('resendBtn');
+            btn.disabled = true;
+            btn.textContent = 'Sending…';
+            // Re-enable after 30s to prevent spam
+            setTimeout(() => {
+              btn.disabled = false;
+              btn.textContent = 'Resend email';
+            }, 30000);
+          });
+        }
+    </script>
+}

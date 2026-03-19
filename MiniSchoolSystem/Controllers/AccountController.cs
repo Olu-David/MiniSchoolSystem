@@ -5,6 +5,7 @@ using MiniSchoolSystem.DTO;
 using MiniSchoolSystem.Enums;
 using MiniSchoolSystem.Implementation.Interfaces;
 using MiniSchoolSystem.Models;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace MiniSchoolSystem.Controllers
 {
@@ -48,34 +49,65 @@ namespace MiniSchoolSystem.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+    
         public async Task<IActionResult> Registration(RegisterViewModel model)
         {
-
-            // 1. Validation & Password Null Check
+            // 1. Basic Validation
             if (!ModelState.IsValid || string.IsNullOrEmpty(model.Password))
             {
                 return View(model);
             }
-            var user = new UserDb { Email = model.Email };
-            var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-            var ConfirmationLink = Url.Action("ConfirmEmail", "Account", new { userid = user.Id, token = token }, Request.Scheme);
 
-            var result = await _userService.RegistrationAsync(model, ConfirmationLink);
-            if (!result.Succeeded)
+           
+            var result = await _userService.RegistrationAsync(model, null);
+
+            if (result.Succeeded)
             {
-                foreach (var error in result.Errors)
-                {
-                    ModelState.AddModelError("", error.Description.ToString());
-                    return View(model);
-                }
+                // Step B: Now the user exists in the DB! Find them to get their ID.
+                var user = await _userManager.FindByEmailAsync(model.Email);
+                if (user == null) return Unauthorized();
+
+                // Step C: Generate the Token & Link
+                var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+                var encodedToken = Microsoft.AspNetCore.WebUtilities.WebEncoders.Base64UrlEncode(
+                    System.Text.Encoding.UTF8.GetBytes(token));
+
+                var confirmationLink = Url.Action(
+                    action: "ConfirmEmail",
+                    controller: "Auth",
+                    values: new { userId = user.Id, token = encodedToken },
+                    protocol: Request.Scheme);
+
+                // Step D: Now send the email using your service
+                await _emailService.SendEmailAsync(user.Email??"null", "Confirm your SabiSpace Account",
+                    $"Please confirm your account by clicking here: <a href='{confirmationLink}'>Click Here</a>");
+
+                // 3. Show the "Check your inbox" page
+                ViewBag.Success = false;
+                ViewBag.Email = model.Email;
+                return View("EmailMessage");
             }
 
-            return RedirectToAction(nameof(Login));
+            // 4. Handle Errors
+            foreach (var error in result.Errors)
+            {
+                ModelState.AddModelError("", error.Description);
+            }
 
-
+            return View(model);
         }
-
         [HttpGet]
+        public IActionResult EmailMessage()
+        {
+            return View();
+        }
+        [HttpGet]
+        public IActionResult ConfirmEmail()
+        {
+            return View();
+        }
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> ConfirmEmail(string userId, string token)
         {
             if (userId == null || token == null)
@@ -86,7 +118,9 @@ namespace MiniSchoolSystem.Controllers
             var user = await _userManager.FindByIdAsync(userId);
             if (user == null)
             {
-                return View("Error");
+                ViewBag.Success = false;
+
+                return Unauthorized( "User Not Found");
             }
 
 
@@ -100,7 +134,42 @@ namespace MiniSchoolSystem.Controllers
 
             return View("Error");
         }
+
         [HttpPost]
+        public async Task<IActionResult> ResendConfirmation(string email)
+        {
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null) return Unauthorized();
+
+            // Step C: Generate the Token & Link
+            var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+            var encodedToken = Microsoft.AspNetCore.WebUtilities.WebEncoders.Base64UrlEncode(
+                System.Text.Encoding.UTF8.GetBytes(token));
+
+            var confirmationLink = Url.Action(
+                action: "ConfirmEmail",
+                controller: "Auth",
+                values: new { userId = user.Id, token = encodedToken },
+                protocol: Request.Scheme);
+
+            // Step D: Now send the email using your service
+            await _emailService.SendEmailAsync(user.Email ?? "null", "Confirm your SabiSpace Account",
+                $"Please confirm your account by clicking here: <a href='{confirmationLink}'>Click Here</a>");
+
+            // 3. Show the "Check your inbox" page
+            ViewBag.Success = false;
+            ViewBag.Email = email;
+            return View("EmailMessage");
+        }
+        
+        [HttpGet]
+        public IActionResult Login( )
+        {
+            return View();
+        }
+
+            [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(LoginViewDTO model)
         {
             if (!ModelState.IsValid)
@@ -113,6 +182,7 @@ namespace MiniSchoolSystem.Controllers
 
             if (requires2FA)
             {
+                TempData["2FAEmail"] = model.Email;
                 await _userService.Send2FAAsync(user);
             }
 

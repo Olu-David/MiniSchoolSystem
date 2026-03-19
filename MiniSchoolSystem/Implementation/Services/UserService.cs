@@ -33,9 +33,16 @@ namespace MiniSchoolSystem.Implementation.Services
             return user.UserSection.HasValue && sections == user.UserSection.Value;
         }
 
-        public Task<IdentityResult> ConfirmMailAsync(UserDb user, string? token)
+        public async Task<IdentityResult> ConfirmMailAsync(UserDb user, string? token)
         {
-            throw new NotImplementedException();
+            if (token == null) return IdentityResult.Failed(new IdentityError { Description="Token Failed"});
+
+            var result= await _userManager.ConfirmEmailAsync(user, token);  
+            if(!result.Succeeded)
+            {
+                return IdentityResult.Failed(new IdentityError { Description = "Account Confirmation Failed" });
+            }
+            return IdentityResult.Success;
         }
 
         public async Task<bool> DeactivateAccountAsync(UserDb user)
@@ -88,37 +95,40 @@ namespace MiniSchoolSystem.Implementation.Services
 
         public async Task<IdentityResult> RegistrationAsync(RegisterViewModel model, string? ConfirmationLink)
         {
+            // 1. Create the User object from the ViewModel
             var user = new UserDb
             {
+                UserName = model.Email, // Identity requires a UserName
                 Email = model.Email,
-                EmailConfirmed = false,
-                TwoFactorEnabled = false,
                 FullName = $"{model.FirstName} {model.LastName}",
+                PhoneNumber = model.PhoneNumber,
                 UserSection = model.Role == "Student" ? model.Section : null,
-                PhoneNumber = model.PhoneNumber
+                EmailConfirmed = false // Keep them locked out until they click the link
             };
+
+            // 2. Save to Database
             var result = await _userManager.CreateAsync(user, model.Password);
+
             if (result.Succeeded)
             {
-                if (model.Role == "Student" || model.Role == "Parent")
+                // 3. Handle Roles (Student/Parent/etc.)
+                if (!string.IsNullOrEmpty(model.Role))
                 {
+                    // Create role if it doesn't exist (Safety Check)
                     if (!await _roleManager.RoleExistsAsync(model.Role))
                     {
                         await _roleManager.CreateAsync(new IdentityRole(model.Role));
-
                     }
+
+                    // Assign the role
                     await _userManager.AddToRoleAsync(user, model.Role);
                 }
-
-
             }
-            if (!string.IsNullOrEmpty(ConfirmationLink))
-            {
-                await _emailService.SendEmailAsync(user.Email!, "Email Confirmation",
-                    $"Confirm your Account By clicking this link <a href='{ConfirmationLink}'>Click Here</a>");
-            }
+
             return result;
         }
+          
+        
         public async Task<IdentityResult> ResetPasswordAsync(string email, string token, string password)
         {
             if (string.IsNullOrEmpty(token)) throw new ArgumentNullException(nameof(token), "Token is missing.");

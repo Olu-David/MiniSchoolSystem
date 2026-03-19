@@ -1,98 +1,79 @@
 ﻿@{
-    ViewData["Title"] = "Lessons";
-    ViewData["Breadcrumb"] = "Dashboard";
+    ViewData["Title"] = "Lessons — SabiSpace";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-@section TopBarActions {
-    @if (User.IsInRole("SuperAdmin") || User.IsInRole("Teacher"))
-    {
-        <a href="@Url.Action("CreateLesson")" class="btn btn-primary">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-            New Lesson
-        </a>
-    }
+@section Styles {
+   <link href="~/css/Index.css" rel="stylesheet" />
 }
 
-<!-- Stats -->
-<div class="stats-grid stagger">
-    <div class="stat-card">
-        <div class="stat-icon stat-icon-orange">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>
-        </div>
-        <div class="stat-body">
-            <div class="stat-number" id="statLessons">—</div>
-            <div class="stat-label">Active Lessons</div>
-        </div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-icon stat-icon-blue">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg>
-        </div>
-        <div class="stat-body">
-            <div class="stat-number" id="statCourses">—</div>
-            <div class="stat-label">Courses</div>
-        </div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-icon stat-icon-green">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" /></svg>
-        </div>
-        <div class="stat-body">
-            <div class="stat-number" id="statModules">—</div>
-            <div class="stat-label">Modules</div>
-        </div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-icon stat-icon-purple">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
-        </div>
-        <div class="stat-body">
-            <div class="stat-number" id="statStudents">—</div>
-            <div class="stat-label">Students</div>
-        </div>
-    </div>
-</div>
+<div class="lp">
 
-<!-- Lessons Table -->
-<div class="card fade-in">
-    <div class="card-header">
-        <div>
-            <div class="card-title">All Lessons</div>
-            <div class="card-subtitle">Active, non-archived content</div>
-        </div>
-        <div style="display:flex;gap:10px;align-items:center;">
-            <input type="text" id="searchLessons" placeholder="Search lessons…" style="width:200px;padding:8px 12px;font-size:0.85rem;" />
+    <!-- HERO -->
+    <div class="lp-hero">
+        <div class="hblob hb1"></div>
+        <div class="hblob hb2"></div>
+        <div class="hi">
+            <div class="hi-left">
+                <h1>SabiSpace Lessons</h1>
+                <p>Expert-taught, curriculum-aligned lessons for every section and level.</p>
+                <div class="badge-row">
+                    <span class="hbadge hb-live">Live Now</span>
+                    <span class="hbadge hb-info">🎓 12,000+ Learners</span>
+                    <span class="hbadge hb-info">📚 340+ Lessons</span>
+                </div>
+            </div>
+            @if (User.IsInRole("Teacher") || User.IsInRole("SuperAdmin"))
+            {
+                <a asp-controller="Lesson" asp-action="CreateLesson" class="btn btn-sabi">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14" /></svg>
+                    Create Lesson
+                </a>
+            }
         </div>
     </div>
 
-    <div class="table-wrapper" id="lessonsTableWrap">
-        <table id="lessonsTable">
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Title</th>
-                    <th>Section</th>
-                    <th>Status</th>
-                    <th>Created</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody id="lessonsBody">
-                <tr>
-                    <td colspan="6">
-                        <div class="empty-state">
-                            <div class="empty-state-icon">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>
-                            </div>
-                            <h3>Loading lessons…</h3>
-                        </div>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+    <!-- TOOLBAR -->
+    <div class="toolbar">
+        <div class="sw">
+            <span class="si">⌕</span>
+            <input type="search" id="srch" placeholder="Search lessons…" oninput="filter()" />
+        </div>
+        <select class="fsel" id="secFilter" onchange="filter()">
+            <option value="">All Sections</option>
+            <option>JSS1</option>
+            <option>JSS2</option>
+            <option>JSS3</option>
+            <option>SS1</option>
+            <option>SS2</option>
+            <option>SS3</option>
+            <option>Higher</option>
+            <option>Professional</option>
+        </select>
+        <div class="vt">
+            <button class="vtb on" id="btnG" onclick="setView('g')" title="Grid">⊞</button>
+            <button class="vtb" id="btnL" onclick="setView('l')" title="List">☰</button>
+        </div>
+        <span class="rc" id="rc">Loading…</span>
     </div>
+
+    <!-- GRID -->
+    <div class="grid" id="grid">
+        <div class="empty" id="loader">
+            <div class="empty-icon">⏳</div>
+            <h3>Loading lessons…</h3>
+            <p>Fetching the latest lessons for you.</p>
+        </div>
+    </div>
+
+    @if (User.IsInRole("Teacher") || User.IsInRole("SuperAdmin"))
+    {
+        <a asp-controller="Lesson" asp-action="CreateLesson" class="fab" title="Create lesson">＋</a>
+    }
+
 </div>
+
+
 @section Scripts {
     @* 1. Link to the built-in validation scripts (jQuery Validation) *@
    @* Include standard validation first *@
