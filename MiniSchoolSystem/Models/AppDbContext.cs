@@ -1,15 +1,18 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using System;
 
 namespace MiniSchoolSystem.Models
 {
-    public class AppDbContext:IdentityDbContext<UserDb>
+    public class AppDbContext:IdentityDbContext<UserDb>, IDataProtectionKeyContext
     {
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
         {
         }
+        
+        public DbSet<DataProtectionKey> DataProtectionKeys { get; set; }
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
@@ -19,29 +22,62 @@ namespace MiniSchoolSystem.Models
                 entity.ToTable("AspNetUsers");
                 entity.Property(m => m.FullName).HasMaxLength(200).IsRequired();
             });
-            //For Course to User
-           
-            // Course to Module: Cascade is fine here because Course to Teacher is Restrict
-            builder.Entity<CourseModule>().HasOne(m => m.Course).WithMany(c => c.CourseModules).HasForeignKey(m => m.CourseId).OnDelete(DeleteBehavior.Cascade);
+            // Course to Module
+            builder.Entity<CourseModule>()
+                .HasOne(m => m.Course)
+                .WithMany(c => c.CourseModules)
+                .HasForeignKey(m => m.CourseId)
+                .OnDelete(DeleteBehavior.Cascade);
 
-            // Teacher to Course: KEEP RESTRICT (Breaks the main cycle)
-            builder.Entity<Course>().HasOne(m => m.CourseTeacher).WithMany(c => c.Courses).HasForeignKey(p => p.TeacherID).OnDelete(DeleteBehavior.Restrict);
+            // Teacher to Course
+            builder.Entity<Course>()
+                .HasOne(m => m.CourseTeacher)
+                .WithMany(c => c.Courses)
+                .HasForeignKey(p => p.TeacherID)
+                .OnDelete(DeleteBehavior.Restrict);
 
-           builder.Entity<LessonEnrollment>().HasOne(m=>m.UserDb).WithMany().HasForeignKey(p => p.UserId).OnDelete(DeleteBehavior.Restrict);
-            builder.Entity<LessonEnrollment>().HasOne(m => m.Lesson).WithMany(e => e.LessonEnrollments).HasForeignKey(le => le.LessonId).OnDelete(DeleteBehavior.Restrict);
-            // Enrollment to Student: Change to Cascade (Standard behavior)
-            builder.Entity<LessonEnrollment>().HasOne(s => s.StudentModel).WithMany(c => c.lessonEnrollments).HasForeignKey(m => m.StudentId).OnDelete(DeleteBehavior.Cascade);
+            // Enrollment to User (Identity)
+            builder.Entity<LessonEnrollment>()
+                .HasOne(m => m.UserDb)
+                .WithMany(u => u.LessonEnrollments)
+                .HasForeignKey(p => p.StudentId) // Matches the string property
+                .OnDelete(DeleteBehavior.Restrict);
 
-            // Rest of your restrictive logic
-            builder.Entity<TeacherSection>().HasOne(m => m.Teacher).WithMany(c => c.TeacherSections).HasForeignKey(m => m.TeacherId).OnDelete(DeleteBehavior.Restrict);
-            builder.Entity<Lesson>().HasOne(m => m.CourseModule).WithMany(c => c.Lessons).HasForeignKey(m => m.CourseModuleId).OnDelete(DeleteBehavior.Restrict);
-            builder.Entity<LessonContent>().HasOne(m => m.Lesson).WithMany(m => m.LessonContent).HasForeignKey(m => m.LessonId).OnDelete(DeleteBehavior.Restrict);
+            // Enrollment to Lesson
+            builder.Entity<LessonEnrollment>()
+                .HasOne(m => m.Lesson)
+                .WithMany(e => e.LessonEnrollments)
+                .HasForeignKey(le => le.LessonId)
+                .OnDelete(DeleteBehavior.Restrict);
 
+            // Lesson to Module
+            builder.Entity<Lesson>()
+                .HasOne(m => m.CourseModule)
+                .WithMany(c => c.Lessons)
+                .HasForeignKey(m => m.CourseModuleId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Lesson Content (The fix for the Global Filter warning)
+            builder.Entity<LessonContent>()
+                .HasOne(m => m.Lesson)
+                .WithMany(m => m.LessonContent)
+                .HasForeignKey(m => m.LessonId)
+                .IsRequired(false) // Prevents crash when Lesson is filtered/deleted
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Teacher Section
+            builder.Entity<TeacherSection>()
+                .HasOne(m => m.Teacher)
+                .WithMany(c => c.TeacherSections)
+                .HasForeignKey(m => m.TeacherId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Global Filter for Soft Delete
             builder.Entity<Lesson>().HasQueryFilter(l => !l.IsDeleted);
+        
 
-            
-            //DatabaseLine important
-            RolesSeedCreation(builder);
+        //DatabaseLine important
+        RolesSeedCreation(builder);
         }
 
         public void RolesSeedCreation(ModelBuilder builder)

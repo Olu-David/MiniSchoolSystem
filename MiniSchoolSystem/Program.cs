@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using MiniSchoolSystem.Implementation.Interfaces;
@@ -10,14 +11,15 @@ namespace MiniSchoolSystem
 {
     public class Program
     {
-        public static void Main(string[] args)
+            public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            builder.Services.AddScoped<IUserService, UserService>();
-
-            // ── 1. MVC ────────────────────────────────────────────
+            // ── 1. Services ───────────────────────────────────────
             builder.Services.AddControllersWithViews();
+            builder.Services.AddScoped<IUserService, UserService>(); // Keep only one
+            builder.Services.AddScoped<IEmailService, EmailService>();
+            builder.Services.AddScoped<IFileService, FileService>();
 
             // ── 2. Cookie Policy ──────────────────────────────────
             builder.Services.Configure<CookiePolicyOptions>(options =>
@@ -48,24 +50,19 @@ namespace MiniSchoolSystem
                     options.UseNpgsql(npgsqlConn));
             }
 
-            // ── 4. Identity ───────────────────────────────────────
+            // ── 4. Identity & Auth ────────────────────────────────
             builder.Services.AddIdentity<UserDb, IdentityRole>(options =>
             {
                 options.Password.RequireDigit = true;
                 options.Password.RequiredLength = 6;
                 options.Password.RequireNonAlphanumeric = false;
                 options.Password.RequireUppercase = false;
-
-                options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
-                options.Lockout.MaxFailedAccessAttempts = 5;
-
                 options.User.RequireUniqueEmail = true;
                 options.SignIn.RequireConfirmedEmail = false;
             })
             .AddEntityFrameworkStores<AppDbContext>()
             .AddDefaultTokenProviders();
 
-            // ── 5. Cookie Auth ────────────────────────────────────
             builder.Services.ConfigureApplicationCookie(options =>
             {
                 options.LoginPath = "/Account/Login";
@@ -76,41 +73,26 @@ namespace MiniSchoolSystem
                 options.SlidingExpiration = true;
             });
 
-            // ── 6. Email Service ──────────────────────────────────
             builder.Services.Configure<EmailSettings>(
                 builder.Configuration.GetSection("EmailSetting"));
-            builder.Services.AddScoped<IEmailService, EmailService>();
 
-            // ── 7. File Service ───────────────────────────────────
-            builder.Services.AddScoped<IFileService, FileService>();
-            builder.Services.AddScoped<IUserService, UserService>();
-            // ─────────────────────────────────────────────────────
+
+            // ── 5. Middleware Pipeline ───────────────────────────
             var app = builder.Build();
-            // ─────────────────────────────────────────────────────
-
-            // ── Auto-migrate on startup ───────────────────────────
-            using (var scope = app.Services.CreateScope())
+            if (app.Environment.IsDevelopment())
             {
-                try
-                {
-                    var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-                    context.Database.Migrate();
-                    Console.WriteLine("✓ Database migrations applied.");
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"✗ Migration failed: {ex.Message}");
-                }
+                app.UseDeveloperExceptionPage();
+                app.UseHttpsRedirection(); // Only redirect locally
             }
-
-            // ── Middleware Pipeline ───────────────────────────────
-            if (!app.Environment.IsDevelopment())
+            else
             {
                 app.UseExceptionHandler("/Home/Error");
                 app.UseHsts();
+                // DO NOT use HttpsRedirection here; let Render handle it.
             }
-
-            app.UseHttpsRedirection();
+            //6/////////////DATA PROTECTION
+            builder.Services.AddDataProtection()
+             .PersistKeysToDbContext<AppDbContext>();
             app.UseStaticFiles();
             app.UseRouting();
             app.UseCookiePolicy();
@@ -120,6 +102,26 @@ namespace MiniSchoolSystem
             app.MapControllerRoute(
                 name: "default",
                 pattern: "{controller=Account}/{action=Login}/{id?}");
+
+            // ── 6. Auto-migrate ──────────────────────────────────
+            using (var scope = app.Services.CreateScope())
+            {
+                var services = scope.ServiceProvider;
+                try
+                {
+                    var context = services.GetRequiredService<AppDbContext>();
+                    // Force migration on startup to ensure tables exist
+                    context.Database.Migrate();
+                    Console.WriteLine("SabiSpace: Migration Successful!");
+                }
+                catch (Exception ex)
+                {
+                    var logger = services.GetRequiredService<ILogger<Program>>();
+                    logger.LogError(ex, "SabiSpace Error: Migration failed on startup.");
+                }
+            }
+
+         
 
             app.Run();
         }
