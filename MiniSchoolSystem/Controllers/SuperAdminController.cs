@@ -16,8 +16,7 @@ namespace MiniSchoolSystem.Controllers
         private readonly UserManager<UserDb> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly AppDbContext _dbContext;
-        private readonly ICourseService _courseService;
-        private readonly IFileService _fileService;
+ 
         private readonly IUserService _UserService;
         private double totalRevenue;
 
@@ -26,8 +25,6 @@ namespace MiniSchoolSystem.Controllers
             _userManager = userManager;
             _roleManager = roleManager;
             _dbContext = dbContext;
-            _courseService = courseService;
-            _fileService = fileService;
             _UserService = userService;
         }
 

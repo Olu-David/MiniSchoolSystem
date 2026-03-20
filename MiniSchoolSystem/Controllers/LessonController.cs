@@ -125,7 +125,7 @@ namespace MiniSchoolSystem.Controllers
 
             var newLesson = new Lesson
             {
-                Title = model.Title,
+                Title = model.Title??"null",
                 Description = model.Description,
                 TeacherId = teacher.Id,
                 CreatedAt = DateTime.UtcNow,
