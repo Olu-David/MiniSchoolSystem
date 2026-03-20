@@ -238,7 +238,7 @@ namespace MiniSchoolSystem.Controllers
             {
                 return View(model);
             }
-            var result = await _userService.ResetPasswordAsync(model.Email, model.Token, model.NewPassword);
+            var result = await _userService.ResetPasswordAsync(model.Email??"null", model.Token??"null", model.NewPassword ?? "null"    );
             if (!result.Succeeded)
             {
                 foreach (var error in result.Errors)

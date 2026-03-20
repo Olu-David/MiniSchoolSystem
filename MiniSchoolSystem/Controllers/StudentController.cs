@@ -56,7 +56,7 @@ namespace MiniSchoolSystem.Controllers
             var viewCourse = await _DbContext.DbCourse
                 .Include(m => m.CourseModules)
                     .ThenInclude(l => l.Lessons)
-                        .ThenInclude(c => c.LessonContent)
+                        .ThenInclude(c => c.LessonContents)
                 .Where(m => m.Id == Student.Id && Student.StudentSection == m.CourseSections&& !m.IsArchived&&!m.IsDeleted)
                 .OrderBy(m => m.CreatedAt) // 3. IMPORTANT: Always order before skipping!
                 .Skip(excludedRecords)     // Jump over previous pages
@@ -92,44 +92,51 @@ namespace MiniSchoolSystem.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult>CreateLessonEnrollment(CreateLessonEnrollmentDTO model)
+       
+        public async Task<IActionResult> CreateLessonEnrollment(CreateLessonEnrollmentDTO model)
         {
-            //Verification
-            var UserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var Student = await _DbContext.DbStudents.FirstOrDefaultAsync(s => s.StudentId == UserId);
-            if (Student == null)
+            // 1. Get current Student/User ID as a string (Matches Identity UserDb)
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrEmpty(userId))
             {
                 return Unauthorized();
             }
-          var HasLessonEnrollment = await _DbContext.DbLessonEnrollments.AnyAsync(x=>x.Id == model.Id &&x.StudentId==Student.Id && x.Sections==model.Sections&&x.IsCompleted);
-      if(HasLessonEnrollment)
+
+            // Check If Student Is enrolled
+            
+            var alreadyEnrolled = await _DbContext.DbLessonEnrollments
+                .AnyAsync(x => x.StudentId == userId && x.LessonId == model.LessonId);
+
+            if (alreadyEnrolled)
             {
-                return BadRequest("Lesson Has been Completed");
+                // If they are already enrolled, don't create a duplicate. 
+                // Just send them back to the lesson list or the specific lesson.
+                TempData["Info"] = "You are already enrolled in this lesson.";
+                return RedirectToAction("Details", "Lesson", new { id = model.LessonId });
             }
-            var NewEnrollment = new LessonEnrollment
+
+            // 3. Create the New Enrollment Object
+            var newEnrollment = new LessonEnrollment
             {
-                StudentId = model.StudentId,
+                StudentId = userId,           // String ID from Identity
+                LessonId = model.LessonId, // Int ID from your DTO
                 Sections = model.Sections,
-                IsCompleted = false,
+                IsCompleted = false,       // New enrollments aren't finished yet
                 EnrolledTime = DateTime.UtcNow,
-                LessonId = model.LessonId,
-
+                LessonProgress = 0
             };
-            var LessonEnrollment= await _DbContext.DbLessonEnrollments.Include(m=>m.Lesson).FirstOrDefaultAsync(l=>l.Id==model.Id);
-            if(LessonEnrollment==null)
-            {
-                return NotFound("Student Hasnt Started Lesson");
-            }
-            if(NewEnrollment.LessonProgress>=100)
-            {
-                LessonEnrollment.IsCompleted = true;
-                LessonEnrollment.CompletedTime=DateTime.UtcNow;
-            }
-            TempData["Info"] = "LessonCompleted";
-            return RedirectToAction(nameof(Index));
 
+            // 4. SAVE TO DATABASE: Your previous code was missing these two lines!
+            _DbContext.DbLessonEnrollments.Add(newEnrollment);
+            await _DbContext.SaveChangesAsync();
 
+            TempData["Success"] = "Lesson started! Good luck with your studies.";
+
+            // Redirect to the actual lesson view so they can start learning
+            return RedirectToAction("Watch", "Lesson", new { id = model.LessonId });
         }
+        
 
        
         static string StudentRegistrationCode(Sections sections)

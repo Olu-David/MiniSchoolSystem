@@ -47,7 +47,7 @@ namespace MiniSchoolSystem.Controllers
         {
             // BUG FIX: original had no 'id' parameter — view had no data
             var lesson = await _dbContext.DbLesson
-                .Include(l => l.LessonContent)
+                .Include(l => l.LessonContents)
                 .FirstOrDefaultAsync(l => l.Id == id && !l.IsDeleted && !l.IsArchived);
 
             if (lesson == null) return NotFound();
@@ -76,7 +76,7 @@ namespace MiniSchoolSystem.Controllers
         public async Task<IActionResult> CreateLesson()
         {
             var userId = _userManager.GetUserId(User);
-            var teacher = await _dbContext.DbTeacher.FirstOrDefaultAsync(m => m.TeacherId == userId);
+            var teacher = await _dbContext.DbTeacher.FirstOrDefaultAsync(m =>m.TeacherId== userId);
 
             if (teacher == null)
             {
@@ -102,7 +102,7 @@ namespace MiniSchoolSystem.Controllers
 
             // Duplicate check
             var alreadyExists = await _dbContext.DbLesson
-                .AnyAsync(m => m.Id == model.Id && m.TeacherId == teacher.Id);
+                .AnyAsync(m => m.Id == model.Id && teacher.TeacherId == userId);
             if (alreadyExists)
             {
                 ModelState.AddModelError(string.Empty, "A lesson with this ID already exists.");
@@ -129,7 +129,7 @@ namespace MiniSchoolSystem.Controllers
                 Description = model.Description,
                 TeacherId = teacher.Id,
                 CreatedAt = DateTime.UtcNow,
-                LessonContent = new List<LessonContent>
+                LessonContents = new List<LessonContent>
                 {
                     new LessonContent
                     {
@@ -156,7 +156,7 @@ namespace MiniSchoolSystem.Controllers
         {
             var userId = _userManager.GetUserId(User);
             var lesson = await _dbContext.DbLesson
-                .Include(l => l.LessonContent)
+                .Include(l => l.LessonContents)
                 .FirstOrDefaultAsync(l => l.Id == id);
 
             if (lesson == null) return NotFound();
@@ -169,7 +169,7 @@ namespace MiniSchoolSystem.Controllers
                     return Forbid();
             }
 
-            var model = new CreateLessonViewDTO
+            var model = new EditLessonDTO
             {
                 Id = lesson.Id,
                 Title = lesson.Title,
@@ -177,7 +177,7 @@ namespace MiniSchoolSystem.Controllers
                 LessonSection = lesson.LessonSection,
             };
 
-            var content = lesson.LessonContent?.FirstOrDefault();
+            var content = lesson.LessonContents.FirstOrDefault();
             ViewBag.ExistingContent = content?.Content ?? string.Empty;
             ViewBag.ExistingFileUrl = content?.FileUrl ?? string.Empty;
             ViewBag.IsEdit = true;
@@ -185,63 +185,72 @@ namespace MiniSchoolSystem.Controllers
             return View(model);
         }
 
-        [Authorize(Roles = "SuperAdmin, Teacher")]
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> EditLesson(int id, CreateLessonViewDTO model, CreateLessonContentDTO dto)
+        public async Task<IActionResult> Edit(int id, CreateLessonViewDTO model, CreateLessonContentDTO dto)
         {
             var userId = _userManager.GetUserId(User);
+
+            // 1. Fetch the lesson and its content
             var lesson = await _dbContext.DbLesson
-                .Include(l => l.LessonContent)
+                .Include(l => l.LessonContents)
                 .FirstOrDefaultAsync(l => l.Id == id);
 
             if (lesson == null) return NotFound();
 
-            if (User.IsInRole("Teacher"))
-            {
-                var teacher = await _dbContext.DbTeacher
-                    .FirstOrDefaultAsync(t => t.TeacherId == userId);
-                if (teacher == null || lesson.TeacherId != teacher.Id)
-                    return Forbid();
-            }
+            // 2. Teacher Ownership Check
+            var teacher = await _dbContext.DbTeacher
+                .FirstOrDefaultAsync(t => t.TeacherId == userId);
+
+            if (teacher == null || lesson.TeacherId != teacher.Id)
+                return Forbid();
 
             if (!ModelState.IsValid)
             {
                 ViewBag.IsEdit = true;
-                ViewBag.ExistingContent = lesson.LessonContent?.FirstOrDefault()?.Content ?? string.Empty;
-                ViewBag.ExistingFileUrl = lesson.LessonContent?.FirstOrDefault()?.FileUrl ?? string.Empty;
                 return View(model);
             }
 
-            lesson.Title = model.Title;
+            // 3. Update the Lesson Properties
+            lesson.Title = model.Title??"null";
             lesson.Description = model.Description;
             lesson.LessonSection = model.LessonSection;
 
-            var existingContent = lesson.LessonContent?.FirstOrDefault();
+            // 4. Handle LessonContent (The "Sabi" Way)
+            var existingContent = lesson.LessonContents.FirstOrDefault();
+
             if (existingContent != null)
             {
+                // --- UPDATE EXISTING ---
                 existingContent.Content = dto.Content;
+
                 if (dto.file != null)
+                {
                     existingContent.FileUrl = await _fileService.SaveFileAsync(dto.file, "LessonFiles");
+                }
+               
             }
             else
             {
+                // --- CREATE NEW (If lesson was empty) ---
                 string? fileUrl = null;
                 if (dto.file != null)
                     fileUrl = await _fileService.SaveFileAsync(dto.file, "LessonFiles");
 
-                lesson.LessonContent = new List<LessonContent>
+                // Use .Add() instead of creating a 'new List'
+                lesson.LessonContents.Add(new LessonContent
                 {
-                    new LessonContent
-                    {
-                        Content   = dto.Content,
-                        FileUrl   = fileUrl,
-                        CreatedAt = DateTime.UtcNow
-                    }
-                };
+                    Content = dto.Content,
+                    FileUrl = fileUrl,
+                    TeacherId = teacher.Id, // <--- MUST BE HERE
+                    CreatedAt = DateTime.UtcNow,
+                    LessonId = lesson.Id     // Link it to the current lesson
+                });
             }
 
+            // 5. Final Save
             await _dbContext.SaveChangesAsync();
+
             TempData["info"] = "Lesson updated successfully.";
             return RedirectToAction(nameof(Index));
         }
@@ -255,7 +264,7 @@ namespace MiniSchoolSystem.Controllers
         {
             // GET: just show the confirmation page — do NOT delete anything
             var lesson = await _dbContext.DbLesson
-                .Include(l => l.LessonContent)
+                .Include(l => l.LessonContents)
                 .FirstOrDefaultAsync(l => l.Id == id);
 
             if (lesson == null) return NotFound();

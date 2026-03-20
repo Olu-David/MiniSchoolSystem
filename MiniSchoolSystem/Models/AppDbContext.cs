@@ -60,7 +60,7 @@ namespace MiniSchoolSystem.Models
             // Lesson Content (The fix for the Global Filter warning)
             builder.Entity<LessonContent>()
                 .HasOne(m => m.Lesson)
-                .WithMany(m => m.LessonContent)
+                .WithMany(m => m.LessonContents)
                 .HasForeignKey(m => m.LessonId)
                 .IsRequired(false) // Prevents crash when Lesson is filtered/deleted
                 .OnDelete(DeleteBehavior.Restrict);

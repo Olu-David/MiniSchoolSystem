@@ -4,6 +4,8 @@ namespace MiniSchoolSystem.Models
 {
     public class LessonContent
     {
+        public int TeacherId {  get; set; }
+
         public int Id {  get; set; }
         public string? FileUrl { get; set; }
         public string? VideoUrl {  get; set; }

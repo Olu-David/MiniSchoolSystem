@@ -150,6 +150,8 @@ namespace MiniSchoolSystem.Controllers
             }
             return RedirectToAction(nameof(Details), new {id=dto.Id});  
         }
+
+
         [Authorize(Roles = "SuperAdmin, Admin")]
         [HttpGet]
         public IActionResult ArchiveCourse()
