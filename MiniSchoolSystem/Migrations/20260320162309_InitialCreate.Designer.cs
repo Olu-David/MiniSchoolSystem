@@ -12,8 +12,8 @@ using MiniSchoolSystem.Models;
 namespace MiniSchoolSystem.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260318112420_InitialUserDbUpdate")]
-    partial class InitialUserDbUpdate
+    [Migration("20260320162309_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -24,6 +24,68 @@ namespace MiniSchoolSystem.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+
+            modelBuilder.Entity("CourseModule", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CourseId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("CourseSections")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("TeacherId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CourseId");
+
+                    b.HasIndex("TeacherId");
+
+                    b.ToTable("DbModules");
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.DataProtection.EntityFrameworkCore.DataProtectionKey", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("FriendlyName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Xml")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("DataProtectionKeys");
+                });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
                 {
@@ -200,6 +262,16 @@ namespace MiniSchoolSystem.Migrations
                         {
                             UserId = "104",
                             RoleId = "5"
+                        },
+                        new
+                        {
+                            UserId = "105",
+                            RoleId = "3"
+                        },
+                        new
+                        {
+                            UserId = "106",
+                            RoleId = "3"
                         });
                 });
 
@@ -242,6 +314,9 @@ namespace MiniSchoolSystem.Migrations
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<bool>("IsArchived")
                         .HasColumnType("bit");
 
@@ -267,44 +342,6 @@ namespace MiniSchoolSystem.Migrations
                     b.HasIndex("TeacherID");
 
                     b.ToTable("DbCourse");
-                });
-
-            modelBuilder.Entity("MiniSchoolSystem.Models.CourseModule", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("CourseId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("CourseSections")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("Order")
-                        .HasColumnType("int");
-
-                    b.Property<int>("TeacherId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Title")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CourseId");
-
-                    b.HasIndex("TeacherId");
-
-                    b.ToTable("DbModules");
                 });
 
             modelBuilder.Entity("MiniSchoolSystem.Models.Lesson", b =>
@@ -336,27 +373,27 @@ namespace MiniSchoolSystem.Migrations
                     b.Property<int>("LessonSection")
                         .HasColumnType("int");
 
-                    b.Property<string>("LessonUserID")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<int?>("StudentId")
+                    b.Property<int?>("StudentModelId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("TeacherId")
+                    b.Property<int>("TeacherId")
                         .HasColumnType("int");
 
                     b.Property<string>("Title")
-                        .HasColumnType("nvarchar(max)");
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("UserDbId")
+                        .HasColumnType("nvarchar(450)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("CourseModuleId");
 
-                    b.HasIndex("LessonUserID");
+                    b.HasIndex("StudentModelId");
 
-                    b.HasIndex("StudentId");
-
-                    b.HasIndex("TeacherId");
+                    b.HasIndex("UserDbId");
 
                     b.ToTable("DbLesson");
                 });
@@ -384,6 +421,9 @@ namespace MiniSchoolSystem.Migrations
                     b.Property<int?>("StudentId")
                         .HasColumnType("int");
 
+                    b.Property<int>("TeacherId")
+                        .HasColumnType("int");
+
                     b.Property<string>("VideoUrl")
                         .HasColumnType("nvarchar(max)");
 
@@ -404,7 +444,7 @@ namespace MiniSchoolSystem.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<DateTime>("CompletedTime")
+                    b.Property<DateTime?>("CompletedTime")
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime>("EnrolledTime")
@@ -422,17 +462,11 @@ namespace MiniSchoolSystem.Migrations
                     b.Property<int>("Sections")
                         .HasColumnType("int");
 
-                    b.Property<int?>("StudentId")
-                        .HasColumnType("int");
+                    b.Property<string>("StudentId")
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<int?>("StudentName")
                         .HasColumnType("int");
-
-                    b.Property<string>("UserDbId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("UserId")
-                        .HasColumnType("nvarchar(450)");
 
                     b.HasKey("Id");
 
@@ -440,9 +474,7 @@ namespace MiniSchoolSystem.Migrations
 
                     b.HasIndex("StudentId");
 
-                    b.HasIndex("UserDbId");
-
-                    b.HasIndex("UserId");
+                    b.HasIndex("StudentName");
 
                     b.ToTable("DbLessonEnrollments");
                 });
@@ -495,16 +527,11 @@ namespace MiniSchoolSystem.Migrations
                     b.Property<int>("StudentSection")
                         .HasColumnType("int");
 
-                    b.Property<int?>("TeacherId")
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
 
                     b.HasIndex("StudentId")
                         .IsUnique()
                         .HasFilter("[StudentId] IS NOT NULL");
-
-                    b.HasIndex("TeacherId");
 
                     b.ToTable("DbStudents");
                 });
@@ -521,6 +548,7 @@ namespace MiniSchoolSystem.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("TeacherId")
+                        .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
                     b.HasKey("Id");
@@ -646,7 +674,7 @@ namespace MiniSchoolSystem.Migrations
                             LockoutEnabled = false,
                             NormalizedEmail = "OLUSANYADAVID@YAHOO.COM",
                             NormalizedUserName = "OLUSANYADAVID@YAHOO.COM",
-                            PasswordHash = "AQAAAAIAAYagAAAAEGa64htVQzybg2u/avK4d3XjHmoKtwaMwadBWy2qt5ikr2UXO7P9qPF5HeSFPleohA==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEGOJ9ieModMlELXzzpC5HJH7rijC3ekoH1K9fehwdFnvUjADr5G0PutVJrVBR3nPGQ==",
                             PhoneNumber = "0807212372",
                             PhoneNumberConfirmed = false,
                             SecurityStamp = "STAMP100",
@@ -664,7 +692,7 @@ namespace MiniSchoolSystem.Migrations
                             LockoutEnabled = false,
                             NormalizedEmail = "ADMIN@SCHOOL.COM",
                             NormalizedUserName = "ADMIN@SCHOOL.COM",
-                            PasswordHash = "AQAAAAIAAYagAAAAEIy8NOSanRCKHABKFTSTeP1JRKNX7yGr3wrypZdMEZ0tplubK/k0eicqS/TAKYBAxQ==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEEmIiWGgGY12P/UQcAWaiFKqqqyTZZL5Zo0+GKAgotWJMNM5RB4mFiyMpVzfNwPkjg==",
                             PhoneNumber = "0812329221",
                             PhoneNumberConfirmed = false,
                             SecurityStamp = "STAMP101",
@@ -682,7 +710,7 @@ namespace MiniSchoolSystem.Migrations
                             LockoutEnabled = false,
                             NormalizedEmail = "TEACHER@SCHOOL.COM",
                             NormalizedUserName = "TEACHER@SCHOOL.COM",
-                            PasswordHash = "AQAAAAIAAYagAAAAEJwB0j59B2FQYUSBQMUdzycvChhz9aPFtHq0lPjzMG67pGhjnofLYsP4OUjfTq8+lg==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEHkE4/P2VKJsSYmulP4YWAWCLX0hDer5GPolFeSc+NTI/Fa2ma/kFVV5TKZ60iXDSA==",
                             PhoneNumber = "09120292232",
                             PhoneNumberConfirmed = false,
                             SecurityStamp = "STAMP102",
@@ -691,19 +719,55 @@ namespace MiniSchoolSystem.Migrations
                         },
                         new
                         {
+                            Id = "106",
+                            AccessFailedCount = 0,
+                            ConcurrencyStamp = "CONC0107",
+                            Email = "emmanuelestheroluwasheyi17.com",
+                            EmailConfirmed = true,
+                            FullName = "Esther OluwaSheyi",
+                            LockoutEnabled = false,
+                            NormalizedEmail = "EMMANUELESTHEROLUWASHEYI17.COM",
+                            NormalizedUserName = "ESTHER OLUWASHEYI",
+                            PasswordHash = "AQAAAAIAAYagAAAAEK/nD8NEzMp0AccbwDxeU4njN7uFB9EaRVeSmyQYoxSmzxedyMHvj6kgKqQ1PtjuOQ==",
+                            PhoneNumber = "09120292232",
+                            PhoneNumberConfirmed = false,
+                            SecurityStamp = "STAMP0107",
+                            TwoFactorEnabled = false,
+                            UserName = "Sheyi"
+                        },
+                        new
+                        {
+                            Id = "105",
+                            AccessFailedCount = 0,
+                            ConcurrencyStamp = "CONC0109",
+                            Email = "godwinlevel139@gmail.com",
+                            EmailConfirmed = true,
+                            FullName = "Godwin Hyacinth",
+                            LockoutEnabled = false,
+                            NormalizedEmail = "GODWINLEVELL139@GMAIL.COM",
+                            NormalizedUserName = "GODWIN HYACINTH",
+                            PasswordHash = "AQAAAAIAAYagAAAAEFDRPptnto+KDmAALzQ+qdSh0poq0YMJppwtLXwZUbyCnJs9OlA3UIi2bhA7LydBFg==",
+                            PhoneNumber = "09022341091",
+                            PhoneNumberConfirmed = false,
+                            SecurityStamp = "STAMP0109",
+                            TwoFactorEnabled = false,
+                            UserName = "HighLevel"
+                        },
+                        new
+                        {
                             Id = "103",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "CONC103",
+                            ConcurrencyStamp = "CONC0180",
                             Email = "Student@school.com",
                             EmailConfirmed = true,
                             FullName = "Student User",
                             LockoutEnabled = false,
                             NormalizedEmail = "STUDENT@SCHOOL.COM",
                             NormalizedUserName = "STUDENT@SCHOOL.COM",
-                            PasswordHash = "AQAAAAIAAYagAAAAEA/51iEnEdERXGrx8hc2YcJMSKTSIYg+vU0yWsc03+YzEU+n27nN0BPWI8bEKWLxbA==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEIjz6/KKIJvPUOajpmk7OYO9eF4xI+s2RHkvEVxuItlMuMuxb2FxVOBXe/PF3nlKxw==",
                             PhoneNumber = "01290322332",
                             PhoneNumberConfirmed = false,
-                            SecurityStamp = "STAMP103",
+                            SecurityStamp = "STAMP0108",
                             TwoFactorEnabled = false,
                             UserName = "Student@school.com"
                         },
@@ -718,13 +782,30 @@ namespace MiniSchoolSystem.Migrations
                             LockoutEnabled = false,
                             NormalizedEmail = "PARENT@SCHOOL.COM",
                             NormalizedUserName = "PARENT@SCHOOL.COM",
-                            PasswordHash = "AQAAAAIAAYagAAAAEO8Eoh7DlIuT6BlIVztJvJ+m08YL36GTXK069JGLfqRJk3TPLm1zq6RjDR3DQZLoFQ==",
+                            PasswordHash = "AQAAAAIAAYagAAAAELt+hW+8MWU7eZJlewdUMr6iLyTfFlJXh5b3K0OVO9/XDGOYGueYPqPXJQHH+khZJA==",
                             PhoneNumber = "0810000000",
                             PhoneNumberConfirmed = false,
                             SecurityStamp = "STAMP104",
                             TwoFactorEnabled = false,
                             UserName = "Parent@school.com"
                         });
+                });
+
+            modelBuilder.Entity("CourseModule", b =>
+                {
+                    b.HasOne("MiniSchoolSystem.Models.Course", "Course")
+                        .WithMany("CourseModules")
+                        .HasForeignKey("CourseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("MiniSchoolSystem.Models.Teacher", "Teacher")
+                        .WithMany()
+                        .HasForeignKey("TeacherId");
+
+                    b.Navigation("Course");
+
+                    b.Navigation("Teacher");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -795,61 +876,31 @@ namespace MiniSchoolSystem.Migrations
                     b.Navigation("UserDb");
                 });
 
-            modelBuilder.Entity("MiniSchoolSystem.Models.CourseModule", b =>
-                {
-                    b.HasOne("MiniSchoolSystem.Models.Course", "Course")
-                        .WithMany("CourseModules")
-                        .HasForeignKey("CourseId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("MiniSchoolSystem.Models.Teacher", "Teacher")
-                        .WithMany()
-                        .HasForeignKey("TeacherId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Course");
-
-                    b.Navigation("Teacher");
-                });
-
             modelBuilder.Entity("MiniSchoolSystem.Models.Lesson", b =>
                 {
-                    b.HasOne("MiniSchoolSystem.Models.CourseModule", "CourseModule")
+                    b.HasOne("CourseModule", "CourseModule")
                         .WithMany("Lessons")
                         .HasForeignKey("CourseModuleId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("MiniSchoolSystem.Models.UserDb", "LessonDb")
+                    b.HasOne("MiniSchoolSystem.Models.StudentModel", null)
                         .WithMany("Lessons")
-                        .HasForeignKey("LessonUserID");
+                        .HasForeignKey("StudentModelId");
 
-                    b.HasOne("MiniSchoolSystem.Models.StudentModel", "Student")
+                    b.HasOne("MiniSchoolSystem.Models.UserDb", null)
                         .WithMany("Lessons")
-                        .HasForeignKey("StudentId");
-
-                    b.HasOne("MiniSchoolSystem.Models.Teacher", "Teacher")
-                        .WithMany("Lessons")
-                        .HasForeignKey("TeacherId");
+                        .HasForeignKey("UserDbId");
 
                     b.Navigation("CourseModule");
-
-                    b.Navigation("LessonDb");
-
-                    b.Navigation("Student");
-
-                    b.Navigation("Teacher");
                 });
 
             modelBuilder.Entity("MiniSchoolSystem.Models.LessonContent", b =>
                 {
                     b.HasOne("MiniSchoolSystem.Models.Lesson", "Lesson")
-                        .WithMany("LessonContent")
+                        .WithMany("LessonContents")
                         .HasForeignKey("LessonId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("MiniSchoolSystem.Models.StudentModel", "Student")
                         .WithMany()
@@ -868,23 +919,16 @@ namespace MiniSchoolSystem.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("MiniSchoolSystem.Models.StudentModel", "StudentModel")
-                        .WithMany("lessonEnrollments")
-                        .HasForeignKey("StudentId")
-                        .OnDelete(DeleteBehavior.Cascade);
-
-                    b.HasOne("MiniSchoolSystem.Models.UserDb", null)
-                        .WithMany("LessonEnrollments")
-                        .HasForeignKey("UserDbId");
-
                     b.HasOne("MiniSchoolSystem.Models.UserDb", "UserDb")
-                        .WithMany()
-                        .HasForeignKey("UserId")
+                        .WithMany("LessonEnrollments")
+                        .HasForeignKey("StudentId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.Navigation("Lesson");
+                    b.HasOne("MiniSchoolSystem.Models.StudentModel", null)
+                        .WithMany("lessonEnrollments")
+                        .HasForeignKey("StudentName");
 
-                    b.Navigation("StudentModel");
+                    b.Navigation("Lesson");
 
                     b.Navigation("UserDb");
                 });
@@ -920,20 +964,18 @@ namespace MiniSchoolSystem.Migrations
                         .WithOne("Student")
                         .HasForeignKey("MiniSchoolSystem.Models.StudentModel", "StudentId");
 
-                    b.HasOne("MiniSchoolSystem.Models.Teacher", null)
-                        .WithMany("StudentTeacher")
-                        .HasForeignKey("TeacherId");
-
                     b.Navigation("StudentDb");
                 });
 
             modelBuilder.Entity("MiniSchoolSystem.Models.Teacher", b =>
                 {
-                    b.HasOne("MiniSchoolSystem.Models.UserDb", "TeacherDb")
+                    b.HasOne("MiniSchoolSystem.Models.UserDb", "User")
                         .WithMany()
-                        .HasForeignKey("TeacherId");
+                        .HasForeignKey("TeacherId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
-                    b.Navigation("TeacherDb");
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("MiniSchoolSystem.Models.TeacherSection", b =>
@@ -949,11 +991,16 @@ namespace MiniSchoolSystem.Migrations
 
             modelBuilder.Entity("MiniSchoolSystem.Models.UserDb", b =>
                 {
-                    b.HasOne("MiniSchoolSystem.Models.CourseModule", "CourseModule")
+                    b.HasOne("CourseModule", "CourseModule")
                         .WithMany()
                         .HasForeignKey("CourseModuleId");
 
                     b.Navigation("CourseModule");
+                });
+
+            modelBuilder.Entity("CourseModule", b =>
+                {
+                    b.Navigation("Lessons");
                 });
 
             modelBuilder.Entity("MiniSchoolSystem.Models.Course", b =>
@@ -961,14 +1008,9 @@ namespace MiniSchoolSystem.Migrations
                     b.Navigation("CourseModules");
                 });
 
-            modelBuilder.Entity("MiniSchoolSystem.Models.CourseModule", b =>
-                {
-                    b.Navigation("Lessons");
-                });
-
             modelBuilder.Entity("MiniSchoolSystem.Models.Lesson", b =>
                 {
-                    b.Navigation("LessonContent");
+                    b.Navigation("LessonContents");
 
                     b.Navigation("LessonEnrollments");
                 });
@@ -983,10 +1025,6 @@ namespace MiniSchoolSystem.Migrations
             modelBuilder.Entity("MiniSchoolSystem.Models.Teacher", b =>
                 {
                     b.Navigation("Courses");
-
-                    b.Navigation("Lessons");
-
-                    b.Navigation("StudentTeacher");
 
                     b.Navigation("TeacherSections");
                 });

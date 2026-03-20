@@ -1,0 +1,153 @@
+﻿@model MiniSchoolSystem.DTO.CreateLessonViewDTO
+@{
+    ViewData["Title"] = "Edit Lesson";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    string ec = ViewBag.ExistingContent ?? "";
+    string ef = ViewBag.ExistingFileUrl ?? "";
+}
+
+@section Styles {
+  <link href="~/css/EditLesson.css" rel="stylesheet" /> 
+}
+
+<div class="ep">
+    <div class="eh">
+        <div class="ehb1"></div>
+        <div class="ehb2"></div>
+        <div class="ehi">
+            <div>
+                <div class="bc">
+                    <a asp-controller="Home" asp-action="Index">Home</a><span class="bcs">›</span>
+                    <a asp-controller="Lesson" asp-action="Index">Lessons</a><span class="bcs">›</span>
+                    <span style="color:var(--text-secondary)">Edit Lesson</span>
+                </div>
+                <h1 class="ehtitle">Edit Lesson</h1>
+                <p class="ehsub">Update the lesson details, content or attachment.</p>
+                <div class="ebadge">✏️ Editing: <strong>@Model.Title</strong></div>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap">
+                <a asp-controller="Lesson" asp-action="Details" asp-route-id="@Model.Id" class="btn btn-ghost" style="padding:9px 18px;font-size:13px">👁 Preview</a>
+                <a asp-controller="Lesson" asp-action="DeleteLesson" asp-route-id="@Model.Id" class="btn btn-danger" style="padding:9px 18px;font-size:13px">🗑 Delete</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="fw">
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div class="aerr"><span>⚠️</span><div>@Html.ValidationSummary(false)</div></div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="aerr"><span>⚠️</span><span>@TempData["Error"]</span></div>
+        }
+
+        <form asp-controller="Lesson" asp-action="EditLesson" asp-route-id="@Model.Id" method="post" enctype="multipart/form-data" id="ef">
+            @Html.AntiForgeryToken()
+
+            <!-- Basic info -->
+            <div class="fcard">
+                <div class="fch"><div class="fct">📋 Basic Information</div><span class="fcb">Required</span></div>
+                <div class="fg">
+                    <label asp-for="Title">Lesson Title</label>
+                    <input asp-for="Title" class="form-control" maxlength="120" oninput="cnt(this,'tc',120)" />
+                    <div class="cc" id="tc">@(Model.Title?.Length ?? 0) / 120</div>
+                    <span asp-validation-for="Title" class="field-validation-error"></span>
+                </div>
+                <div class="fg">
+                    <label asp-for="Description">Description</label>
+                    <textarea asp-for="Description" class="form-control" rows="3" maxlength="500" oninput="cnt(this,'dc',500)"></textarea>
+                    <div class="cc" id="dc">@(Model.Description?.Length ?? 0) / 500</div>
+                    <span asp-validation-for="Description" class="field-validation-error"></span>
+                </div>
+                <div class="row2">
+                    <div class="fg">
+                        <label asp-for="LessonSection">Section / Level</label>
+                        <select asp-for="LessonSection" class="form-control">
+                            <optgroup label="Junior Secondary">
+                                <option value="JSS1">JSS 1</option>
+                                <option value="JSS2">JSS 2</option>
+                                <option value="JSS3">JSS 3</option>
+                            </optgroup>
+                            <optgroup label="Senior Secondary">
+                                <option value="SS1">SS 1</option>
+                                <option value="SS2">SS 2</option>
+                                <option value="SS3">SS 3</option>
+                            </optgroup>
+                            <optgroup label="Tertiary & Professional">
+                                <option value="Higher">Higher (University / Poly)</option>
+                                <option value="Professional">Professional</option>
+                            </optgroup>
+                        </select>
+                        <span asp-validation-for="LessonSection" class="field-validation-error"></span>
+                    </div>
+                    <div class="fg">
+                        <label>Lesson ID</label>
+                        <input asp-for="Id" class="form-control" disabled />
+                        <input type="hidden" asp-for="Id" />
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content -->
+            <div class="fcard">
+                <div class="fch"><div class="fct">✏️ Lesson Content</div><span class="fcb">Required</span></div>
+                <div class="fg">
+                    <label for="Content">Content</label>
+                    <textarea name="Content" id="Content" class="ced" rows="14" oninput="cnt(this,'ctc',10000)">@ec</textarea>
+                    <div class="cc" id="ctc">@ec.Length / 10,000</div>
+                </div>
+            </div>
+
+            <!-- Attachment -->
+            <div class="fcard">
+                <div class="fch">
+                    <div class="fct">📎 Attachment</div>
+                    <span style="font-size:12px;color:var(--text-dim)">Optional</span>
+                </div>
+                @if (!string.IsNullOrEmpty(ef))
+                {
+                    <div class="exfile">
+                        <span class="eficon">📄</span>
+                        <div><div class="efname">Current attachment</div><div class="efhint">Upload a new file below to replace it</div></div>
+                        <a href="@ef" target="_blank" class="efview">↗ View</a>
+                    </div>
+                }
+                <div class="fdrop" id="fdrop">
+                    <input type="file" name="file" id="fi" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.mp4,.zip" onchange="prevFile(this)" />
+                    <div class="fdicon">📁</div>
+                    <div class="fdtitle">@(string.IsNullOrEmpty(ef) ? "Upload attachment" : "Upload replacement file")</div>
+                    <div class="fdsub">PDF, Word, PowerPoint, Excel, MP4, ZIP — max 50MB</div>
+                </div>
+                <div class="fdprev" id="fdp">
+                    <span id="fdi">📎</span>
+                    <div><div class="fdname" id="fdn">—</div><div class="fdsize" id="fds">—</div></div>
+                    <button type="button" class="fdrm" onclick="rmFile()">✕</button>
+                </div>
+            </div>
+
+            <div class="acts">
+                <a asp-controller="Lesson" asp-action="Index" class="btn btn-ghost">← Cancel</a>
+                <div style="display:flex;gap:10px;flex-wrap:wrap">
+                    <a asp-controller="Lesson" asp-action="DeleteLesson" asp-route-id="@Model.Id" class="btn btn-danger">🗑 Delete</a>
+                    <button type="submit" class="btn btn-sabi" id="sb" onclick="onSave()">
+                        <span class="spin" id="ss"></span>
+                        <span id="st">💾 Save Changes</span>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    @* 1. Link to the built-in validation scripts (jQuery Validation) *@
+    @* Include standard validation first *@
+    <partial name="_ValidationScriptsPartial" />
+
+    @* Link your custom index.js file *@
+    <script src="~/js/EditLesson.js" asp-append-version="true"></script>
+}

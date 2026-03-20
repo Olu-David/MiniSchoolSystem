@@ -1,0 +1,104 @@
+﻿@{
+    ViewData["Title"] = "Archive Lesson";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    // Passed from controller:
+    // ViewBag.Lesson = the lesson object
+    var lesson = ViewBag.Lesson;
+}
+
+@section Styles {
+   
+}
+
+<div class="page">
+    <div class="blob b1"></div>
+    <div class="blob b2"></div>
+
+    <div class="card">
+
+        <div class="card-icon">📦</div>
+
+        <h1 class="card-title">Archive this lesson?</h1>
+        <p class="card-sub">
+            Archiving hides the lesson from students but <strong>keeps all the data safe</strong>. You can restore it anytime.
+        </p>
+
+        <!-- Lesson preview -->
+        <div class="lesson-preview">
+            <div class="lp-label">Lesson to archive</div>
+            @if (lesson != null)
+            {
+                <div class="lp-title">@lesson.Title</div>
+                @if (!string.IsNullOrEmpty(lesson.Description?.ToString()))
+                {
+                    <div class="lp-desc">@lesson.Description</div>
+                }
+                <div class="lp-meta">
+                    <span class="lp-meta-item">📅 @((lesson.CreatedAt as DateTime?)?.ToString("dd MMM yyyy") ?? "—")</span>
+                    @if (lesson.LessonSection != null)
+                    {
+                        <span class="lp-tag">@lesson.LessonSection</span>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="lp-title" id="lessonTitle">Loading…</div>
+                <div class="lp-meta"><span class="lp-meta-item" id="lessonMeta">—</span></div>
+            }
+        </div>
+
+        <!-- What archive means -->
+        <div class="info-box">
+            <span class="ib-icon">ℹ️</span>
+            <div class="ib-text">
+                <p>What archiving does</p>
+                <ul>
+                    <li>Lesson is hidden from student search and lesson lists</li>
+                    <li>All content, files and data are kept intact</li>
+                    <li>A SuperAdmin or Teacher can restore it at any time</li>
+                    <li>No students are notified</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Confirm checkbox -->
+        <div class="confirm-check">
+            <input type="checkbox" id="confirmCheck" onchange="toggleBtn()" />
+            <label for="confirmCheck">
+                I want to archive
+                <strong style="color:var(--text-primary)">
+                    @(lesson?.Title ?? "this lesson")
+                </strong>
+            </label>
+        </div>
+
+        <!-- Buttons -->
+        <div class="btns">
+            <a asp-controller="Lesson" asp-action="Index" class="btn btn-cancel">← Cancel</a>
+
+            <form asp-controller="Lesson" asp-action="ArchiveLesson"
+                  asp-route-id="@(lesson?.Id ?? 0)"
+                  method="post" style="flex:1;display:contents">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-archive"
+                        id="archiveBtn" disabled
+                        onclick="handleSubmit(this)">
+                    <span class="spin" id="spin"></span>
+                    <span id="btnTxt">📦 Archive Lesson</span>
+                </button>
+            </form>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    @* 1. Link to the built-in validation scripts (jQuery Validation) *@
+    @* Include standard validation first *@
+    <partial name="_ValidationScriptsPartial" />
+
+    @* Link your custom index.js file *@
+    <script src="~/js/Archive.js" asp-append-version="true"></script>
+}

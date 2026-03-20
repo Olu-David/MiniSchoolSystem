@@ -88,7 +88,7 @@ namespace MiniSchoolSystem.Controllers
             // 5. Create and Save
             var newModules = new CourseModule
             {
-                Title = model.Title,
+                Title = model.Title??"Null",
                 TeacherId = Teacher.Id,
                 CourseSections = model.SelectedSection,
                 CourseId = model.CourseId

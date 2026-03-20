@@ -1,50 +1,383 @@
 ﻿<!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark" id="htmlRoot">
 <head>
-    <meta charset="utf-8" />
+    <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - MiniSchoolSystem</title>
-    <script type="importmap"></script>
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/MiniSchoolSystem.styles.css" asp-append-version="true" />
+    <title>@ViewData["Title"] — SabiSpace</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" />
+    <link href="~/css/Layout.css" rel="stylesheet" asp-append-version="true" />
+    @RenderSection("Styles", required: false)
 </head>
 <body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">MiniSchoolSystem</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
+
+    @{
+        bool isAllowedRole = User.IsInRole("SuperAdmin")
+        || User.IsInRole("Admin")
+        || User.IsInRole("Teacher")
+        || User.IsInRole("Student");
+
+        bool isBlockedUser = User.Identity!.IsAuthenticated && !isAllowedRole;
+        bool isLoggedIn = User.Identity!.IsAuthenticated;
+    }
+
+    @if (isBlockedUser)
+    {
+        <style>
+            .access-denied-wrap {
+                min-height: 100vh;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                text-align: center;
+                gap: 16px;
+                padding: 40px 24px;
+                background: var(--bg, #0f0f13);
+                color: var(--text, #f0f0f5);
+                font-family: 'DM Sans', sans-serif;
+            }
+
+            .access-denied-icon {
+                font-size: 72px;
+                line-height: 1;
+            }
+
+            .access-denied-wrap h1 {
+                font-family: 'Syne', sans-serif;
+                font-size: clamp(28px,5vw,42px);
+                font-weight: 800;
+                margin: 0;
+            }
+
+            .access-denied-wrap p {
+                font-size: 16px;
+                color: var(--text-secondary, #888);
+                max-width: 400px;
+                margin: 0;
+            }
+
+            .access-denied-wrap a {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                margin-top: 8px;
+                padding: 12px 28px;
+                border-radius: 10px;
+                background: linear-gradient(135deg,#6c63ff,#48cfad);
+                color: #fff;
+                font-weight: 600;
+                font-size: 15px;
+                text-decoration: none;
+                transition: opacity .2s;
+            }
+
+                .access-denied-wrap a:hover {
+                    opacity: .85;
+                }
+        </style>
+        <div class="access-denied-wrap">
+            <div class="access-denied-icon">🚫</div>
+            <h1>Access Restricted</h1>
+            <p>Your account doesn't have a recognised role to access SabiSpace. Please contact support or sign in with an authorised account.</p>
+            <a asp-controller="Home" asp-action="Index">← Back to Home</a>
+            <form asp-controller="Auth" asp-action="Logout" method="post" style="margin-top:8px">
+                @Html.AntiForgeryToken()
+                <button type="submit" style="background:transparent;border:1px solid #2a2a35;color:#888;font-size:13px;padding:8px 20px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;">
+                    Sign out of this account
                 </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-                        </li>
+            </form>
+        </div>
+    }
+    else
+    {
+        <div class="progress-bar" id="progressBar"></div>
+
+        <div class="announce-bar" id="announceBar">
+            <span>🎉 New — Quizzes &amp; Assignments are now live for all sections!</span>
+            <a asp-controller="Quiz" asp-action="Index">Try a quiz →</a>
+            <button class="announce-close" onclick="dismissAnnounce()" aria-label="Close">×</button>
+        </div>
+
+        <nav class="nav" id="mainNav">
+            <a class="nav-brand" asp-controller="Home" asp-action="Index">
+                <div class="nav-logo">S</div>
+                <span class="nav-wordmark">Sabi<span>Space</span></span>
+            </a>
+
+            <div class="nav-search">
+                <span class="nav-search-icon">⌕</span>
+                <input type="search" placeholder="Search lessons, quizzes…" id="globalSearch" autocomplete="off" />
+            </div>
+
+            <ul class="nav-links">
+                <!-- Always visible to everyone -->
+                <li>
+                    <a asp-controller="Home" asp-action="Index"
+                       class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Home" ? "active" : "")">
+                        Home
+                    </a>
+                </li>
+                <li>
+                    <a asp-controller="Course" asp-action="Index"
+                       class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Course" ? "active" : "")">
+                        Courses
+                    </a>
+                </li>
+
+                @* Only show these to logged-in users *@
+                @if (isLoggedIn)
+                {
+                    <li>
+                        <a asp-controller="Lesson" asp-action="Index"
+                           class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Lesson" ? "active" : "")">
+                            Lessons <span class="nav-badge live">Live</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a asp-controller="Quiz" asp-action="Index"
+                           class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Quiz" ? "active" : "")">
+                            Quizzes <span class="nav-badge quiz">New</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a asp-controller="Assignment" asp-action="Index"
+                           class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Assignment" ? "active" : "")">
+                            Assignments <span class="nav-badge assign">New</span>
+                        </a>
+                    </li>
+                }
+            </ul>
+
+            <div class="nav-actions">
+                <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark / light mode" aria-label="Toggle theme">
+                    <div class="toggle-track"><span>🌙</span><span>☀️</span></div>
+                    <div class="toggle-thumb"></div>
+                </button>
+
+                <button class="nav-icon-btn" aria-label="Notifications" onclick="SabiToast('No new notifications', 'info')">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                        <path d="M13.73 21a2 2 0 01-3.46 0" />
+                    </svg>
+                    <span class="nav-notif-dot"></span>
+                </button>
+
+                @if (!isLoggedIn)
+                {
+                    <a asp-controller="Account" asp-action="Login" class="btn btn-ghost">Sign In</a>
+                    <a asp-controller="Acciunt" asp-action="Registration" class="btn btn-sabi">
+                        Get Started
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
+                    </a>
+                }
+                else
+                {
+                    @if (User.IsInRole("Teacher") || User.IsInRole("SuperAdmin") || User.IsInRole("Admin"))
+                    {
+                        <a asp-controller="Teacher" asp-action="Index" class="btn btn-ghost" style="font-size:13px;padding:8px 16px">Dashboard</a>
+                    }
+                    <button class="nav-icon-btn" style="font-size:15px"
+                            onclick="document.getElementById('logoutForm').submit()" title="Sign out">
+                        🚪
+                    </button>
+                    <form id="logoutForm" asp-controller="Auth" asp-action="Logout" method="post" style="display:none">
+                        @Html.AntiForgeryToken()
+                    </form>
+                }
+            </div>
+
+            <div class="nav-burger" id="burger" onclick="toggleDrawer()" aria-label="Menu">
+                <span></span><span></span><span></span>
+            </div>
+        </nav>
+
+        <!-- Mobile Drawer -->
+        <div class="nav-drawer" id="navDrawer">
+            <!-- Always visible -->
+            <a asp-controller="Home" asp-action="Index" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Home" ? "active" : "")">🏠 Home</a>
+            <a asp-controller="Course" asp-action="Index" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Course" ? "active" : "")">📚 Courses</a>
+
+            @* Logged-in only *@
+            @if (isLoggedIn)
+            {
+                <a asp-controller="Lesson" asp-action="Index" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Lesson" ? "active" : "")">🎓 Lessons</a>
+                <a asp-controller="Quiz" asp-action="Index" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Quiz" ? "active" : "")">🧠 Quizzes</a>
+                <a asp-controller="Assignment" asp-action="Index" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Assignment" ? "active" : "")">📝 Assignments</a>
+            }
+
+            <div class="drawer-sep"></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px">
+                <span style="font-size:14px;font-weight:500;color:var(--text-secondary)">Dark / Light mode</span>
+                <button class="theme-toggle" onclick="toggleTheme()" style="width:64px;height:30px">
+                    <div class="toggle-track" style="font-size:12px"><span>🌙</span><span>☀️</span></div>
+                    <div class="toggle-thumb" style="width:22px;height:22px;top:2px"></div>
+                </button>
+            </div>
+            <div class="drawer-sep"></div>
+            <div class="drawer-btns">
+                @if (!isLoggedIn)
+                {
+                    <a asp-controller="Account" asp-action="Login" class="btn btn-ghost">Sign In</a>
+                    <a asp-controller="Account" asp-action="Registration" class="btn btn-sabi">Get Started Free →</a>
+                }
+                else
+                {
+                    @if (User.IsInRole("Teacher") || User.IsInRole("SuperAdmin") || User.IsInRole("Admin"))
+                    {
+                        <a asp-controller="Teacher" asp-action="Index" class="btn btn-ghost">Dashboard</a>
+                    }
+                    <button class="btn btn-sabi" onclick="document.getElementById('logoutFormMobile').submit()">Sign Out</button>
+                    <form id="logoutFormMobile" asp-controller="Account" asp-action="Logout" method="post" style="display:none">@Html.AntiForgeryToken()</form>
+                }
+            </div>
+        </div>
+
+        <div class="toast-zone" id="toastZone"></div>
+
+        <main>@RenderBody()</main>
+
+        <footer>
+            <div class="footer-top">
+                <div class="footer-brand">
+                    <a class="footer-brand-logo" asp-controller="Home" asp-action="Index">
+                        <div class="footer-logo-mark">S</div>
+                        <span class="footer-wordmark">Sabi<span>Space</span></span>
+                    </a>
+                    <p class="footer-desc">Africa's premier online learning platform. Expert teachers, curriculum-aligned lessons, quizzes and assignments — from JSS to Professional level.</p>
+                    <div class="footer-newsletter">
+                        <input type="email" placeholder="Your email for updates…" id="newsletterEmail" />
+                        <button onclick="subscribeNewsletter()">Subscribe</button>
+                    </div>
+                </div>
+                <div class="footer-col">
+                    <h5>Learn</h5>
+                    <ul>
+                        <li><a asp-controller="Course" asp-action="Index">Browse Courses</a></li>
+                        @if (isLoggedIn)
+                        {
+                            <li><a asp-controller="Lesson" asp-action="Index">Live Lessons <span class="badge-new">Live</span></a></li>
+                            <li><a asp-controller="Quiz" asp-action="Index">Quizzes <span class="badge-new">New</span></a></li>
+                            <li><a asp-controller="Assignment" asp-action="Index">Assignments <span class="badge-new">New</span></a></li>
+                        }
+                        else
+                        {
+                            <!-- Footer shows teaser links pointing to Register for guests -->
+                            <li><a asp-controller="Account" asp-action="Register">Live Lessons <span class="badge-new">Live</span></a></li>
+                            <li><a asp-controller="Account" asp-action="Register">Quizzes <span class="badge-new">New</span></a></li>
+                            <li><a asp-controller="Account" asp-action="Register">Assignments <span class="badge-new">New</span></a></li>
+                        }
+                        <li><a href="#">Certificates</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h5>Company</h5>
+                    <ul>
+                        <li><a href="#">About SabiSpace</a></li>
+                        <li><a href="#">Teach with Us</a></li>
+                        <li><a href="#">Blog</a></li>
+                        <li><a href="#">Careers</a></li>
+                        <li><a href="#">Press</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h5>Support</h5>
+                    <ul>
+                        <li><a href="#">Help Centre</a></li>
+                        <li><a href="#">Contact Us</a></li>
+                        <li><a href="#">Privacy Policy</a></li>
+                        <li><a href="#">Terms of Service</a></li>
+                        <li><a href="#">Cookie Settings</a></li>
                     </ul>
                 </div>
             </div>
-        </nav>
-    </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-    </div>
+            <div class="footer-bottom">
+                <div class="footer-bottom-left">
+                    <span class="footer-copy">© @DateTime.Now.Year SabiSpace. Built with ❤️ for Africa.</span>
+                    <div class="footer-legal">
+                        <a href="#">Privacy</a><a href="#">Terms</a><a href="#">Cookies</a>
+                    </div>
+                </div>
+                <div class="footer-social">
+                    <a href="#" class="social-icon" title="X" target="_blank" rel="noopener">𝕏</a>
+                    <a href="#" class="social-icon" title="Instagram" target="_blank" rel="noopener">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5" /><path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z" /><line x1="17.5" y1="6.5" x2="17.51" y2="6.5" /></svg>
+                    </a>
+                    <a href="#" class="social-icon" title="LinkedIn" target="_blank" rel="noopener">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2z" /><circle cx="4" cy="4" r="2" /></svg>
+                    </a>
+                    <a href="#" class="social-icon" title="YouTube" target="_blank" rel="noopener">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22.54 6.42a2.78 2.78 0 00-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46a2.78 2.78 0 00-1.95 1.96A29 29 0 001 12a29 29 0 00.46 5.58A2.78 2.78 0 003.41 19.6C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 001.95-1.95A29 29 0 0023 12a29 29 0 00-.46-5.58z" /><polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02" /></svg>
+                    </a>
+                </div>
+            </div>
+        </footer>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - MiniSchoolSystem - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-        </div>
-    </footer>
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
-    @await RenderSectionAsync("Scripts", required: false)
+        @RenderSection("Scripts", required: false)
+
+        <script>
+            (function(){
+                var t=localStorage.getItem('sabi-theme')||'dark';
+                document.getElementById('htmlRoot').setAttribute('data-theme',t);
+            })();
+            function toggleTheme(){
+                var h=document.getElementById('htmlRoot');
+                var n=h.getAttribute('data-theme')==='dark'?'light':'dark';
+                h.setAttribute('data-theme',n);localStorage.setItem('sabi-theme',n);
+            }
+            (function(){
+                var bar=document.getElementById('progressBar'),w=0;
+                var iv=setInterval(function(){w=Math.min(w+Math.random()*18,85);bar.style.width=w+'%'},120);
+                window.addEventListener('load',function(){clearInterval(iv);bar.style.width='100%';setTimeout(function(){bar.style.opacity='0'},400)});
+            })();
+            window.addEventListener('scroll',function(){document.getElementById('mainNav').classList.toggle('scrolled',scrollY>20)},{passive:true});
+            function toggleDrawer(){
+                var d=document.getElementById('navDrawer'),b=document.getElementById('burger');
+                var o=d.classList.toggle('open');b.classList.toggle('open',o);
+                document.body.style.overflow=o?'hidden':'';
+            }
+            document.getElementById('navDrawer').addEventListener('click',function(e){if(e.target===this)toggleDrawer()});
+            function dismissAnnounce(){
+                var b=document.getElementById('announceBar');
+                b.style.transition='opacity .3s,max-height .4s';
+                b.style.opacity='0';b.style.maxHeight='0';b.style.padding='0';b.style.overflow='hidden';
+                sessionStorage.setItem('sabi-announce-dismissed','1');
+            }
+            if(sessionStorage.getItem('sabi-announce-dismissed'))dismissAnnounce();
+            window.SabiToast=function(msg,type,duration,title){
+                type=type||'info';duration=duration||4500;
+                var icons={success:'✅',error:'❌',info:'ℹ️',warning:'⚠️'};
+                var zone=document.getElementById('toastZone');
+                var t=document.createElement('div');
+                t.className='toast '+type;
+                t.innerHTML='<span class="t-icon">'+(icons[type]||'ℹ️')+'</span>'+
+                    '<div class="t-body">'+(title?'<div class="t-title">'+title+'</div>':'')+
+                    '<div class="t-msg">'+msg+'</div></div>'+
+                    '<button class="t-close" onclick="this.closest(\'.toast\').remove()">×</button>';
+                zone.appendChild(t);
+                setTimeout(function(){t.style.animation='toast-out .35s forwards';setTimeout(function(){t.remove()},370)},duration);
+            };
+            var _ti='@TempData["info"]',_te='@TempData["Error"]',_ts='@TempData["Success"]';
+            if(_ti&&_ti!=='')SabiToast(_ti,'info');
+            if(_te&&_te!=='')SabiToast(_te,'error');
+            if(_ts&&_ts!=='')SabiToast(_ts,'success');
+            function subscribeNewsletter(){
+                var e=document.getElementById('newsletterEmail').value.trim();
+                if(!e||!/^[^\s@@]+@@[^\s@@]+\.[^\s@@]+$/.test(e)){SabiToast('Please enter a valid email.','warning');return}
+                SabiToast("You're subscribed! Welcome to SabiSpace 🎉",'success',5000,'Subscribed!');
+                document.getElementById('newsletterEmail').value='';
+            }
+            var fels=document.querySelectorAll('.fade-up');
+            if(fels.length){
+                var fio=new IntersectionObserver(function(en){en.forEach(function(e){if(e.isIntersecting){e.target.classList.add('visible');fio.unobserve(e.target)}})},{threshold:0.1});
+                fels.forEach(function(el){fio.observe(el)});
+            }
+            document.getElementById('globalSearch').addEventListener('keydown',function(e){
+                if(e.key==='Enter'&&this.value.trim())SabiToast('Searching for "'+this.value.trim()+'"…','info');
+            });
+        </script>
+    }
+
 </body>
 </html>

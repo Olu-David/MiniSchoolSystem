@@ -1,0 +1,122 @@
+﻿@{
+    ViewData["Title"] = "Restore Lesson";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var lesson = ViewBag.Lesson;
+}
+
+@section Styles {
+    <link href="/css/RestoreLesson.css" rel="stylesheet" />
+}
+
+<div class="page">
+    <div class="blob b1"></div>
+    <div class="blob b2"></div>
+
+    <div class="card">
+        <div class="card-icon">♻️</div>
+        <h1 class="card-title">Restore this lesson?</h1>
+        <p class="card-sub">
+            Restoring will make the lesson <strong>visible to students again</strong> and cancel the scheduled deletion.
+        </p>
+
+        <!-- Lesson preview -->
+        <div class="lesson-preview">
+            <div class="lp-label">Lesson to restore</div>
+            @if (lesson != null)
+            {
+                <div class="lp-title">@lesson.Title</div>
+                @if (!string.IsNullOrEmpty(lesson.Description?.ToString()))
+                {
+                    <div class="lp-desc">@lesson.Description</div>
+                }
+                <div class="lp-meta">
+                    <span class="lp-meta-item">
+                        📅 Deleted: @((lesson.DeletedAt as DateTime?)?.ToString("dd MMM yyyy HH:mm") ?? "—")
+                    </span>
+                    <span class="lp-tag-deleted">Scheduled for deletion</span>
+                </div>
+            }
+            else
+            {
+                <div class="lp-title" id="lessonTitle">Loading…</div>
+                <div class="lp-meta"><span id="lessonMeta" class="lp-meta-item">—</span></div>
+            }
+        </div>
+
+        <!-- Days remaining ring -->
+        @if (lesson?.DeletedAt != null)
+        {
+            var daysGone = (DateTime.Now - (DateTime)lesson.DeletedAt).TotalDays;
+            var daysRemaining = Math.Max(0, 3 - daysGone);
+            var pct = daysRemaining / 3.0;
+            var dashOffset = 138 - (138 * pct);
+
+            <div class="timer-box">
+                <div class="timer-ring">
+                    <svg width="52" height="52" viewBox="0 0 52 52">
+                        <circle class="timer-ring-bg" cx="26" cy="26" r="22" />
+                        <circle class="timer-ring-fill" cx="26" cy="26" r="22"
+                                style="stroke-dashoffset:@dashOffset.ToString("F1")" />
+                    </svg>
+                    <div class="timer-text">
+                        <div class="timer-days">@daysRemaining.ToString("F0")</div>
+                        <div class="timer-label">days</div>
+                    </div>
+                </div>
+                <div class="timer-info">
+                    <p>@daysRemaining.ToString("F0") day@(daysRemaining == 1 ? "" : "s") remaining</p>
+                    <span>
+                        @if (daysRemaining <= 0)
+                        {
+                            <span style="color:#f87171">Window expired — cannot restore</span>
+                        }
+                        else
+                        {
+
+                            <span>Restore window closes @((lesson.DeletedAt as DateTime?)?.AddDays(3).ToString("dd MMM yyyy") ?? "")</span>
+                        }
+                    </span>
+                </div>
+            </div>
+        }
+
+        <!-- What restoring does -->
+        <div class="info-box">
+            <span class="ib-icon">♻️</span>
+            <div>
+                <p class="ib-title">What restoring does</p>
+                <ul class="ib-list">
+                    <li>Lesson becomes visible to students immediately</li>
+                    <li>All content and files are preserved</li>
+                    <li>Scheduled deletion is cancelled permanently</li>
+                    <li>Teacher is not notified automatically</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Buttons -->
+        <div class="btns">
+            <a asp-controller="Lesson" asp-action="Index" class="btn btn-cancel">← Cancel</a>
+            <form asp-controller="Lesson" asp-action="RestoreLesson"
+                  asp-route-id="@(lesson?.Id ?? 0)"
+                  method="post" style="flex:1;display:contents">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-restore"
+                        id="restoreBtn" onclick="handleSubmit(this)">
+                    <span class="spin" id="spin"></span>
+                    <span id="btnTxt">♻️ Restore Lesson</span>
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @* 1. Link to the built-in validation scripts (jQuery Validation) *@
+    @* Include standard validation first *@
+    <partial name="_ValidationScriptsPartial" />
+
+    @* Link your custom index.js file *@
+    <script src="~/js/Details.js" asp-append-version="true"></script>
+}

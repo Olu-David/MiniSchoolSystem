@@ -1,0 +1,119 @@
+﻿@{
+    ViewData["Title"] = "Archive Course";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var course = ViewBag.Course;
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/SabiSpace.css" asp-append-version="true" />
+}
+
+<div class="confirm-page">
+    <div class="cp-blob cp-blob-1" style="background:rgba(245,200,66,.1)"></div>
+    <div class="cp-blob cp-blob-2" style="background:rgba(107,114,128,.07)"></div>
+
+    <div class="confirm-card" style="border:1px solid rgba(245,200,66,.2)">
+
+        <div class="confirm-icon gold">📦</div>
+        <h1 class="confirm-title">Archive this course?</h1>
+        <p class="confirm-sub">
+            Archiving hides the course from students but <strong>keeps all data, modules and lessons safe</strong>. You can restore it anytime.
+        </p>
+
+        <!-- Course preview -->
+        <div class="course-preview">
+            <div class="cp-label">Course to archive</div>
+            @if (course != null)
+            {
+                <div class="cp-title">@course.Title</div>
+                <div class="cp-meta">
+                    <span>📅 @((course.CreatedAt as DateTime?)?.ToString("dd MMM yyyy") ?? "—")</span>
+                    @if (course.CourseSections != null)
+                    {
+                        <span class="section-pill">@course.CourseSections</span>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="cp-title" id="cpTitle">Loading…</div>
+                <div class="cp-meta"><span id="cpMeta">—</span></div>
+            }
+        </div>
+
+        <!-- Warning -->
+        <div class="warn-box wb-gold">
+            <span class="wb-icon">ℹ️</span>
+            <div>
+                <p class="wb-title">What archiving does</p>
+                <ul class="wb-list">
+                    <li>Course hidden from student listings immediately</li>
+                    <li>All modules, lessons and content are preserved</li>
+                    <li>SuperAdmin can restore at any time</li>
+                    <li>Students are not notified</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Confirm checkbox -->
+        <div class="confirm-check">
+            <input type="checkbox" id="confirmCheck"
+                   onchange="toggleBtn('confirmCheck','archiveBtn')"
+                   style="accent-color:var(--gold)" />
+            <label for="confirmCheck">
+                I want to archive
+                <strong style="color:var(--text-primary)">@(course?.Title ?? "this course")</strong>
+            </label>
+        </div>
+
+        <!-- Buttons -->
+        <form asp-controller="Course" asp-action="ArchiveCourse"
+              method="post" style="display:contents">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@(course?.Id ?? 0)" />
+            <div class="confirm-btns">
+                <a asp-controller="Course" asp-action="Index" class="btn btn-ghost btn-block">← Cancel</a>
+                <button type="submit" class="btn btn-gold btn-block"
+                        id="archiveBtn" disabled
+                        onclick="showSpin('archiveBtn','archSpin','archTxt','Archiving…')">
+                    <span class="btn-spin" id="archSpin"
+                          style="border-color:rgba(254,243,199,.3);border-top-color:#fef3c7"></span>
+                    <span id="archTxt">📦 Archive Course</span>
+                </button>
+            </div>
+        </form>
+
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/SabiSpace.js" asp-append-version="true"></script>
+    <script>
+        function toggleBtn(checkId, btnId) {
+            document.getElementById(btnId).disabled = !document.getElementById(checkId).checked;
+        }
+        function showSpin(btnId, spinId, txtId, msg) {
+            var btn = document.getElementById(btnId);
+            btn.disabled = true;
+            document.getElementById(spinId).style.display = 'block';
+            document.getElementById(txtId).textContent = msg;
+        }
+
+        // Load course info via JS if ViewBag.Course not set
+        (function(){
+            var titleEl = document.getElementById('cpTitle');
+            if (!titleEl) return;
+            var id = new URLSearchParams(location.search).get('id') || location.pathname.split('/').pop();
+            if (!id || isNaN(id)) return;
+            fetch('/Course/all')
+                .then(function(r){ return r.json(); })
+                .then(function(courses){
+                    var c = courses.find(function(x){ return String(x.id)===String(id); });
+                    if (!c) return;
+                    titleEl.textContent = c.title||'Course';
+                    var m = document.getElementById('cpMeta');
+                    if (m) m.textContent = c.courseSections||'';
+                });
+        })();
+    </script>
+}

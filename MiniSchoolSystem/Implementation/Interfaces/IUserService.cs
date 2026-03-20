@@ -16,8 +16,10 @@ namespace MiniSchoolSystem.Implementation.Interfaces
         Task<bool> ForgotPasswordAsync(string email);
         Task<IdentityResult> ResetPasswordAsync(string email, string token, string password);
         bool BelongToASection(UserDb user, Sections sections);
+        Task<(bool Success, string Message)> SetUserLockoutAsync(string userId, bool shouldLock);
 
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
+
+
 
     }
 }

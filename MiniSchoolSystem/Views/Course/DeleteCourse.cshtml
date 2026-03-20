@@ -1,0 +1,81 @@
+﻿@model MiniSchoolSystem.DTO.EditCourseDTO
+@{
+    ViewData["Title"] = "Duplicate Course";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/SabiSpace.css" asp-append-version="true" />
+}
+
+<div class="confirm-page">
+    <div class="cp-blob cp-blob-1" style="background:rgba(255,92,26,.1)"></div>
+    <div class="cp-blob cp-blob-2" style="background:rgba(61,186,140,.07)"></div>
+
+    <div class="confirm-card" style="border:1px solid rgba(255,92,26,.2)">
+
+        <div class="confirm-icon sabi">🔁</div>
+        <h1 class="confirm-title">Duplicate this course?</h1>
+        <p class="confirm-sub">
+            This creates a <strong style="color:var(--sabi)">full copy</strong> of the course including all its modules and lessons, saved under your account as "@Model.Title (Copy)".
+        </p>
+
+        <!-- Course preview -->
+        <div class="course-preview">
+            <div class="cp-label">Course to duplicate</div>
+            <div class="cp-title">@Model.Title</div>
+            <div class="cp-meta">
+                <span>📋 ID: @Model.Id</span>
+                @if (Model.LastModifiedAt.HasValue)
+                {
+                    <span>📅 Last modified @Model.LastModifiedAt.Value.ToString("dd MMM yyyy")</span>
+                }
+            </div>
+        </div>
+
+        <!-- What duplication does -->
+        <div class="warn-box wb-sabi">
+            <span class="wb-icon">🔁</span>
+            <div>
+                <p class="wb-title">What duplicating does</p>
+                <ul class="wb-list">
+                    <li>Creates a new course titled "@Model.Title (Copy)"</li>
+                    <li>Copies all modules and lessons into the new course</li>
+                    <li>You own and can edit the duplicate independently</li>
+                    <li>The original course is not changed at all</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Buttons -->
+        <div class="confirm-btns">
+            <a asp-controller="Course" asp-action="Details"
+               asp-route-id="@Model.Id"
+               class="btn btn-ghost btn-block">← Cancel</a>
+
+            <form asp-controller="Course" asp-action="Duplicate"
+                  asp-route-id="@Model.Id"
+                  method="post" style="flex:1;display:contents">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-sabi btn-block"
+                        id="dupBtn"
+                        onclick="showSpin('dupBtn','dupSpin','dupTxt','Duplicating…')">
+                    <span class="btn-spin" id="dupSpin"></span>
+                    <span id="dupTxt">🔁 Duplicate Course</span>
+                </button>
+            </form>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/SabiSpace.js" asp-append-version="true"></script>
+    <script>
+        function showSpin(btnId, spinId, txtId, msg) {
+            document.getElementById(btnId).disabled = true;
+            document.getElementById(spinId).style.display = 'block';
+            document.getElementById(txtId).textContent = msg;
+        }
+    </script>
+}

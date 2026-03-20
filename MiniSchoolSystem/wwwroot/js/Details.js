@@ -1,65 +1,66 @@
-﻿// 1. Get the ID at the very top
-const lessonId = window.location.pathname.split('/').filter(Boolean).pop();
+﻿var lid = window.location.pathname.split('/').pop();
 
-async function loadLesson(id) {
-    // Guard: Stop immediately if there is no ID
-    if (!id) {
-        console.warn("No ID found in URL");
-        return;
+fetch('/Lesson/GetLessons')
+    .then(r => r.json())
+    .then(lessons => {
+        var l = lessons.find(x => String(x.id) === String(lid));
+        if (!l) { showErr(); return; }
+        fill(l);
+    }).catch(showErr);
+
+function fill(l) {
+    var t = n => document.getElementById(n);
+    document.title = (l.title || 'Lesson') + ' — SabiSpace';
+    t('bcTitle').textContent = l.title || '—';
+    t('hSec').textContent = l.lessonSection || 'General';
+    t('hTitle').textContent = l.title || '—';
+    t('hDesc').textContent = l.description || '';
+    t('hDate').textContent = fmt(l.createdAt);
+    t('hTeacher').textContent = l.teacherName || '—';
+    t('tcAv').textContent = (l.teacherName || 'T')[0];
+    t('tcName').textContent = l.teacherName || '—';
+    t('siSec').textContent = l.lessonSection || '—';
+    t('siDate').textContent = fmt(l.createdAt);
+    t('siTeacher').textContent = l.teacherName || '—';
+    t('siStatus').innerHTML = l.isArchived
+        ? '<span class="pill p-arch">Archived</span>'
+        : '<span class="pill p-live">Active</span>';
+
+    var c = (l.lessonContents || l.lessonContent || [])[0] || {};
+    t('contentTxt').textContent = c.content || 'No content yet.';
+    t('aboutTxt').textContent = l.description || '—';
+    if (c.fileUrl) {
+        t('fileWrap').style.display = 'block';
+        t('fileCard').href = c.fileUrl;
+        var parts = c.fileUrl.split('/');
+        t('fName').textContent = parts[parts.length - 1] || 'Attachment';
     }
 
-    try {
-        const res = await fetch('/Lesson/GetLessons');
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+    // Wire action links & forms
+    var setHref = (id, url) => { var el = document.getElementById(id); if (el) el.href = url; };
+    setHref('editLink', '/Lesson/EditLesson/' + l.id);
+    setHref('delLink', '/Lesson/DeleteLesson?id=' + l.id);
+    setHref('sEditLink', '/Lesson/EditLesson/' + l.id);
+    setHref('sDelLink', '/Lesson/DeleteLesson?id=' + l.id);
 
-        const data = await res.json();
-
-        // Ensure we actually got an array back before calling .find()
-        if (!Array.isArray(data)) return;
-
-        const lesson = data.find(l => String(l.id) === String(id));
-
-        // Helper: Safe visibility toggle
-        const toggle = (elId, display) => {
-            const el = document.getElementById(elId);
-            if (el) el.style.display = display;
-        };
-
-        toggle('loadingSkeleton', 'none');
-        toggle('lessonContent', '');
-
-        if (!lesson) {
-            const content = document.getElementById('lessonContent');
-            if (content) content.innerHTML = `<div class="alert">Lesson not found</div>`;
-            return;
-        }
-
-        // --- Safe Assignments ---
-        const setTxt = (elId, val) => {
-            const el = document.getElementById(elId);
-            if (el) el.textContent = val || '';
-        };
-
-        setTxt('lessonTitle', lesson.title);
-        setTxt('lessonDescription', lesson.description);
-        setTxt('lessonSectionBadge', lesson.lessonSection);
-
-        // For HTML content (the lesson body)
-        const bodyEl = document.getElementById('lessonBody');
-        if (bodyEl) bodyEl.innerHTML = lesson.content || '';
-
-        // Date formatting
-        const dateEl = document.getElementById('lessonCreated');
-        if (dateEl && lesson.createdAt) {
-            dateEl.textContent = new Date(lesson.createdAt).toLocaleDateString();
-        }
-
-    } catch (e) {
-        console.error("Critical Load Error:", e);
-        const skeleton = document.getElementById('loadingSkeleton');
-        if (skeleton) skeleton.textContent = "Error loading content.";
-    }
+    var af = document.getElementById('archForm');
+    if (af) af.action = '/Lesson/ArchiveLesson/' + l.id;
+    var saf = document.getElementById('sArchForm');
+    if (saf) saf.action = '/Lesson/ArchiveLesson/' + l.id;
+    var srf = document.getElementById('sRestForm');
+    if (srf) srf.action = '/Lesson/RestoreLesson/' + l.id;
 }
 
-// 2. Call it by passing the variable in
-loadLesson(lessonId);
+function showErr() {
+    document.getElementById('hTitle').textContent = 'Lesson not found';
+    document.getElementById('contentTxt').textContent = 'This lesson could not be loaded.';
+}
+
+function swTab(id, btn) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('on'));
+    document.querySelectorAll('.tab').forEach(b => b.classList.remove('on'));
+    document.getElementById(id).classList.add('on');
+    btn.classList.add('on');
+}
+
+function fmt(d) { return d ? new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'; }

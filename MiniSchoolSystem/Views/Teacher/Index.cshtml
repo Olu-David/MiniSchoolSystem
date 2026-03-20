@@ -1,0 +1,337 @@
+﻿@{
+    ViewData["Title"] = "Teacher Dashboard";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    int studentCount = ViewBag.StudentCount ?? 0;
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/Teacher.css" asp-append-version="true" />
+}
+
+<div class="portal-wrap">
+
+    <!-- ======================================================
+         SIDEBAR
+    ====================================================== -->
+    <aside class="sidebar" id="sidebar">
+
+        <a href="/" class="sidebar-logo">
+            <div class="sidebar-logo-mark">S</div>
+            <span class="sidebar-logo-text">Sabi<span>Space</span></span>
+        </a>
+
+        <!-- Teacher profile -->
+        <div class="sidebar-profile">
+            <div class="profile-av" id="profileAv">T</div>
+            <div>
+                <div class="profile-name" id="profileName">@User.Identity?.Name</div>
+                <div class="profile-role">Teacher</div>
+            </div>
+        </div>
+
+        <!-- Nav -->
+        <div class="nav-section">
+            <div class="nav-section-label">Main</div>
+
+            <a class="nav-item active" href="/Teacher" data-path="/teacher">
+                <span class="nav-icon">🏠</span> Dashboard
+            </a>
+            <a class="nav-item" href="/Teacher/MyCourses" data-path="/teacher/mycourses">
+                <span class="nav-icon">📚</span> My Courses
+                <span class="nav-badge" id="courseCountBadge">—</span>
+            </a>
+            <a class="nav-item" href="/Lesson/CreateLesson" data-path="/lesson/createlesson">
+                <span class="nav-icon">➕</span> Create Lesson
+            </a>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-label">Students</div>
+            <button class="nav-item" onclick="showToast('My Students coming soon!','info')">
+                <span class="nav-icon">👨‍🎓</span> My Students
+                <span class="nav-badge" data-counter="@studentCount">@studentCount</span>
+            </button>
+            <button class="nav-item" onclick="showToast('Messaging coming soon!','info')">
+                <span class="nav-icon">💬</span> Messages
+                <span class="nav-badge gold">3</span>
+            </button>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-label">Insights</div>
+            <button class="nav-item" onclick="loadAnalytics()">
+                <span class="nav-icon">📊</span> Analytics
+                <span class="nav-badge coming">Soon</span>
+            </button>
+            <button class="nav-item" onclick="requestPayout()">
+                <span class="nav-icon">💰</span> Earnings
+                <span class="nav-badge coming">Soon</span>
+            </button>
+            <button class="nav-item" onclick="createScheduleEvent()">
+                <span class="nav-icon">📅</span> Schedule
+                <span class="nav-badge coming">Soon</span>
+            </button>
+        </div>
+
+        <!-- Sidebar footer -->
+        <div class="sidebar-footer">
+            <a class="nav-item" href="/Auth/Logout"
+               onclick="document.getElementById('logoutForm').submit();return false">
+                <span class="nav-icon">🚪</span> Sign Out
+            </a>
+            <form id="logoutForm" asp-controller="Auth" asp-action="Logout" method="post" style="display:none">
+                @Html.AntiForgeryToken()
+            </form>
+        </div>
+    </aside>
+
+    <!-- Sidebar overlay (mobile) -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- ======================================================
+         MAIN CONTENT
+    ====================================================== -->
+    <div class="main-content">
+
+        <!-- Mobile topbar -->
+        <div class="mobile-topbar">
+            <button class="mobile-menu-btn" onclick="openSidebar()">☰</button>
+            <span style="font-family:'Syne',sans-serif;font-weight:700;font-size:1rem">Dashboard</span>
+            <div style="width:32px"></div>
+        </div>
+
+        <!-- Desktop topbar -->
+        <div class="topbar">
+            <span class="topbar-title">Teacher Dashboard</span>
+            <div class="topbar-right">
+                <div class="search-wrap">
+                    <span class="search-icon">⌕</span>
+                    <input type="search" placeholder="Quick search…" id="globalSearch" />
+                </div>
+                <button class="notif-btn" onclick="markAllRead()" title="Notifications">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                        <path d="M13.73 21a2 2 0 01-3.46 0" />
+                    </svg>
+                    <span class="notif-dot"></span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Page body -->
+        <div class="page-body">
+
+            <div class="page-body-header">
+                <h1 class="page-body-title">Welcome back 👋</h1>
+                <p class="page-body-sub">Here's what's happening with your lessons today.</p>
+            </div>
+
+            <!-- ============================================
+                 STAT CARDS
+            ============================================ -->
+            <div class="stats-grid">
+                <div class="stat-card sabi">
+                    <div class="stat-icon si-sabi">👨‍🎓</div>
+                    <div class="stat-num" data-counter="@studentCount">@studentCount</div>
+                    <div class="stat-label">Total Students</div>
+                    <span class="stat-delta delta-up">↑ Active</span>
+                </div>
+                <div class="stat-card gold">
+                    <div class="stat-icon si-gold">📚</div>
+                    <div class="stat-num" id="courseCountStat" data-counter="0">—</div>
+                    <div class="stat-label">My Courses</div>
+                    <span class="stat-delta delta-new">View all</span>
+                </div>
+                <div class="stat-card sage">
+                    <div class="stat-icon si-sage">✅</div>
+                    <div class="stat-num" data-counter="0">—</div>
+                    <div class="stat-label">Lessons Published</div>
+                    <span class="stat-delta delta-up">↑ This week</span>
+                </div>
+                <div class="stat-card sky">
+                    <div class="stat-icon si-sky">⭐</div>
+                    <div class="stat-num">4.9</div>
+                    <div class="stat-label">Average Rating</div>
+                    <span class="stat-delta delta-up">↑ Great</span>
+                </div>
+            </div>
+
+            <!-- ============================================
+                 QUICK ACTIONS
+            ============================================ -->
+            <div class="section-card">
+                <div class="section-card-header">
+                    <div class="section-card-title">⚡ Quick Actions</div>
+                </div>
+                <div class="section-card-body" style="display:flex;gap:12px;flex-wrap:wrap">
+                    <a href="/Lesson/CreateLesson" class="btn btn-sabi">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14" /></svg>
+                        New Lesson
+                    </a>
+                    <a href="/Teacher/MyCourses" class="btn btn-ghost">📚 My Courses</a>
+                    <button class="btn btn-ghost" onclick="showToast('My Students coming soon!','info')">👨‍🎓 My Students</button>
+                    <button class="btn btn-ghost" onclick="createScheduleEvent()">📅 Schedule Class</button>
+                    <button class="btn btn-ghost" onclick="loadAnalytics()">📊 View Analytics</button>
+                </div>
+            </div>
+
+            <!-- ============================================
+                 RECENT LESSONS
+            ============================================ -->
+            <div class="section-card">
+                <div class="section-card-header">
+                    <div class="section-card-title">📝 Recent Lessons</div>
+                    <a href="/Lesson" class="btn btn-ghost btn-sm">View all</a>
+                </div>
+                <div class="section-card-body" style="padding:0">
+                    <table class="data-table" id="recentLessonsTable">
+                        <thead>
+                            <tr>
+                                <th>Lesson</th>
+                                <th>Section</th>
+                                <th>Status</th>
+                                <th>Created</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recentLessonsBody">
+                            <tr><td colspan="5" style="text-align:center;color:var(--text-dim);padding:32px">Loading lessons…</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ============================================
+                 NOTIFICATIONS  +  SCHEDULE  (2 cols)
+            ============================================ -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+
+                <!-- Notifications -->
+                <div class="section-card">
+                    <div class="section-card-header">
+                        <div class="section-card-title">🔔 Notifications</div>
+                        <button class="btn btn-ghost btn-sm" onclick="markAllRead()">Mark all read</button>
+                    </div>
+                    <div class="notif-list" style="padding:8px">
+                        <div class="notif-item unread">
+                            <div class="notif-av si-sabi" style="background:var(--sabi-dim);border:1px solid rgba(255,92,26,.2)">🎓</div>
+                            <div>
+                                <div class="notif-title">New student enrolled</div>
+                                <div class="notif-body">A student joined your SS2 Web Dev course.</div>
+                                <div class="notif-time">2 hours ago</div>
+                            </div>
+                            <div class="notif-unread-dot"></div>
+                        </div>
+                        <div class="notif-item unread">
+                            <div class="notif-av" style="background:var(--sage-dim);border:1px solid rgba(61,186,140,.2)">⭐</div>
+                            <div>
+                                <div class="notif-title">New lesson review</div>
+                                <div class="notif-body">Your Introduction to Algebra lesson received 5 stars.</div>
+                                <div class="notif-time">5 hours ago</div>
+                            </div>
+                            <div class="notif-unread-dot"></div>
+                        </div>
+                        <div class="notif-item">
+                            <div class="notif-av" style="background:var(--gold-dim);border:1px solid rgba(245,200,66,.2)">📢</div>
+                            <div>
+                                <div class="notif-title">Platform update</div>
+                                <div class="notif-body">Live lessons feature is now available for your section.</div>
+                                <div class="notif-time">Yesterday</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Schedule stub -->
+                <div class="section-card">
+                    <div class="section-card-header">
+                        <div class="section-card-title">📅 Today's Schedule</div>
+                        <button class="btn btn-ghost btn-sm" onclick="createScheduleEvent()">+ Add</button>
+                    </div>
+                    <div class="section-card-body">
+                        <div class="coming-soon-badge"><span class="cs-dot"></span>Coming Soon</div>
+                        <div class="empty-state" style="padding:20px 0">
+                            <div class="empty-icon">📅</div>
+                            <div class="empty-title">Schedule management</div>
+                            <div class="empty-body">Plan and manage your live lessons, office hours and class schedules from here.</div>
+                            <button class="btn btn-ghost btn-sm" onclick="createScheduleEvent()">Get notified when ready</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================
+                 EARNINGS STUB
+            ============================================ -->
+            <div class="section-card">
+                <div class="section-card-header">
+                    <div class="section-card-title">💰 Earnings Overview</div>
+                    <div style="display:flex;gap:8px">
+                        <span class="coming-soon-badge" style="margin:0"><span class="cs-dot"></span>Coming Soon</span>
+                        <button class="btn btn-ghost btn-sm" onclick="requestPayout()">Request Payout</button>
+                    </div>
+                </div>
+                <div class="section-card-body">
+                    <div class="chart-container">
+                        <div class="chart-placeholder-icon">📈</div>
+                        <div class="chart-placeholder-text">Earnings chart will appear here</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- Toast zone (fallback for standalone) -->
+<div class="toast-zone" id="toastZone"></div>
+
+@section Scripts {
+    <script src="~/js/Teacher.js" asp-append-version="true"></script>
+    <script>
+        /* Load recent lessons from API */
+        fetch('/Lesson/GetLessons')
+            .then(function(r) { return r.json(); })
+            .then(function(lessons) {
+                var tbody = document.getElementById('recentLessonsBody');
+                if (!lessons.length) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-dim);padding:32px">No lessons yet. <a href="/Lesson/CreateLesson" style="color:var(--sabi)">Create your first lesson →</a></td></tr>';
+                    return;
+                }
+
+                /* Update course count stat */
+                var courseCountEl = document.getElementById('courseCountStat');
+                if (courseCountEl) {
+                    courseCountEl.dataset.counter = lessons.length;
+                    courseCountEl.textContent     = lessons.length;
+                }
+                var badgeEl = document.getElementById('courseCountBadge');
+                if (badgeEl) badgeEl.textContent = lessons.length;
+
+                /* Render table rows */
+                tbody.innerHTML = lessons.slice(0, 8).map(function(l) {
+                    var status = l.isArchived
+                        ? '<span class="pill pill-inactive">Archived</span>'
+                        : '<span class="pill pill-active"><span class="pill-dot"></span>Active</span>';
+                    return '<tr>' +
+                        '<td><span style="font-weight:600;color:var(--text-primary)">' + escHtml(l.title || '—') + '</span></td>' +
+                        '<td><span style="font-size:12px;color:var(--text-dim)">' + escHtml(l.lessonSection || '—') + '</span></td>' +
+                        '<td>' + status + '</td>' +
+                        '<td>' + fmtDate(l.createdAt) + '</td>' +
+                        '<td style="display:flex;gap:6px">' +
+                            '<a href="/Lesson/Details/' + l.id + '"   class="btn btn-ghost btn-sm">View</a>' +
+                            '<a href="/Lesson/EditLesson/' + l.id + '" class="btn btn-ghost btn-sm">Edit</a>' +
+                        '</td>' +
+                    '</tr>';
+                }).join('');
+
+                /* Re-run counter animations for the new data */
+                initCounterAnimations();
+            })
+            .catch(function() {
+                document.getElementById('recentLessonsBody').innerHTML =
+                    '<tr><td colspan="5" style="text-align:center;color:var(--text-dim);padding:32px">Could not load lessons.</td></tr>';
+            });
+    </script>
+}

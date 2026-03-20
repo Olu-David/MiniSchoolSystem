@@ -1,0 +1,135 @@
+﻿@model MiniSchoolSystem.DTO.EditCourseDTO
+@{
+    ViewData["Title"] = "Edit Course";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var sections = ViewBag.CourseSection as List<MiniSchoolSystem.Enums.Sections>
+                   ?? Enum.GetValues(typeof(MiniSchoolSystem.Enums.Sections))
+                          .Cast<MiniSchoolSystem.Enums.Sections>().ToList();
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/SabiSpace.css" asp-append-version="true" />
+}
+
+<div class="course-page">
+
+    <!-- HEADER -->
+    <div class="page-header">
+        <div class="ph-blob phb1" style="background:rgba(245,200,66,.09)"></div>
+        <div class="ph-blob phb2" style="background:rgba(26,124,255,.06)"></div>
+        <div class="ph-inner">
+            <div>
+                <div class="breadcrumb">
+                    <a asp-controller="Home" asp-action="Index">Home</a><span>›</span>
+                    <a asp-controller="Course" asp-action="Index">Courses</a><span>›</span>
+                    <a asp-controller="Course" asp-action="Details" asp-route-id="@Model.Id">@Model.Title</a><span>›</span>
+                    <span style="color:var(--text-secondary)">Edit</span>
+                </div>
+                <h1 class="ph-title">Edit Course</h1>
+                <p class="ph-sub">Update the course details below.</p>
+                <div class="edit-badge">✏️ Editing: <strong>@Model.Title</strong></div>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap">
+                <a asp-controller="Course" asp-action="Details" asp-route-id="@Model.Id"
+                   class="btn btn-ghost btn-sm">👁 Preview</a>
+                <a asp-controller="Course" asp-action="ArchiveCourse" asp-route-id="@Model.Id"
+                   class="btn btn-sm" style="background:rgba(245,200,66,.1);color:var(--gold);border:1.5px solid rgba(245,200,66,.25);border-radius:50px;padding:8px 16px;font-size:13px;font-weight:600;text-decoration:none">📦 Archive</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- FORM -->
+    <div class="form-wrap">
+
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div class="alert-err">
+                <span>⚠️</span>
+                <div>@Html.ValidationSummary(false)</div>
+            </div>
+        }
+
+        <form asp-controller="Course" asp-action="EditCourse"
+              asp-route-Id="@Model.Id"
+              method="post" id="editForm"
+              enctype="multipart/form-data">
+            @Html.AntiForgeryToken()
+
+            <div class="form-card">
+                <div class="form-card-header">
+                    <div class="form-card-title">📋 Course Details</div>
+                    <span class="form-card-badge">Required</span>
+                </div>
+
+                <!-- Hidden ID -->
+                <input type="hidden" asp-for="Id" />
+
+                <div class="fg">
+                    <label asp-for="Title" id="titleLabel">Course Title</label>
+                    <input asp-for="Title" class="field"
+                           placeholder="e.g. Complete Web Development for SS3"
+                           maxlength="120"
+                           oninput="countChars(this,'titleCount',120); markChanged('titleLabel')" />
+                    <div class="char-count" id="titleCount">@(Model.Title?.Length ?? 0) / 120</div>
+                    <span asp-validation-for="Title" class="field-error"></span>
+                </div>
+
+                <div class="fg">
+                    <label>Last Modified</label>
+                    <input class="field" type="text"
+                           value="@(Model.LastModifiedAt?.ToString("dd MMM yyyy") ?? "Not yet modified")"
+                           disabled />
+                    <input type="hidden" asp-for="LastModifiedAt" />
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <a asp-controller="Course" asp-action="Index" class="btn btn-ghost">← Cancel</a>
+                <div style="display:flex;gap:10px">
+                    <a asp-controller="Course" asp-action="ArchiveCourse"
+                       asp-route-id="@Model.Id"
+                       class="btn btn-sm" style="background:rgba(245,200,66,.1);color:var(--gold);border:1.5px solid rgba(245,200,66,.25);border-radius:50px;padding:10px 16px;font-size:13px;font-weight:600;text-decoration:none">📦 Archive</a>
+                    <button type="submit" class="btn btn-sabi" id="saveBtn"
+                            onclick="handleSave()">
+                        <span class="btn-spin" id="saveSpin"></span>
+                        <span id="saveTxt">💾 Save Changes</span>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/SabiSpace.js" asp-append-version="true"></script>
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    <script>
+        function countChars(el, id, max) {
+            var len = el.value.length;
+            var el2 = document.getElementById(id);
+            el2.textContent = len + ' / ' + max;
+            el2.className = 'char-count' + (len > max*.9 ? ' warn' : '');
+        }
+        function markChanged(labelId) {
+            var lbl = document.getElementById(labelId);
+            if (lbl && !lbl.querySelector('.changed-dot')) {
+                var dot = document.createElement('span');
+                dot.className = 'changed-dot';
+                dot.style.cssText = 'width:7px;height:7px;border-radius:50%;background:var(--gold);display:inline-block;margin-left:6px;animation:blink .8s ease-in-out infinite alternate';
+                lbl.appendChild(dot);
+            }
+        }
+        var isDirty = false;
+        document.getElementById('editForm').addEventListener('input', function() { isDirty = true; });
+        document.getElementById('saveBtn').addEventListener('click', function() { isDirty = false; });
+        window.addEventListener('beforeunload', function(e) { if (isDirty) { e.preventDefault(); e.returnValue=''; } });
+        function handleSave() {
+            var btn = document.getElementById('saveBtn');
+            var spin = document.getElementById('saveSpin');
+            var txt  = document.getElementById('saveTxt');
+            btn.disabled = true; spin.style.display = 'block'; txt.textContent = 'Saving…';
+        }
+    </script>
+}

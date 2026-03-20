@@ -1,0 +1,119 @@
+﻿@{
+    ViewData["Title"] = "Delete Lesson";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var lesson = ViewBag.Lesson;
+    bool isSuperAdmin = User.IsInRole("SuperAdmin");
+}
+
+@section Styles {
+ <link href="/css/DeleteLesson.css" rel="stylesheet" /> 
+}
+
+<div class="page">
+    <div class="blob b1"></div>
+    <div class="blob b2"></div>
+
+    <div class="card">
+        <div class="card-icon">🗑</div>
+        <h1 class="card-title">Delete this lesson?</h1>
+        <p class="card-sub">
+            @if (isSuperAdmin)
+            {
+                <span>This will <strong>permanently delete</strong> the lesson and all its content. This action cannot be undone.</span>
+            }
+            else
+            {
+                <span>This lesson will be <strong style="color:var(--gold)">scheduled for deletion</strong>. A SuperAdmin can cancel it within 3 days.</span>
+            }
+        </p>
+
+        <div class="lesson-preview">
+            <div class="lp-label">You are deleting</div>
+            @if (lesson != null)
+            {
+                <div class="lp-title">@lesson.Title</div>
+                @if (!string.IsNullOrEmpty(lesson.Description?.ToString()))
+                {
+                    <div class="lp-desc">@lesson.Description</div>
+                }
+                <div class="lp-meta">
+                    <span class="lp-meta-item">📅 @((lesson.CreatedAt as DateTime?)?.ToString("dd MMM yyyy") ?? "—")</span>
+                    @if (lesson.LessonSection != null)
+                    {
+                        <span class="lp-tag">@lesson.LessonSection</span>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="lp-title" id="lessonTitle">Loading…</div>
+                <div class="lp-meta"><span id="lessonMeta" class="lp-meta-item">—</span></div>
+            }
+        </div>
+
+        @if (isSuperAdmin)
+        {
+            <div class="warn-box wb-perm">
+                <span class="wb-icon">⚠️</span>
+                <div>
+                    <p class="wb-title">Permanent deletion — cannot be undone</p>
+                    <ul class="wb-list">
+                        <li>All lesson content removed immediately</li>
+                        <li>Attached files deleted from storage</li>
+                        <li>Student progress on this lesson lost</li>
+                        <li>Cannot be reversed by anyone</li>
+                    </ul>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="warn-box wb-soft">
+                <span class="wb-icon">ℹ️</span>
+                <div>
+                    <p class="wb-title">Scheduled deletion — 3-day window</p>
+                    <ul class="wb-list">
+                        <li>Lesson hidden from students immediately</li>
+                        <li>SuperAdmin can cancel within 3 days</li>
+                        <li>Permanently removed after 3 days</li>
+                    </ul>
+                </div>
+            </div>
+        }
+
+        <div class="confirm-check">
+            <input type="checkbox" id="confirmCheck" onchange="toggleBtn()" />
+            <label for="confirmCheck">
+                I understand and want to
+                @(isSuperAdmin ? "permanently delete" : "schedule deletion of")
+                <strong style="color:var(--text-primary)">
+                    @(lesson?.Title?.ToString() ?? "this lesson")
+                </strong>
+            </label>
+        </div>
+
+        <div class="btns">
+            <a asp-controller="Lesson" asp-action="Index" class="btn btn-cancel">← Cancel</a>
+            <form asp-controller="Lesson" asp-action="DeleteLesson"
+                  asp-route-id="@(lesson?.Id ?? 0)"
+                  method="post" style="flex:1;display:contents">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-delete" id="deleteBtn"
+                        disabled onclick="handleSubmit(this)">
+                    <span class="spin" id="spin"></span>
+                    <span id="btnTxt">@(isSuperAdmin ? "🗑 Permanently Delete" : "🗑 Schedule Deletion")</span>
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @* 1. Link to the built-in validation scripts (jQuery Validation) *@
+    @* Include standard validation first *@
+    <partial name="_ValidationScriptsPartial" />
+
+    @* Link your custom index.js file *@
+    <script src="~/js/DeleteLesson.js" asp-append-version="true"></script>
+}

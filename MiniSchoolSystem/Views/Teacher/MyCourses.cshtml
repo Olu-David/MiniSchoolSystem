@@ -1,0 +1,269 @@
+﻿@model List<MiniSchoolSystem.Models.Course>
+@{
+    ViewData["Title"] = "My Courses";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/Teacher.css" asp-append-version="true" />
+}
+
+<div class="portal-wrap">
+
+    <!-- ======================================================
+         SIDEBAR  (same as dashboard)
+    ====================================================== -->
+    <aside class="sidebar" id="sidebar">
+        <a href="/" class="sidebar-logo">
+            <div class="sidebar-logo-mark">S</div>
+            <span class="sidebar-logo-text">Sabi<span>Space</span></span>
+        </a>
+        <div class="sidebar-profile">
+            <div class="profile-av">T</div>
+            <div>
+                <div class="profile-name">@User.Identity?.Name</div>
+                <div class="profile-role">Teacher</div>
+            </div>
+        </div>
+        <div class="nav-section">
+            <div class="nav-section-label">Main</div>
+            <a class="nav-item" href="/Teacher" data-path="/teacher">      <span class="nav-icon">🏠</span> Dashboard</a>
+            <a class="nav-item active" href="/Teacher/MyCourses" data-path="/teacher/mycourses"><span class="nav-icon">📚</span> My Courses</a>
+            <a class="nav-item" href="/Lesson/CreateLesson">     <span class="nav-icon">➕</span> Create Lesson</a>
+        </div>
+        <div class="nav-section">
+            <div class="nav-section-label">Students</div>
+            <button class="nav-item" onclick="showToast('Coming soon!','info')"><span class="nav-icon">👨‍🎓</span> My Students</button>
+            <button class="nav-item" onclick="showToast('Coming soon!','info')"><span class="nav-icon">💬</span> Messages <span class="nav-badge gold">3</span></button>
+        </div>
+        <div class="nav-section">
+            <div class="nav-section-label">Insights</div>
+            <button class="nav-item" onclick="loadAnalytics()">      <span class="nav-icon">📊</span> Analytics  <span class="nav-badge coming">Soon</span></button>
+            <button class="nav-item" onclick="requestPayout()">      <span class="nav-icon">💰</span> Earnings   <span class="nav-badge coming">Soon</span></button>
+            <button class="nav-item" onclick="createScheduleEvent()"><span class="nav-icon">📅</span> Schedule   <span class="nav-badge coming">Soon</span></button>
+        </div>
+        <div class="sidebar-footer">
+            <a class="nav-item" href="#" onclick="document.getElementById('logoutForm').submit();return false">
+                <span class="nav-icon">🚪</span> Sign Out
+            </a>
+            <form id="logoutForm" asp-controller="Auth" asp-action="Logout" method="post" style="display:none">
+                @Html.AntiForgeryToken()
+            </form>
+        </div>
+    </aside>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- ======================================================
+         MAIN CONTENT
+    ====================================================== -->
+    <div class="main-content">
+
+        <div class="mobile-topbar">
+            <button class="mobile-menu-btn" onclick="openSidebar()">☰</button>
+            <span style="font-family:'Syne',sans-serif;font-weight:700;font-size:1rem">My Courses</span>
+            <div style="width:32px"></div>
+        </div>
+
+        <div class="topbar">
+            <span class="topbar-title">My Courses</span>
+            <div class="topbar-right">
+                <div class="search-wrap">
+                    <span class="search-icon">⌕</span>
+                    <input type="search" id="courseSearch" placeholder="Search courses…" />
+                </div>
+                <a href="/Lesson/CreateLesson" class="btn btn-sabi btn-sm">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14" /></svg>
+                    New Lesson
+                </a>
+            </div>
+        </div>
+
+        <div class="page-body">
+
+            <div class="page-body-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px">
+                <div>
+                    <h1 class="page-body-title">My Courses</h1>
+                    <p class="page-body-sub">
+                        @(Model?.Count ?? 0) course@(Model?.Count != 1 ? "s" : "") found
+                    </p>
+                </div>
+                <a href="/Lesson/CreateLesson" class="btn btn-sabi">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14" /></svg>
+                    Create New Lesson
+                </a>
+            </div>
+
+            @if (Model == null || !Model.Any())
+            {
+                <!-- Empty state -->
+                <div class="section-card">
+                    <div class="empty-state" style="padding:80px 20px">
+                        <div class="empty-icon">📭</div>
+                        <div class="empty-title">No courses yet</div>
+                        <div class="empty-body">You haven't created any courses yet. Start by creating your first lesson and it will appear here.</div>
+                        <a href="/Lesson/CreateLesson" class="btn btn-sabi">Create Your First Lesson →</a>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <!-- Course grid -->
+                <div class="courses-grid" id="coursesGrid">
+                    @foreach (var course in Model)
+                    {
+                        <div class="course-card">
+                            <!-- Thumbnail -->
+                            <div class="course-thumb">
+                                <span>📚</span>
+                                <div class="course-thumb-overlay">
+                                    <div class="course-thumb-actions">
+                                        <a href="/Lesson/Details/@course.Id" class="thumb-action-btn tab-view">▶ View</a>
+                                        <a href="/Lesson/EditLesson/@course.Id" class="thumb-action-btn tab-edit">✏️ Edit</a>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Body -->
+                            <div class="course-body">
+                                <div class="course-title">@course.Title</div>
+                                @if (!string.IsNullOrEmpty(course.Description))
+                                {
+                                    <div class="course-desc">@course.Description</div>
+                                }
+                                <div class="course-meta">
+                                    <span class="course-meta-item">
+                                        📦 @(course.CourseModules?.Count ?? 0) module@(course.CourseModules?.Count != 1 ? "s" : "")
+                                    </span>
+                                    <span class="course-meta-item">
+                                        🎓 @(course.CourseModules?.Sum(m => m.Lessons?.Count ?? 0) ?? 0) lessons
+                                    </span>
+                                </div>
+
+                                <!-- Modules accordion -->
+                                @if (course.CourseModules != null && course.CourseModules.Any())
+                                {
+                                    <div class="module-list">
+                                        @foreach (var (module, idx) in course.CourseModules.Select((m, i) => (m, i + 1)))
+                                        {
+                                            <div class="module-item" data-module-id="@module.Id">
+                                                <div class="module-header">
+                                                    <div class="module-num">@idx</div>
+                                                    <div class="module-title">@module.Title</div>
+                                                    <span class="module-chevron">▾</span>
+                                                </div>
+                                                <div class="module-body">
+                                                    <!-- Lessons inside module -->
+                                                    @if (module.Lessons != null && module.Lessons.Any())
+                                                    {
+                                                        <div class="lesson-list">
+                                                            @foreach (var lesson in module.Lessons)
+                                                            {
+                                                                <div class="lesson-row">
+                                                                    <span class="lesson-row-icon">📄</span>
+                                                                    <span class="lesson-row-title">@lesson.Title</span>
+                                                                    <span class="lesson-row-date">@lesson.CreatedAt.ToString("dd MMM")</span>
+                                                                </div>
+                                                            }
+                                                        </div>
+                                                    }
+                                                    else
+                                                    {
+                                                        <p style="font-size:12px;color:var(--text-dim);margin-bottom:10px">No lessons in this module yet.</p>
+                                                    }
+
+                                                    <!-- Module actions -->
+                                                    <div class="module-actions">
+                                                        <button class="btn btn-ghost btn-sm"
+                                                                onclick="openEditModule(@module.Id, '@Html.Raw(module.Title?.Replace("'", "\\'") ?? "")' )">
+                                                            ✏️ Edit Title
+                                                        </button>
+                                                        <button class="btn btn-ghost btn-sm"
+                                                                onclick="addModule(@course.Id)">
+                                                            ➕ Add Lesson
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+
+            <!-- ============================================
+                 FUTURE STUBS
+            ============================================ -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:24px">
+
+                <!-- Analytics stub -->
+                <div class="section-card">
+                    <div class="section-card-header">
+                        <div class="section-card-title">📊 Course Analytics</div>
+                        <span class="coming-soon-badge" style="margin:0"><span class="cs-dot"></span>Coming Soon</span>
+                    </div>
+                    <div class="section-card-body">
+                        <div class="chart-container">
+                            <div class="chart-placeholder-icon">📈</div>
+                            <div class="chart-placeholder-text">Student engagement per course</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Top performing -->
+                <div class="section-card">
+                    <div class="section-card-header">
+                        <div class="section-card-title">🏆 Top Performing Lessons</div>
+                        <span class="coming-soon-badge" style="margin:0"><span class="cs-dot"></span>Coming Soon</span>
+                    </div>
+                    <div class="section-card-body">
+                        <div class="empty-state" style="padding:20px 0">
+                            <div class="empty-icon">🏆</div>
+                            <div class="empty-title">Performance rankings</div>
+                            <div class="empty-body">See which lessons get the most views, completions and ratings.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- ======================================================
+     EDIT MODULE MODAL
+====================================================== -->
+<div class="modal-backdrop" id="editModuleModal">
+    <div class="modal-box">
+        <div class="modal-title">Edit Module</div>
+        <div class="modal-sub" id="editModuleSub">Update the module title below.</div>
+
+        <form id="editModuleForm" onsubmit="submitEditModule(); return false;">
+            @Html.AntiForgeryToken()
+            <input type="hidden" id="editModuleId" name="CourseId" />
+
+            <div class="fg">
+                <label for="editModuleTitle">Module Title</label>
+                <input class="field" type="text" id="editModuleTitle" name="Title"
+                       placeholder="e.g. Introduction to Variables" maxlength="100" />
+                <div class="field-error" id="editModuleTitleErr">Title is required.</div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" onclick="closeModal('editModuleModal')">Cancel</button>
+                <button type="submit" class="btn btn-sabi" id="saveModuleBtn">
+                    <span class="btn-spin" id="saveModuleSpin"></span>
+                    <span id="saveModuleTxt">Save Changes</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="toast-zone" id="toastZone"></div>
+
+@section Scripts {
+    <script src="~/js/Teacher.js" asp-append-version="true"></script>
+}

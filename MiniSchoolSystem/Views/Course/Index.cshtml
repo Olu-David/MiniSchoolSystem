@@ -1,0 +1,158 @@
+﻿@{
+    ViewData["Title"] = "Courses";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/SabiSpace.css" asp-append-version="true" />
+}
+
+<div class="course-page">
+
+    <!-- PAGE HEADER -->
+    <div class="page-header">
+        <div class="ph-blob phb1" style="background:rgba(255,92,26,.12)"></div>
+        <div class="ph-blob phb2" style="background:rgba(61,186,140,.07)"></div>
+        <div class="ph-inner">
+            <div>
+                <h1 class="ph-title">SabiSpace Courses</h1>
+                <p class="ph-sub">Structured learning paths with modules, lessons, quizzes and certificates.</p>
+                <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
+                    <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:50px;background:var(--sage-dim);border:1px solid rgba(61,186,140,.25);font-size:12px;font-weight:700;color:var(--sage)">
+                        <span style="width:6px;height:6px;border-radius:50%;background:var(--sage);animation:blink .8s ease-in-out infinite alternate"></span>
+                        Self-Paced
+                    </span>
+                    <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:50px;background:var(--sabi-dim);border:1px solid rgba(255,92,26,.2);font-size:12px;font-weight:700;color:var(--sabi)">
+                        📚 120+ Courses
+                    </span>
+                    <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:50px;background:var(--gold-dim);border:1px solid rgba(245,200,66,.2);font-size:12px;font-weight:700;color:var(--gold)">
+                        🏅 Certified
+                    </span>
+                </div>
+            </div>
+
+            @if (User.IsInRole("Teacher") || User.IsInRole("SuperAdmin"))
+            {
+                <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px">
+                    <a asp-controller="Course" asp-action="CreateCourse" class="btn btn-sabi">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14" /></svg>
+                        Create Course
+                    </a>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- TOOLBAR -->
+    <div class="toolbar">
+        <div class="search-wrap">
+            <span class="search-icon">⌕</span>
+            <input type="search" id="courseSearch" placeholder="Search courses…" />
+        </div>
+        <select class="filter-select" id="sectionFilter">
+            <option value="">All Sections</option>
+            <option value="JSS1">JSS 1</option>
+            <option value="JSS2">JSS 2</option>
+            <option value="JSS3">JSS 3</option>
+            <option value="SS1">SS 1</option>
+            <option value="SS2">SS 2</option>
+            <option value="SS3">SS 3</option>
+            <option value="Higher">Higher</option>
+            <option value="Professional">Professional</option>
+        </select>
+        <span class="results-count" id="resultsCount">Loading courses…</span>
+    </div>
+
+    <!-- GRID -->
+    <div class="courses-grid" id="coursesGrid">
+        <div class="empty-state">
+            <div class="empty-icon">⏳</div>
+            <h3>Loading courses…</h3>
+            <p>Fetching the latest courses for you.</p>
+        </div>
+    </div>
+
+    @if (User.IsInRole("Teacher") || User.IsInRole("SuperAdmin"))
+    {
+        <a asp-controller="Course" asp-action="CreateCourse"
+           style="position:fixed;bottom:32px;right:28px;z-index:800;width:56px;height:56px;border-radius:50%;background:var(--sabi);border:none;color:#fff;display:grid;place-items:center;font-size:22px;cursor:pointer;box-shadow:0 8px 24px rgba(255,92,26,.45);transition:transform .2s,box-shadow .2s;text-decoration:none"
+           title="Create course">＋</a>
+    }
+
+</div>
+
+@section Scripts {
+    <script src="~/js/SabiSpace.js" asp-append-version="true"></script>
+    <script>
+        var allCourses = [];
+        var THUMBS = ['📚','💻','📊','🎨','💰','🤖','🧪','📐','🌍','📖'];
+        var BGS    = [
+            'linear-gradient(135deg,#1a1c22,#2a1810)',
+            'linear-gradient(135deg,#0c1a12,#1a2a1a)',
+            'linear-gradient(135deg,#1a1228,#0c1020)',
+            'linear-gradient(135deg,#1a1500,#2a2000)',
+            'linear-gradient(135deg,#001a1a,#001028)'
+        ];
+
+        fetch('/Course/all')
+            .then(function(r){ return r.json(); })
+            .then(function(data){
+                allCourses = data;
+                renderCourses(data);
+            })
+            .catch(function(){
+                document.getElementById('coursesGrid').innerHTML =
+                    '<div class="empty-state"><div class="empty-icon">😔</div><h3>Could not load courses</h3><p>Please refresh and try again.</p></div>';
+            });
+
+        function renderCourses(courses) {
+            var grid  = document.getElementById('coursesGrid');
+            var count = document.getElementById('resultsCount');
+            if (!courses.length) {
+                grid.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><h3>No courses found</h3><p>Try adjusting your filter.</p></div>';
+                count.textContent = '0 courses';
+                return;
+            }
+            count.textContent = courses.length + ' course' + (courses.length !== 1 ? 's' : '');
+            var now = Date.now(), weekMs = 7*24*60*60*1000;
+            grid.innerHTML = courses.map(function(c, i) {
+                var isNew = new Date(c.createdAt).getTime() > now - weekMs;
+                var badge = isNew ? '<span class="thumb-badge tb-new">✨ New</span>' : '';
+                return '<a class="course-card" href="/Course/Details/' + c.id + '">' +
+                    '<div class="card-thumb" style="background:' + BGS[i % BGS.length] + '">' +
+                        THUMBS[i % THUMBS.length] +
+                        '<div class="card-thumb-overlay"><div class="play-circle">▶</div></div>' +
+                        badge +
+                    '</div>' +
+                    '<div class="card-body">' +
+                        '<div class="card-section-tag">' + esc(c.courseSections || 'General') + '</div>' +
+                        '<h3 class="card-title">'  + esc(c.title || '') + '</h3>' +
+                        '<p class="card-desc">'    + esc(c.description || 'A structured SabiSpace course.') + '</p>' +
+                        '<div class="card-footer">' +
+                            '<div class="card-teacher-wrap">' +
+                                '<div class="teacher-av">' + esc((c.teacherName || 'T')[0].toUpperCase()) + '</div>' +
+                                '<span class="teacher-name">' + esc(c.teacherName || 'Instructor') + '</span>' +
+                            '</div>' +
+                            '<span class="card-meta-item">' + fmt(c.createdAt) + '</span>' +
+                        '</div>' +
+                    '</div>' +
+                '</a>';
+            }).join('');
+        }
+
+        function applyFilter() {
+            var q = document.getElementById('courseSearch').value.toLowerCase();
+            var s = document.getElementById('sectionFilter').value;
+            renderCourses(allCourses.filter(function(c) {
+                var mq = !q || (c.title||'').toLowerCase().includes(q);
+                var ms = !s || (c.courseSections||'') === s;
+                return mq && ms;
+            }));
+        }
+        document.getElementById('courseSearch').addEventListener('input', applyFilter);
+        document.getElementById('sectionFilter').addEventListener('change', applyFilter);
+
+        function esc(s){ var d=document.createElement('div'); d.textContent=String(s||''); return d.innerHTML; }
+        function fmt(d){ if(!d) return ''; return new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}); }
+    </script>
+}

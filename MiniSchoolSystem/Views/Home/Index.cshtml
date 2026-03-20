@@ -1,8 +1,433 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Home";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    bool loggedIn = ViewBag.IsLoggedIn == true;
+    string firstName = loggedIn ? (((string)(ViewBag.UserName ?? "")).Split(' ')[0]) : "";
+}
+@section Styles {
+    <link rel="stylesheet" href="~/css/Index.css" asp-append-version="true" />
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+@if (loggedIn)
+{
+    <div class="welcome-bar">
+        <div class="welcome-left">
+            <div class="welcome-av">@(firstName.Length > 0 ? firstName[0].ToString().ToUpper() : "S")</div>
+            <div>
+                <div class="welcome-name">Welcome back, @ViewBag.UserName! 👋</div>
+                <div class="welcome-sub">@(string.IsNullOrEmpty(ViewBag.UserSection as string) ? "Ready to continue learning?" : ViewBag.UserSection + " · Ready to continue learning?")</div>
+            </div>
+        </div>
+        <div class="welcome-right">
+            <a asp-controller="Lesson" asp-action="Index" class="wb-btn wb-primary">Continue Learning →</a>
+            <a asp-controller="Quiz" asp-action="Index" class="wb-btn wb-ghost">Take a Quiz</a>
+            <a asp-controller="Assignment" asp-action="Index" class="wb-btn wb-ghost">Assignments</a>
+        </div>
+    </div>
+}
+
+<!-- HERO -->
+<section class="hero">
+    <div class="hero-dot-grid"></div>
+    <div class="hero-blob hero-blob-1"></div>
+    <div class="hero-blob hero-blob-2"></div>
+    <div class="hero-blob hero-blob-3"></div>
+    <div class="hero-inner">
+        <div>
+            <div class="hero-badge"><span class="hbdot"></span> Africa's #1 Learning Platform</div>
+            @if (loggedIn)
+            {
+                <h1 class="hero-title">Keep Going,<br><em>@firstName</em>.<br>You're Crushing It.</h1>
+                <p class="hero-sub">Pick up where you left off, tackle a new quiz, or submit your next assignment. Your progress is waiting.</p>
+                <div class="hero-actions">
+                    <a asp-controller="Lesson" asp-action="Index" class="btn btn-sabi" style="border-radius:50px;padding:12px 28px;font-size:15px">Continue Learning →</a>
+                    <a asp-controller="Quiz" asp-action="Index" class="btn btn-ghost" style="border-radius:50px;padding:12px 28px;font-size:15px">Take a Quiz</a>
+                </div>
+            }
+            else
+            {
+                <h1 class="hero-title">Learn Smarter.<br>Grow <em>Faster</em>.<br>With SabiSpace.</h1>
+                <p class="hero-sub">Live lessons, quizzes, assignments and expert teachers — curriculum-aligned from JSS to Professional level. Learn on your terms.</p>
+                <div class="hero-actions">
+                    <a asp-controller="Auth" asp-action="Register" class="btn btn-sabi" style="border-radius:50px;padding:12px 28px;font-size:15px">Start Learning Free →</a>
+                    <a href="#how-it-works" class="btn btn-ghost" style="border-radius:50px;padding:12px 28px;font-size:15px">See How It Works ↓</a>
+                </div>
+            }
+            <div class="hero-stats">
+                <div><div class="stat-num">12K<span>+</span></div><div class="stat-lbl">Active Learners</div></div>
+                <div><div class="stat-num">340<span>+</span></div><div class="stat-lbl">Expert Teachers</div></div>
+                <div><div class="stat-num">1.2K<span>+</span></div><div class="stat-lbl">Lessons &amp; Quizzes</div></div>
+            </div>
+        </div>
+        <div class="hero-visual">
+            <div class="float-badge fb1">🎯 67% avg quiz score this week</div>
+            <div class="hero-card">
+                <div class="hero-card-header">
+                    <div class="hero-card-av">S</div>
+                    <div>
+                        <div class="hero-card-title">SabiSpace Web Dev</div>
+                        <div class="hero-card-sub">Module 3 · ASP.NET MVC</div>
+                    </div>
+                    <div class="live-pill">LIVE</div>
+                </div>
+                <p class="progress-lbl">Your Progress — 67% Complete</p>
+                <div class="prog-bar"><div class="prog-fill"></div></div>
+                <div class="fp-row">
+                    <span class="fp on">HTML &amp; CSS</span>
+                    <span class="fp on">C# Basics</span>
+                    <span class="fp on">MVC</span>
+                    <span class="fp">Auth</span>
+                    <span class="fp">Quiz</span>
+                    <span class="fp">Deploy</span>
+                </div>
+            </div>
+            <div class="float-badge fb2">🏅 Certificates earned · 1.2K this week</div>
+        </div>
+    </div>
+</section>
+
+<!-- MARQUEE -->
+<div class="marquee-strip">
+    <div class="marquee-track">
+        <div class="mi hi">🔥 SabiSpace</div><span class="ms">●</span>
+        <div class="mi">Web Development</div><span class="ms">●</span>
+        <div class="mi hi">Data Science</div><span class="ms">●</span>
+        <div class="mi">UI/UX Design</div><span class="ms">●</span>
+        <div class="mi hi">Business Finance</div><span class="ms">●</span>
+        <div class="mi">🧠 Quizzes</div><span class="ms">●</span>
+        <div class="mi hi">📝 Assignments</div><span class="ms">●</span>
+        <div class="mi">JSS · SS · Higher · Professional</div><span class="ms">●</span>
+        <div class="mi hi">Live Lessons Every Day</div><span class="ms">●</span>
+        <div class="mi">Certificates on Completion</div><span class="ms">●</span>
+        <div class="mi hi">🔥 SabiSpace</div><span class="ms">●</span>
+        <div class="mi">Web Development</div><span class="ms">●</span>
+        <div class="mi hi">Data Science</div><span class="ms">●</span>
+        <div class="mi">UI/UX Design</div><span class="ms">●</span>
+        <div class="mi hi">Business Finance</div><span class="ms">●</span>
+        <div class="mi">🧠 Quizzes</div><span class="ms">●</span>
+        <div class="mi hi">📝 Assignments</div><span class="ms">●</span>
+        <div class="mi">JSS · SS · Higher · Professional</div><span class="ms">●</span>
+        <div class="mi hi">Live Lessons Every Day</div><span class="ms">●</span>
+        <div class="mi">Certificates on Completion</div><span class="ms">●</span>
+    </div>
 </div>
+
+@if (!loggedIn)
+{
+    <!-- ══════════════════════════════════════════
+         TRUST BAR — guest only
+    ══════════════════════════════════════════ -->
+    <div class="trust-bar">
+        <div class="trust-bar-inner">
+            <div class="trust-item">
+                <div class="trust-icon">🆓</div>
+                <div>
+                    <div class="trust-text">Free to Join</div>
+                    <div class="trust-sub">No credit card needed</div>
+                </div>
+            </div>
+            <div class="trust-divider"></div>
+            <div class="trust-item">
+                <div class="trust-icon">🎓</div>
+                <div>
+                    <div class="trust-text">Expert Teachers</div>
+                    <div class="trust-sub">340+ verified educators</div>
+                </div>
+            </div>
+            <div class="trust-divider"></div>
+            <div class="trust-item">
+                <div class="trust-icon">📱</div>
+                <div>
+                    <div class="trust-text">Learn Anywhere</div>
+                    <div class="trust-sub">Mobile, tablet &amp; desktop</div>
+                </div>
+            </div>
+            <div class="trust-divider"></div>
+            <div class="trust-item">
+                <div class="trust-icon">🏅</div>
+                <div>
+                    <div class="trust-text">Earn Certificates</div>
+                    <div class="trust-sub">Share on LinkedIn &amp; CV</div>
+                </div>
+            </div>
+            <div class="trust-divider"></div>
+            <div class="trust-item">
+                <div class="trust-icon">🌍</div>
+                <div>
+                    <div class="trust-text">Built for Africa</div>
+                    <div class="trust-sub">JSS to Professional level</div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- FEATURES -->
+<section class="features-section fade-up">
+    <div class="container" style="text-align:center">
+        <div class="section-label" style="margin:0 auto 14px">Everything You Need</div>
+        <h2 class="section-title" style="text-align:center;max-width:560px;margin:0 auto 12px">One platform. Every tool a learner needs.</h2>
+        <p class="section-sub" style="text-align:center;margin:0 auto">From live lessons to quizzes and assignments — SabiSpace has every tool built in.</p>
+        <div class="features-grid">
+            <div class="feature-card fade-up"><div class="feature-icon fi-sabi">🎓</div><div class="feature-title">Live Lessons</div><div class="feature-body">Watch expert teachers in real time. Pause, rewind and learn at your own pace with fully recorded sessions.</div><span class="feature-tag">340+ teachers</span></div>
+            <div class="feature-card fade-up"><div class="feature-icon fi-sky">🧠</div><div class="feature-title">Smart Quizzes</div><div class="feature-body">Test knowledge after every lesson. Multiple choice, fill-in-the-blank and timed quizzes with instant scoring.</div><span class="feature-tag" style="background:rgba(26,124,255,.1);color:var(--sky);border-color:rgba(26,124,255,.2)">Auto-graded</span></div>
+            <div class="feature-card fade-up"><div class="feature-icon fi-sage">📝</div><div class="feature-title">Assignments</div><div class="feature-body">Submit written and project-based work. Teachers review, mark and send detailed feedback on the platform.</div><span class="feature-tag" style="background:rgba(61,186,140,.1);color:var(--sage);border-color:rgba(61,186,140,.2)">Teacher feedback</span></div>
+            <div class="feature-card fade-up"><div class="feature-icon fi-gold">📚</div><div class="feature-title">Structured Courses</div><div class="feature-body">Follow complete course paths with modules, lessons, quizzes and assignments matching your curriculum.</div><span class="feature-tag" style="background:rgba(245,200,66,.1);color:var(--gold);border-color:rgba(245,200,66,.2)">Curriculum aligned</span></div>
+            <div class="feature-card fade-up"><div class="feature-icon fi-purple">🏅</div><div class="feature-title">Certificates</div><div class="feature-body">Earn shareable certificates when you complete a course. Add them to your CV, LinkedIn or portfolio.</div><span class="feature-tag" style="background:rgba(168,85,247,.1);color:#a855f7;border-color:rgba(168,85,247,.2)">Shareable</span></div>
+            <div class="feature-card fade-up"><div class="feature-icon fi-pink">📊</div><div class="feature-title">Progress Tracking</div><div class="feature-body">Track quiz scores, assignment grades, lesson completion and overall course progress in real time.</div><span class="feature-tag" style="background:rgba(236,72,153,.1);color:#ec4899;border-color:rgba(236,72,153,.2)">Real-time</span></div>
+        </div>
+    </div>
+</section>
+
+@if (!loggedIn)
+{
+    <!-- ══════════════════════════════════════════
+         HOW IT WORKS — guest only
+    ══════════════════════════════════════════ -->
+    <section class="how-section fade-up" id="how-it-works">
+        <div class="container" style="text-align:center">
+            <div class="section-label" style="margin:0 auto 14px">Get Started in Minutes</div>
+            <h2 class="section-title" style="text-align:center;max-width:520px;margin:0 auto 12px">How SabiSpace Works</h2>
+            <p class="section-sub" style="text-align:center;margin:0 auto">Four simple steps from sign-up to certificate.</p>
+            <div class="how-steps">
+                <div class="how-step">
+                    <div class="how-num">1</div>
+                    <span class="how-step-icon">✍️</span>
+                    <div class="how-step-title">Create a Free Account</div>
+                    <div class="how-step-body">Sign up in under 60 seconds. No payment required — just your name and email.</div>
+                </div>
+                <div class="how-step">
+                    <div class="how-num">2</div>
+                    <span class="how-step-icon">📚</span>
+                    <div class="how-step-title">Pick a Course</div>
+                    <div class="how-step-body">Browse courses aligned to your level — JSS, SS, Higher or Professional.</div>
+                </div>
+                <div class="how-step">
+                    <div class="how-num">3</div>
+                    <span class="how-step-icon">🎓</span>
+                    <div class="how-step-title">Learn, Quiz &amp; Submit</div>
+                    <div class="how-step-body">Watch lessons, take quizzes and submit assignments to get real teacher feedback.</div>
+                </div>
+                <div class="how-step">
+                    <div class="how-num">4</div>
+                    <span class="how-step-icon">🏅</span>
+                    <div class="how-step-title">Earn Your Certificate</div>
+                    <div class="how-step-body">Complete the course and download a shareable certificate to showcase your skills.</div>
+                </div>
+            </div>
+            <div style="margin-top:48px">
+                <a asp-controller="Auth" asp-action="Register"
+                   class="btn btn-sabi" style="border-radius:50px;padding:13px 32px;font-size:15px">
+                    Create Free Account →
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════
+         COMPARISON TABLE — guest only
+    ══════════════════════════════════════════ -->
+    <section class="compare-section fade-up">
+        <div class="container">
+            <div style="text-align:center;margin-bottom:0">
+                <div class="section-label" style="margin:0 auto 14px">Why SabiSpace?</div>
+                <h2 class="section-title" style="text-align:center;max-width:480px;margin:0 auto 12px">SabiSpace vs the rest</h2>
+                <p class="section-sub" style="text-align:center;margin:0 auto">See how we stack up against typical online learning options.</p>
+            </div>
+            <div class="compare-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Feature</th>
+                            <th class="col-sabi">🔥 SabiSpace</th>
+                            <th>YouTube</th>
+                            <th>Textbooks</th>
+                            <th>Other Platforms</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Curriculum-aligned content</td>
+                            <td class="col-sabi-cell"><span class="c-yes">✔</span></td>
+                            <td><span class="c-no">✘</span></td>
+                            <td><span class="c-yes">✔</span></td>
+                            <td><span class="c-part">~</span></td>
+                        </tr>
+                        <tr>
+                            <td>Instant quiz feedback</td>
+                            <td class="col-sabi-cell"><span class="c-yes">✔</span></td>
+                            <td><span class="c-no">✘</span></td>
+                            <td><span class="c-no">✘</span></td>
+                            <td><span class="c-part">~</span></td>
+                        </tr>
+                        <tr>
+                            <td>Teacher-reviewed assignments</td>
+                            <td class="col-sabi-cell"><span class="c-yes">✔</span></td>
+                            <td><span class="c-no">✘</span></td>
+                            <td><span class="c-no">✘</span></td>
+                            <td><span class="c-no">✘</span></td>
+                        </tr>
+                        <tr>
+                            <td>Shareable certificates</td>
+                            <td class="col-sabi-cell"><span class="c-yes">✔</span></td>
+                            <td><span class="c-no">✘</span></td>
+                            <td><span class="c-no">✘</span></td>
+                            <td><span class="c-part">~</span></td>
+                        </tr>
+                        <tr>
+                            <td>Free to join</td>
+                            <td class="col-sabi-cell"><span class="c-yes">✔</span></td>
+                            <td><span class="c-yes">✔</span></td>
+                            <td><span class="c-no">✘</span></td>
+                            <td><span class="c-no">✘</span></td>
+                        </tr>
+                        <tr>
+                            <td>Progress tracking dashboard</td>
+                            <td class="col-sabi-cell"><span class="c-yes">✔</span></td>
+                            <td><span class="c-no">✘</span></td>
+                            <td><span class="c-no">✘</span></td>
+                            <td><span class="c-part">~</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+}
+
+<!-- QUIZ + ASSIGNMENT PROMO -->
+<section class="promo-section fade-up" id="features">
+    <div class="container">
+        <div class="promo-inner">
+            <div class="promo-card promo-card-quiz">
+                <div class="promo-icon">🧠</div>
+                <h3 class="promo-title">Test Yourself with Smart Quizzes</h3>
+                <p class="promo-body">Every lesson has a matching quiz. Get instant results, see what you got wrong and understand why — powered by teacher-written explanations.</p>
+                <div class="promo-stats">
+                    <div class="promo-stat"><div class="promo-stat-num">800+</div><div class="promo-stat-lbl">Quizzes</div></div>
+                    <div class="promo-stat"><div class="promo-stat-num">4.8★</div><div class="promo-stat-lbl">Avg rating</div></div>
+                    <div class="promo-stat"><div class="promo-stat-num">Instant</div><div class="promo-stat-lbl">Results</div></div>
+                </div>
+                <a asp-controller="Quiz" asp-action="Index" class="btn btn-quiz">Browse Quizzes →</a>
+            </div>
+            <div class="promo-card promo-card-assign">
+                <div class="promo-icon">📝</div>
+                <h3 class="promo-title">Submit Assignments &amp; Get Real Feedback</h3>
+                <p class="promo-body">Write essays, solve problems and build projects. Your teacher reviews every submission and sends personal written feedback.</p>
+                <div class="promo-stats">
+                    <div class="promo-stat"><div class="promo-stat-num">500+</div><div class="promo-stat-lbl">Assignments</div></div>
+                    <div class="promo-stat"><div class="promo-stat-num">48h</div><div class="promo-stat-lbl">Avg feedback</div></div>
+                    <div class="promo-stat"><div class="promo-stat-num">100%</div><div class="promo-stat-lbl">Personal review</div></div>
+                </div>
+                <a asp-controller="Assignment" asp-action="Index" class="btn btn-assign">View Assignments →</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- COURSES PREVIEW -->
+<section class="courses-section fade-up" id="courses">
+    <div class="container">
+        <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px">
+            <div>
+                <div class="section-label">Our Courses</div>
+                <h2 class="section-title">Everything We Offer</h2>
+                <p class="section-sub">Expert-crafted courses for every section — from JSS to Professional.</p>
+            </div>
+            <a asp-controller="Course" asp-action="Index" class="btn btn-ghost" style="border-radius:50px;margin-bottom:16px">View all →</a>
+        </div>
+        <div class="courses-grid">
+            <a asp-controller="Course" asp-action="Index" class="cpc"><div class="cpc-thumb" style="background:linear-gradient(135deg,#1a1c22,#2a1810)">💻</div><div class="cpc-body"><div class="cpc-tag">Web Dev</div><div class="cpc-title">Full-Stack Web Development with ASP.NET</div><div class="cpc-meta"><span>40 lessons · 12 quizzes</span><span class="cpc-rating">4.9★</span></div></div></a>
+            <a asp-controller="Course" asp-action="Index" class="cpc"><div class="cpc-thumb" style="background:linear-gradient(135deg,#0c1a12,#1a2a1a)">📊</div><div class="cpc-body"><div class="cpc-tag">Data Science</div><div class="cpc-title">Data Analysis &amp; Statistics for SS3</div><div class="cpc-meta"><span>28 lessons · 8 quizzes</span><span class="cpc-rating">4.8★</span></div></div></a>
+            <a asp-controller="Course" asp-action="Index" class="cpc"><div class="cpc-thumb" style="background:linear-gradient(135deg,#1a0c28,#0c1020)">🎨</div><div class="cpc-body"><div class="cpc-tag">Design</div><div class="cpc-title">UI/UX Design Fundamentals</div><div class="cpc-meta"><span>22 lessons · 6 quizzes</span><span class="cpc-rating">4.9★</span></div></div></a>
+            <a asp-controller="Course" asp-action="Index" class="cpc"><div class="cpc-thumb" style="background:linear-gradient(135deg,#1a1500,#2a2000)">💰</div><div class="cpc-body"><div class="cpc-tag">Business</div><div class="cpc-title">Business Finance &amp; Accounting</div><div class="cpc-meta"><span>32 lessons · 10 quizzes</span><span class="cpc-rating">4.7★</span></div></div></a>
+        </div>
+    </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="testi-section fade-up">
+    <div class="container" style="text-align:center">
+        <div class="section-label" style="margin:0 auto 14px">Student Reviews</div>
+        <h2 class="section-title" style="text-align:center;max-width:440px;margin:0 auto 48px">What our learners say</h2>
+        <div class="testi-grid" style="text-align:left">
+            <div class="testi-card fade-up"><div class="testi-stars">★★★★★</div><div class="testi-quote">"The quizzes after each lesson are what really made the difference. I can actually tell when I've understood something now."</div><div class="testi-author"><div class="testi-av">A</div><div><div class="testi-name">Amara Okonkwo</div><div class="testi-role">SS2 Student · Lagos</div></div></div></div>
+            <div class="testi-card fade-up"><div class="testi-stars">★★★★★</div><div class="testi-quote">"My teacher's feedback on my assignment was so detailed. I rewrote my essay twice and it came out so much better."</div><div class="testi-author"><div class="testi-av" style="background:linear-gradient(135deg,#1a7cff,#a855f7)">K</div><div><div class="testi-name">Kwame Asante</div><div class="testi-role">Higher Education · Accra</div></div></div></div>
+            <div class="testi-card fade-up"><div class="testi-stars">★★★★★</div><div class="testi-quote">"I completed 3 courses in one term and got certificates for all of them. SabiSpace changed how I learn completely."</div><div class="testi-author"><div class="testi-av" style="background:linear-gradient(135deg,var(--sage),var(--sky))">F</div><div><div class="testi-name">Fatima Bello</div><div class="testi-role">JSS3 Student · Abuja</div></div></div></div>
+        </div>
+    </div>
+</section>
+
+@if (!loggedIn)
+{
+    <!-- ══════════════════════════════════════════
+         FAQ — guest only
+    ══════════════════════════════════════════ -->
+    <section class="faq-section fade-up">
+        <div class="container">
+            <div style="text-align:center">
+                <div class="section-label" style="margin:0 auto 14px">Got Questions?</div>
+                <h2 class="section-title" style="text-align:center;max-width:400px;margin:0 auto 12px">Frequently Asked Questions</h2>
+                <p class="section-sub" style="text-align:center;margin:0 auto 0">Everything first-time visitors want to know.</p>
+            </div>
+            <div class="faq-list">
+                <div class="faq-item">
+                    <button class="faq-q" onclick="toggleFaq(this)">
+                        Is SabiSpace really free to join?
+                        <span class="faq-arrow">+</span>
+                    </button>
+                    <div class="faq-a"><p>Yes — creating an account is completely free. No credit card, no hidden fees. Sign up and start learning straight away.</p></div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-q" onclick="toggleFaq(this)">
+                        What level is the content aimed at?
+                        <span class="faq-arrow">+</span>
+                    </button>
+                    <div class="faq-a"><p>SabiSpace covers JSS 1–3, SS 1–3, Higher Education and Professional level. When you sign up you choose your level and we show the most relevant content first.</p></div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-q" onclick="toggleFaq(this)">
+                        How do quizzes and assignments work?
+                        <span class="faq-arrow">+</span>
+                    </button>
+                    <div class="faq-a"><p>After each lesson you can take a matching quiz — results and explanations are instant. Assignments are submitted through the platform and your teacher reviews and sends written feedback within 48 hours.</p></div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-q" onclick="toggleFaq(this)">
+                        Will I get a certificate?
+                        <span class="faq-arrow">+</span>
+                    </button>
+                    <div class="faq-a"><p>Yes. Complete all lessons, quizzes and assignments in a course and you'll earn a shareable certificate you can download and add to your CV or LinkedIn profile.</p></div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-q" onclick="toggleFaq(this)">
+                        Can I use SabiSpace on my phone?
+                        <span class="faq-arrow">+</span>
+                    </button>
+                    <div class="faq-a"><p>Absolutely. SabiSpace is fully responsive and works on any device — phone, tablet or desktop. Learn from wherever you are.</p></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FINAL CTA -->
+    <div class="cta-banner fade-up">
+        <div class="cta-inner">
+            <h2>Ready to join <span>12,000+</span> learners on SabiSpace?</h2>
+            <a asp-controller="Auth" asp-action="Register" class="btn btn-white">Create Free Account →</a>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        function toggleFaq(btn) {
+            var item = btn.closest('.faq-item');
+            var isOpen = item.classList.contains('open');
+            // close all
+            document.querySelectorAll('.faq-item.open').forEach(function(el){ el.classList.remove('open'); });
+            // open clicked if it wasn't open
+            if (!isOpen) item.classList.add('open');
+        }
+    </script>
+}
