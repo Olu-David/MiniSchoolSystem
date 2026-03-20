@@ -19,6 +19,7 @@ namespace MiniSchoolSystem.Controllers
         private readonly ICourseService _courseService;
         private readonly IFileService _fileService;
         private readonly IUserService _UserService;
+        private double totalRevenue;
 
         public SuperAdminController(UserManager<UserDb> userManager, RoleManager<IdentityRole> roleManager, AppDbContext dbContext, ICourseService courseService, IFileService fileService, IUserService userService)
         {
@@ -30,9 +31,9 @@ namespace MiniSchoolSystem.Controllers
             _UserService = userService;
         }
 
-        public async Task<IActionResult> Index()
+        public IActionResult Index()
         {
-            var StudentCount = await _dbContext.DbStudents.AsNoTracking().CountAsync(m => m.Id=);
+          
             return View();
         }
       
@@ -42,8 +43,6 @@ namespace MiniSchoolSystem.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ToggleLock(string userId, bool isLocked)
         {
-            // We flip the logic: if they ARE locked, we want to unlock them (false)
-            // If they ARE NOT locked, we want to lock them (true)
             var (success, message) = await _UserService.SetUserLockoutAsync(userId, isLocked);
 
             if (success)
@@ -95,7 +94,7 @@ namespace MiniSchoolSystem.Controllers
 
             // 3. Calculation (Total Revenue)
             // Assuming your Course has a 'Price' and Students have an 'IsPaid' status
-           ;
+           
 
             // 4. Pass data to the View using a ViewModel or ViewBag
             var stats = new AdminDashboardViewModel

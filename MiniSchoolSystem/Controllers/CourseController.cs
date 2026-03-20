@@ -263,6 +263,72 @@ namespace MiniSchoolSystem.Controllers
             _dbContext.DbCourse.RemoveRange(expired);
             await _dbContext.SaveChangesAsync();
         }
+        // GET: Course/Duplicate/5
+        [Authorize(Roles = "SuperAdmin, Admin, Teacher")]
+        [HttpGet]
+        public async Task<IActionResult> Duplicate(int id)
+        {
+            var course = await _dbContext.DbCourse
+                .Select(c => new EditCourseDTO
+                {
+                    Id = c.Id,
+                    Title = c.Title
+                })
+                .FirstOrDefaultAsync(m => m.Id == id);
+
+            if (course == null) return NotFound("Course not found.");
+
+            return View(course);
+        }
+
+        // POST: Course/Duplicate/5
+        [Authorize(Roles = "SuperAdmin, Admin, Teacher")]
+        [HttpPost]
+        [ActionName("Duplicate")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DuplicateConfirmed(int id)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var teacher = await _dbContext.DbTeacher.FirstOrDefaultAsync(t => t.TeacherId == userId);
+
+            // Fetch the full tree: Course -> Modules -> Lessons
+            var oldCourse = await _dbContext.DbCourse
+                .Include(c => c.CourseModules)
+                    .ThenInclude(m => m.Lessons)
+                .FirstOrDefaultAsync(c => c.Id == id);
+
+            if (oldCourse == null) return NotFound();
+
+            var clonedCourse = new Course
+            {
+                Title = oldCourse.Title + " (Copy)",
+                CreatedAt = DateTime.UtcNow,
+                IsDeleted = false,
+                // Clone Modules
+                CourseModules = oldCourse.CourseModules.Where(m => !m.IsDeleted).Select(m => new CourseModule
+                {
+                    Title = m.Title,
+                    // If a teacher is doing the cloning, they 'own' the new modules
+                    TeacherId = teacher != null ? teacher.Id : m.TeacherId,
+                    Order = m.Order,
+                    CreatedAt = DateTime.UtcNow,
+                    IsDeleted = false,
+                    // Clone Lessons inside the Modules
+                    Lessons = m.Lessons.Where(l => !l.IsDeleted).Select(l => new Lesson
+                    {
+                        Title = l.Title,
+                        Description = l.Description,
+                        CreatedAt = DateTime.UtcNow
+                    }).ToList()
+                }).ToList()
+            };
+
+            _dbContext.DbCourse.Add(clonedCourse);
+            await _dbContext.SaveChangesAsync();
+
+            TempData["info"] = "Course duplicated successfully!";
+            return RedirectToAction(nameof(Index));
+        }
 
     }
 }

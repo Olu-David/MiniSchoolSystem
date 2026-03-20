@@ -160,6 +160,40 @@ namespace MiniSchoolSystem.Implementation.Services
 
 
         }
+        public async Task<(bool Success, string Message)> SetUserLockoutAsync(string userId, bool shouldLock)
+        {
+            // 1. Find the user in the identity database
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+            {
+                return (false, "User not found.");
+            }
+
+            // 2. Prevent SuperAdmin from locking themselves out (Safety Check)
+            // Assuming you have a way to get the current logged-in user's ID
+            // if (user.Id == currentAdminId) return (false, "You cannot lock yourself out.");
+
+            IdentityResult result;
+
+            if (shouldLock)
+            {
+                // Lock the user until the year 9999 (basically forever)
+                result = await _userManager.SetLockoutEndDateAsync(user, DateTimeOffset.MaxValue);
+            }
+            else
+            {
+                // Unlock the user by removing the expiration date
+                result = await _userManager.SetLockoutEndDateAsync(user, null);
+            }
+
+            if (result.Succeeded)
+            {
+                string status = shouldLock ? "locked" : "unlocked";
+                return (true, $"User has been successfully {status}.");
+            }
+
+            return (false, "Failed to update lockout status.");
+        }
     }
 }
 
