@@ -26,28 +26,26 @@ namespace MiniSchoolSystem
 
             // ── 3. Database ───────────────────────────────────────
             if (builder.Environment.IsDevelopment())
-            {
-                var localConn = builder.Configuration.GetConnectionString("DefaultConnection");
+{
+    var localConn = builder.Configuration.GetConnectionString("DefaultConnection");
 
-                builder.Services.AddDbContext<AppDbContext>(options =>
-                    options.UseSqlServer(localConn)
-                        .EnableSensitiveDataLogging()
-                        .ConfigureWarnings(w =>
-                            w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics
-                                .RelationalEventId.PendingModelChangesWarning)));
-            }
-            else
-            {
-                // ✅ FIXED: Correct way to get DATABASE_URL
-                var rawUrl = Environment.GetEnvironmentVariable("DATABASE_URL")
-                             ?? builder.Configuration.GetConnectionString("DefaultConnection");
+    builder.Services.AddDbContext<AppDbContext>(options =>
+        options.UseNpgsql(localConn)  // ✅ Changed from UseSqlServer to UseNpgsql
+            .EnableSensitiveDataLogging()
+            .ConfigureWarnings(w =>
+                w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics
+                    .RelationalEventId.PendingModelChangesWarning)));
+}
+else
+{
+    var rawUrl = Environment.GetEnvironmentVariable("DATABASE_URL")
+                 ?? builder.Configuration.GetConnectionString("DefaultConnection");
 
-                var npgsqlConn = ConvertPostgresUrl(rawUrl!);
+    var npgsqlConn = ConvertPostgresUrl(rawUrl!);
 
-                builder.Services.AddDbContext<AppDbContext>(options =>
-                    options.UseNpgsql(npgsqlConn));
-            }
-
+    builder.Services.AddDbContext<AppDbContext>(options =>
+        options.UseNpgsql(npgsqlConn));
+}
             // ── 4. Identity ───────────────────────────────────────
             builder.Services.AddIdentity<UserDb, IdentityRole>(options =>
             {
