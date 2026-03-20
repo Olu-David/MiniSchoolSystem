@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.DataProtection;
+﻿using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using MiniSchoolSystem.Implementation.Interfaces;
@@ -11,24 +10,28 @@ namespace MiniSchoolSystem
 {
     public class Program
     {
-            public static void Main(string[] args)
+        public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // ── 1. Services ───────────────────────────────────────
+            // ── 1. Thread pool — prevents OOM crash on Render free tier (512MB)
+            ThreadPool.SetMinThreads(2, 2);
+            ThreadPool.SetMaxThreads(10, 10);
+
+            // ── 2. Services
             builder.Services.AddControllersWithViews();
-            builder.Services.AddScoped<IUserService, UserService>(); // Keep only one
+            builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<IEmailService, EmailService>();
             builder.Services.AddScoped<IFileService, FileService>();
 
-            // ── 2. Cookie Policy ──────────────────────────────────
+            // ── 3. Cookie Policy
             builder.Services.Configure<CookiePolicyOptions>(options =>
             {
                 options.CheckConsentNeeded = context => true;
                 options.MinimumSameSitePolicy = SameSiteMode.None;
             });
 
-            // ── 3. Database ───────────────────────────────────────
+            // ── 4. Database
             if (builder.Environment.IsDevelopment())
             {
                 var localConn = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -41,16 +44,23 @@ namespace MiniSchoolSystem
             }
             else
             {
+               
+                // ConvertPostgresUrl() — a null string causes a hard crash (status 139)
                 var rawUrl = Environment.GetEnvironmentVariable("DATABASE_URL")
                              ?? builder.Configuration.GetConnectionString("DefaultConnection");
 
-                var npgsqlConn = ConvertPostgresUrl(rawUrl!);
+                if (string.IsNullOrWhiteSpace(rawUrl))
+                    throw new InvalidOperationException(
+                        "DATABASE_URL environment variable is not set. " +
+                        "Add it in your Render dashboard under Environment Variables.");
+
+                var npgsqlConn = ConvertPostgresUrl(rawUrl);
 
                 builder.Services.AddDbContext<AppDbContext>(options =>
                     options.UseNpgsql(npgsqlConn));
             }
 
-            // ── 4. Identity & Auth ────────────────────────────────
+            // ── 5. Identity & Auth
             builder.Services.AddIdentity<UserDb, IdentityRole>(options =>
             {
                 options.Password.RequireDigit = true;
@@ -65,10 +75,10 @@ namespace MiniSchoolSystem
 
             builder.Services.ConfigureApplicationCookie(options =>
             {
-                options.LoginPath = "/Account/Login";
-                options.AccessDeniedPath = "/Account/Login";
-                options.LogoutPath = "/Account/Logout";
-                options.Cookie.Name = "MiniSchoolCookie";
+                options.LoginPath = "/Auth/Login";
+                options.AccessDeniedPath = "/Auth/Login";
+                options.LogoutPath = "/Auth/Logout";
+                options.Cookie.Name = "SabiSpaceCookie";
                 options.ExpireTimeSpan = TimeSpan.FromDays(7);
                 options.SlidingExpiration = true;
             });
@@ -76,62 +86,90 @@ namespace MiniSchoolSystem
             builder.Services.Configure<EmailSettings>(
                 builder.Configuration.GetSection("EmailSetting"));
 
+            // ── 6. Data Protection
+            // BUG FIX 2: AddDataProtection() was called AFTER builder.Build()
+            // — services can only be registered BEFORE Build() is called.
+            // Calling it after causes a silent crash on startup.
+            builder.Services.AddDataProtection()
+                .PersistKeysToDbContext<AppDbContext>();
 
-            // ── 5. Middleware Pipeline ───────────────────────────
+            // ── 7. Build the app
             var app = builder.Build();
+
+            // ── 8. Middleware pipeline
             if (app.Environment.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
-                app.UseHttpsRedirection(); // Only redirect locally
+                app.UseHttpsRedirection();
             }
             else
             {
                 app.UseExceptionHandler("/Home/Error");
                 app.UseHsts();
-                // DO NOT use HttpsRedirection here; let Render handle it.
+                // Do NOT call UseHttpsRedirection() on Render — it handles TLS itself
             }
-            //6/////////////DATA PROTECTION
-            builder.Services.AddDataProtection()
-             .PersistKeysToDbContext<AppDbContext>();
+
             app.UseStaticFiles();
             app.UseRouting();
             app.UseCookiePolicy();
             app.UseAuthentication();
             app.UseAuthorization();
 
+            // BUG FIX 3: Default route was pointing to "Account" controller
+            // but your controller is called "Auth". This caused every page to 404.
             app.MapControllerRoute(
                 name: "default",
-                pattern: "{controller=Account}/{action=Login}/{id?}");
+                pattern: "{controller=Home}/{action=Index}/{id?}");
 
-            // ── 6. Auto-migrate ──────────────────────────────────
+            // ── 9. Auto-migrate on startup (already correctly wrapped in try/catch)
             using (var scope = app.Services.CreateScope())
             {
                 var services = scope.ServiceProvider;
                 try
                 {
                     var context = services.GetRequiredService<AppDbContext>();
-                    // Force migration on startup to ensure tables exist
                     context.Database.Migrate();
-                    Console.WriteLine("SabiSpace: Migration Successful!");
+                    Console.WriteLine("SabiSpace: Migration successful!");
                 }
                 catch (Exception ex)
                 {
                     var logger = services.GetRequiredService<ILogger<Program>>();
-                    logger.LogError(ex, "SabiSpace Error: Migration failed on startup.");
+                    logger.LogError(ex, "SabiSpace: Migration failed on startup.");
+                    // Do NOT rethrow — a migration failure should not crash the whole app
                 }
             }
 
-         
-
-            app.Run();
+            // ── 10. Port binding — Render assigns a dynamic PORT env variable
+            // BUG FIX 4: app.Run() with no argument ignores Render's $PORT
+            // and the health check fails, causing Render to kill the process (status 139)
+            var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";
+            Console.WriteLine($"SabiSpace: Starting on port {port}");
+            app.Run($"http://0.0.0.0:{port}");
         }
 
+        // ── Converts a Postgres DATABASE_URL to a Npgsql connection string
         private static string ConvertPostgresUrl(string url)
         {
-            var uri = new Uri(url);
-            var userInfo = uri.UserInfo.Split(':');
-            return $"Host={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.TrimStart('/')};" +
-                   $"Username={userInfo[0]};Password={userInfo[1]};SSL Mode=Require;Trust Server Certificate=true";
+            // BUG FIX: wrap in try/catch so a malformed URL doesn't hard-crash
+            try
+            {
+                var uri = new Uri(url);
+                var userInfo = uri.UserInfo.Split(':');
+                return $"Host={uri.Host};" +
+                       $"Port={uri.Port};" +
+                       $"Database={uri.AbsolutePath.TrimStart('/')};" +
+                       $"Username={userInfo[0]};" +
+                       $"Password={userInfo[1]};" +
+                       $"SSL Mode=Require;" +
+                       $"Trust Server Certificate=true";
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(
+                    $"Could not parse DATABASE_URL '{url}'. " +
+                    $"Expected format: postgres://user:password@host:port/database. " +
+                    $"Inner error: {ex.Message}");
+            }
         }
     }
 }
