@@ -1,22 +1,27 @@
-# 1. Build Stage
+# 1. Use the full SDK image
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
-# Copy the .csproj first to cache your NuGet packages (saves time!)
+# FIX: Force the system to find the SDK
+ENV DOTNET_ROOT=/usr/share/dotnet
+ENV PATH=$PATH:$DOTNET_ROOT
+
+# 2. Standard copy/restore
 COPY ["MiniSchoolSystem.csproj", "./"]
-RUN dotnet restore "./MiniSchoolSystem.csproj"
+RUN dotnet restore "MiniSchoolSystem.csproj"
 
-# Copy everything else
+# 3. Copy all and publish
 COPY . .
-
-# IMPORTANT: Run publish specifically on the .csproj to fix that 'NETSDK1194' warning
-# and use /p:UseAppHost=false to keep it clean for Linux
+# We target the .csproj to fix the 'NETSDK1194' warning we saw earlier
 RUN dotnet publish "MiniSchoolSystem.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
-# 2. Final Runtime Stage
+# 4. Final Stage
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
 WORKDIR /app
 COPY --from=build /app/publish .
 
-# Make sure this matches your project's output DLL name exactly
+# PORT FIX: Render looks for port 10000 by default
+ENV ASPNETCORE_URLS=http://+:10000
+EXPOSE 10000
+
 ENTRYPOINT ["dotnet", "MiniSchoolSystem.dll"]
