@@ -86,6 +86,10 @@ namespace MiniSchoolSystem
             // ── 7. File Service ───────────────────────────────────
             builder.Services.AddScoped<IFileService, FileService>();
 
+            // ── 8. User Service ───────────────────────────────────  
+            
+             builder.Services.AddScoped<IUserService, UserService>();
+ 
             // ── BUILD APP ─────────────────────────────────────────
             var app = builder.Build();
 
