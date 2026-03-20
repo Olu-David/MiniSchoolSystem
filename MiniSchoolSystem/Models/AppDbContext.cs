@@ -126,10 +126,10 @@ namespace MiniSchoolSystem.Models
                  });
 
 
-            
+
             // 2. USER IDs
             string superAdminUid = "100", AdminUid = "101",
-                   teacherUid = "102", studentUid = "103", parentUid = "104";
+                   teacherUid = "102", studentUid = "103", parentUid = "104", GodwinId = "105", EstherId = "106";
 
             var hasher = new PasswordHasher<UserDb>();
 
@@ -148,7 +148,7 @@ namespace MiniSchoolSystem.Models
                 PhoneNumber = "0807212372"
             };
             superAdmin.PasswordHash = hasher.HashPassword(superAdmin, "Reciprocate1234.");
-
+            
             // Admin
             var Admin = new UserDb
             {
@@ -182,6 +182,38 @@ namespace MiniSchoolSystem.Models
             };
             teacher.PasswordHash = hasher.HashPassword(teacher, "Teacher@1234.");
 
+            var Esther = new UserDb
+            {
+                Id = EstherId,
+                FullName = "Esther OluwaSheyi",
+                UserName = "Sheyi",
+                Email = "emmanuelestheroluwasheyi17.com",
+                NormalizedEmail = "EMMANUELESTHEROLUWASHEYI17.COM",
+                NormalizedUserName = "ESTHER OLUWASHEYI",
+                EmailConfirmed = true,
+                SecurityStamp = "STAMP0107",
+                ConcurrencyStamp = "CONC0107",
+                PhoneNumber = "09120292232"
+            };
+            Esther.PasswordHash = hasher.HashPassword(Esther, "Esther21");
+
+
+
+            var Godwin = new UserDb
+            {
+                Id = GodwinId,
+                FullName = "Godwin Hyacinth",
+                UserName = "HighLevel",
+                Email = "godwinlevel139@gmail.com",
+                NormalizedEmail = "GODWINLEVELL139@GMAIL.COM",
+                NormalizedUserName = "GODWIN HYACINTH",
+                EmailConfirmed = true,
+                SecurityStamp = "STAMP0109",
+                ConcurrencyStamp = "CONC0109",
+                PhoneNumber = "09022341091"
+            };
+            Godwin.PasswordHash = hasher.HashPassword(Godwin, "G.oddylevel12");
+
             // Student
             var student = new UserDb
             {
@@ -192,8 +224,8 @@ namespace MiniSchoolSystem.Models
                 NormalizedEmail = "STUDENT@SCHOOL.COM",
                 NormalizedUserName = "STUDENT@SCHOOL.COM",
                 EmailConfirmed = true,
-                SecurityStamp = "STAMP103",
-                ConcurrencyStamp = "CONC103",
+                SecurityStamp = "STAMP0108",
+                ConcurrencyStamp = "CONC0180",
                 PhoneNumber = "01290322332"
             };
             student.PasswordHash = hasher.HashPassword(student, "Student@1234.");
@@ -215,7 +247,7 @@ namespace MiniSchoolSystem.Models
             parent.PasswordHash = hasher.HashPassword(parent, "Parent@1234.");
 
             // Add all users
-            builder.Entity<UserDb>().HasData(superAdmin, Admin, teacher, student, parent);
+            builder.Entity<UserDb>().HasData(superAdmin, Admin, teacher, Esther, Godwin, student, parent);
 
             // 3. ASSIGN ROLES
             builder.Entity<IdentityUserRole<string>>().HasData(
@@ -223,7 +255,12 @@ namespace MiniSchoolSystem.Models
          new IdentityUserRole<string> { RoleId = AdminRole, UserId = AdminUid },
          new IdentityUserRole<string> { RoleId = TeacherRole, UserId = teacherUid }, 
          new IdentityUserRole<string> { RoleId = StudentRole, UserId = studentUid }, 
-          new IdentityUserRole<string> { RoleId = ParentRole, UserId = parentUid }    
+          new IdentityUserRole<string> { RoleId = ParentRole, UserId = parentUid } ,
+          new IdentityUserRole<string> { RoleId = TeacherRole, UserId = GodwinId },
+           new IdentityUserRole<string> { RoleId = TeacherRole, UserId = EstherId }
+           
+
+
  );         
         }
 

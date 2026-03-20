@@ -1,0 +1,186 @@
+﻿@{
+    ViewData["Title"] = "Lesson Details";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/SabiSpace.css" asp-append-version="true" />
+}
+
+<div class="dp">
+
+    <!-- BREADCRUMB -->
+    <nav class="bc">
+        <a asp-controller="Home" asp-action="Index">Home</a>
+        <span class="bcs">›</span>
+        <a asp-controller="Lesson" asp-action="Index">Lessons</a>
+        <span class="bcs">›</span>
+        <span id="bcTitle" style="color:var(--text-secondary)">Loading…</span>
+    </nav>
+
+    <!-- HERO -->
+    <div class="dh">
+        <div class="dhb dhb1"></div>
+        <div class="dhb dhb2"></div>
+        <div class="dhi">
+            <div>
+                <div class="dsec" id="hSec">—</div>
+                <h1 class="dtitle" id="hTitle">Loading…</h1>
+                <p class="ddesc" id="hDesc"></p>
+                <div class="dmeta">
+                    <div class="dmi">📅 <span id="hDate">—</span></div>
+                    <div class="dmi">👤 <span id="hTeacher">—</span></div>
+                </div>
+                <div class="dacts">
+                    <button class="btn btn-sabi" onclick="document.getElementById('body').scrollIntoView({behavior:'smooth'})">▶ View Content</button>
+                    @if (User.IsInRole("Teacher") || User.IsInRole("SuperAdmin"))
+                    {
+                        <a id="editLink" href="#" class="btn btn-ghost">✏️ Edit</a>
+                        <form method="post" id="archForm" style="display:contents">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-warn" id="archBtn">📦 Archive</button>
+                        </form>
+                        <a id="delLink" href="#" class="btn btn-danger">🗑 Delete</a>
+                    }
+                </div>
+            </div>
+            <div class="tcard">
+                <div class="tcl">Instructor</div>
+                <div class="tcav" id="tcAv">T</div>
+                <div class="tcname" id="tcName">—</div>
+                <div class="tcrole">SabiSpace Instructor</div>
+                <div class="tcstats">
+                    <div class="tcstat"><div class="tcsn">4.9★</div><div class="tcsl">Rating</div></div>
+                    <div class="tcstat"><div class="tcsn">340+</div><div class="tcsl">Students</div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- BODY -->
+    <div class="cw" id="body">
+        <div class="lbody">
+            <div class="tabs">
+                <button class="tab on" onclick="swTab('tc',this)">Content</button>
+                <button class="tab" onclick="swTab('ta',this)">About</button>
+            </div>
+            <div class="panel on" id="tc">
+                <div class="content-text" id="contentTxt">Loading…</div>
+                <div id="fileWrap" style="display:none">
+                    <a class="fcard" id="fileCard" href="#" target="_blank">
+                        <div class="ficon">📎</div>
+                        <div><div class="fname" id="fName">Attachment</div><div class="fhint">Click to download</div></div>
+                        <span class="fdl">↓ Download</span>
+                    </a>
+                </div>
+            </div>
+            <div class="panel" id="ta">
+                <div style="font-size:15px;color:var(--text-secondary);line-height:1.8" id="aboutTxt">—</div>
+            </div>
+        </div>
+
+        <div>
+            <div class="sc">
+                <div class="sct">ℹ️ Lesson Info</div>
+                <div class="ir"><span class="ilbl">Section</span><span class="ival" id="siSec">—</span></div>
+                <div class="ir"><span class="ilbl">Status</span><span class="ival" id="siStatus">—</span></div>
+                <div class="ir"><span class="ilbl">Created</span><span class="ival" id="siDate">—</span></div>
+                <div class="ir"><span class="ilbl">Instructor</span><span class="ival" id="siTeacher">—</span></div>
+            </div>
+
+            @if (User.IsInRole("Teacher") || User.IsInRole("SuperAdmin"))
+            {
+                <div class="adm-sc">
+                    <h4>⚙️ Manage</h4>
+                    <div class="adm-acts">
+                        <a id="sEditLink" href="#" class="btn btn-ghost">✏️ Edit Lesson</a>
+                        <form method="post" id="sArchForm" style="display:contents">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-warn">📦 Archive</button>
+                        </form>
+                        <a id="sDelLink" href="#" class="btn btn-danger">🗑 Delete Lesson</a>
+                        @if (User.IsInRole("SuperAdmin"))
+                        {
+                            <form method="post" id="sRestForm" style="display:contents">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-ghost">♻️ Restore</button>
+                            </form>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/SabiSpace.js" asp-append-version="true"></script>
+    <script>
+        var lid = window.location.pathname.split('/').pop();
+
+        fetch('/Lesson/GetLessons')
+            .then(r => r.json())
+            .then(lessons => {
+                var l = lessons.find(x => String(x.id) === String(lid));
+                if (!l) { showErr(); return; }
+                fill(l);
+            }).catch(showErr);
+
+        function fill(l) {
+            var t = n => document.getElementById(n);
+            document.title = (l.title||'Lesson') + ' — SabiSpace';
+            t('bcTitle').textContent  = l.title || '—';
+            t('hSec').textContent     = l.lessonSection || 'General';
+            t('hTitle').textContent   = l.title || '—';
+            t('hDesc').textContent    = l.description || '';
+            t('hDate').textContent    = fmt(l.createdAt);
+            t('hTeacher').textContent = l.teacherName || '—';
+            t('tcAv').textContent     = (l.teacherName||'T')[0];
+            t('tcName').textContent   = l.teacherName || '—';
+            t('siSec').textContent    = l.lessonSection || '—';
+            t('siDate').textContent   = fmt(l.createdAt);
+            t('siTeacher').textContent= l.teacherName || '—';
+            t('siStatus').innerHTML   = l.isArchived
+                ? '<span class="pill p-arch">Archived</span>'
+                : '<span class="pill p-live">Active</span>';
+
+            var c = (l.lessonContents||l.lessonContent||[])[0] || {};
+            t('contentTxt').textContent = c.content || 'No content yet.';
+            t('aboutTxt').textContent   = l.description || '—';
+            if (c.fileUrl) {
+                t('fileWrap').style.display = 'block';
+                t('fileCard').href  = c.fileUrl;
+                var parts = c.fileUrl.split('/');
+                t('fName').textContent = parts[parts.length-1] || 'Attachment';
+            }
+
+            // Wire action links & forms
+            var setHref = (id, url) => { var el=document.getElementById(id); if(el) el.href=url; };
+            setHref('editLink',  '/Lesson/EditLesson/'+l.id);
+            setHref('delLink',   '/Lesson/DeleteLesson?id='+l.id);
+            setHref('sEditLink', '/Lesson/EditLesson/'+l.id);
+            setHref('sDelLink',  '/Lesson/DeleteLesson?id='+l.id);
+
+            var af = document.getElementById('archForm');
+            if (af) af.action = '/Lesson/ArchiveLesson/'+l.id;
+            var saf = document.getElementById('sArchForm');
+            if (saf) saf.action = '/Lesson/ArchiveLesson/'+l.id;
+            var srf = document.getElementById('sRestForm');
+            if (srf) srf.action = '/Lesson/RestoreLesson/'+l.id;
+        }
+
+        function showErr() {
+            document.getElementById('hTitle').textContent = 'Lesson not found';
+            document.getElementById('contentTxt').textContent = 'This lesson could not be loaded.';
+        }
+
+        function swTab(id, btn) {
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('on'));
+            document.querySelectorAll('.tab').forEach(b => b.classList.remove('on'));
+            document.getElementById(id).classList.add('on');
+            btn.classList.add('on');
+        }
+
+        function fmt(d) { return d ? new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}) : '—'; }
+    </script>
+}
