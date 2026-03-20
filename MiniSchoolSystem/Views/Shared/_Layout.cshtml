@@ -82,7 +82,7 @@
             <h1>Access Restricted</h1>
             <p>Your account doesn't have a recognised role to access SabiSpace. Please contact support or sign in with an authorised account.</p>
             <a asp-controller="Home" asp-action="Index">← Back to Home</a>
-            <form asp-controller="Auth" asp-action="Logout" method="post" style="margin-top:8px">
+            <form asp-controller="Account" asp-action="Logout" method="post" style="margin-top:8px">
                 @Html.AntiForgeryToken()
                 <button type="submit" style="background:transparent;border:1px solid #2a2a35;color:#888;font-size:13px;padding:8px 20px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;">
                     Sign out of this account
@@ -167,7 +167,7 @@
                 @if (!isLoggedIn)
                 {
                     <a asp-controller="Account" asp-action="Login" class="btn btn-ghost">Sign In</a>
-                    <a asp-controller="Acciunt" asp-action="Registration" class="btn btn-sabi">
+                    <a asp-controller="Account" asp-action="Registration" class="btn btn-sabi">
                         Get Started
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
                     </a>
@@ -182,7 +182,7 @@
                             onclick="document.getElementById('logoutForm').submit()" title="Sign out">
                         🚪
                     </button>
-                    <form id="logoutForm" asp-controller="Auth" asp-action="Logout" method="post" style="display:none">
+                    <form id="logoutForm" asp-controller="Account" asp-action="Logout" method="post" style="display:none">
                         @Html.AntiForgeryToken()
                     </form>
                 }
