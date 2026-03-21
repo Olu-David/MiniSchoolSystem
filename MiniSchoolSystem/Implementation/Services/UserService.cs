@@ -74,10 +74,10 @@ namespace MiniSchoolSystem.Implementation.Services
 
         public async Task<(SignInResult Result, bool requires2FA)> LoginUserAsync(LoginViewDTO model)
         {
-            var user = await _userManager.FindByEmailAsync(model.Email);
+            var user = await _userManager.FindByEmailAsync(model.Email??"null");
             if (user == null || !await _userManager.IsEmailConfirmedAsync(user)) return (SignInResult.Failed, false);
 
-            var result = await _signInManager.PasswordSignInAsync(user, model.Password, false, lockoutOnFailure: false);
+            var result = await _signInManager.PasswordSignInAsync(user, model.Password??"null", false, lockoutOnFailure: false);
             if (result.RequiresTwoFactor)
             {
                 await Send2FAAsync(user);

@@ -41,6 +41,15 @@ namespace MiniSchoolSystem.Controllers
                 });
             return Redirect(Request.Headers["Referer"].ToString());
         }
+
+        [HttpPost]
+        public async Task<IActionResult> Logout()
+        {
+            await _signInManager.SignOutAsync();
+
+            
+            return RedirectToAction("Index", "Home");
+        }
         [HttpGet]
         public IActionResult Registration()
         {
@@ -202,7 +211,19 @@ namespace MiniSchoolSystem.Controllers
 
             if (result.Succeeded)
             {
-                return RedirectToDashboard();
+                if (await _userManager.IsInRoleAsync(user, "SuperAdmin"))
+                    return RedirectToAction("Index", "SuperAdmin");
+
+                if (await _userManager.IsInRoleAsync(user, "Admin"))
+                    return RedirectToAction("Index", "Admin");
+
+                if (await _userManager.IsInRoleAsync(user, "Teacher"))
+                    return RedirectToAction("Index", "Teacher");
+
+                if (await _userManager.IsInRoleAsync(user, "Student"))
+                    return RedirectToAction("Index", "Student");
+
+                return RedirectToAction("Index", "Home");
             }
 
             ModelState.AddModelError("", "Invalid login");

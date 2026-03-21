@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 
 namespace MiniSchoolSystem.Controllers
 {
+    [Authorize(Roles = "SuperAdmin")]
     public class SuperAdminController : Controller
     {
         private readonly UserManager<UserDb> _userManager;
