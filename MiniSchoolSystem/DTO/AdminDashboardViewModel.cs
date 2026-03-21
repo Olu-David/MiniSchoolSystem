@@ -1,6 +1,6 @@
-﻿namespace MiniSchoolSystem.Controllers
+﻿namespace MiniSchoolSystem.DTO
 {
-    internal class AdminDashboardViewModel
+    public class AdminDashboardViewModel
     {
         public int TotalStudents { get; set; }
         public int TotalTeachers { get; set; }
@@ -8,3 +8,4 @@
         public double TotalRevenue { get; set; }
     }
 }
+

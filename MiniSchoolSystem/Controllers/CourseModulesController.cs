@@ -92,9 +92,15 @@ namespace MiniSchoolSystem.Controllers
             {
                 Title = model.Title ?? "Null",
                 TeacherId = Teacher.Id,
-                CourseId = model.CourseId
+                CourseId = model.CourseId,
+                isArchiveModule = false,
+                DeletedAt = null,
+                IsDeleted = false,
+                ArchiveAt =null,
+                CreatedAt=DateTime.UtcNow
 
-            };
+            }; 
+
 
             _dbContext.DbModules.Add(newModules);
             await _dbContext.SaveChangesAsync();
@@ -170,12 +176,12 @@ namespace MiniSchoolSystem.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteCourseModule(int Id)
         {
-            var UserID =  _userManager.GetUserId(User);
-            var Teacher =  _dbContext.DbTeacher.FirstOrDefault(m => m.TeacherId == UserID);
+            var UserID = _userManager.GetUserId(User);
+            var Teacher = _dbContext.DbTeacher.FirstOrDefault(m => m.TeacherId == UserID);
             if (Teacher == null) return RedirectToAction("Login", "Account");
 
             var ModuleExists = await _dbContext.DbModules.AnyAsync(m => m.Id == Id);
-            if(!ModuleExists)
+            if (!ModuleExists)
             {
                 TempData["Error"] = "Modules not Found";
                 return RedirectToAction(nameof(Index));
@@ -199,15 +205,126 @@ namespace MiniSchoolSystem.Controllers
                 }
             }
 
-          
+
             await _dbContext.SaveChangesAsync();
             TempData["information"] = "Course Modules Deleted, User can restore within 30-Days";
             return RedirectToAction(nameof(Index));
         }
-        
+        [HttpGet]
+        public async Task<IActionResult> ManageDeletedModules(int Id)
+        {
+            var UserID = _userManager.GetUserId(User);
+            var Teacher = _dbContext.DbTeacher.FirstOrDefault(m => m.TeacherId == UserID);
+            if (Teacher == null) return RedirectToAction("Login", "Account");
 
 
-       
+            var ExistingModule = await _dbContext.DbModules.Include(m => m.Lessons).ThenInclude(i => i.LessonContents).Where(m => m.Id == Id && m.TeacherId == Teacher.Id && m.IsDeleted).OrderByDescending(m => m.DeletedAt).ToListAsync();
+            if (ExistingModule == null)
+            {
+                TempData["Error"] = "Modules Doesnt Exist";
+                return RedirectToAction(nameof(Index));
+            }
+            return View(ExistingModule);
+        }
+        [HttpGet]
+        public async Task<IActionResult> RestoreModule(int Id)
+        {
+            var UserID = _userManager.GetUserId(User);
+            var Teacher = _dbContext.DbTeacher.FirstOrDefault(m => m.TeacherId == UserID);
+            if (Teacher == null) return RedirectToAction("Login", "Account");
+
+
+            var ExistingModule = await _dbContext.DbModules.Include(m => m.Lessons).ThenInclude(i => i.LessonContents).FirstOrDefaultAsync(m => m.Id == Id && m.TeacherId == Teacher.Id);
+            if (ExistingModule == null)
+            {
+                TempData["Error"] = "Modules Doesnt Exist";
+                return RedirectToAction(nameof(Index));
+            }
+            if (ExistingModule.DeletedAt.HasValue)
+            {
+                var DaySinceDeleted = (DateTime.UtcNow - ExistingModule.DeletedAt.Value).TotalDays;
+
+                if (DaySinceDeleted > 30)
+                {
+                    TempData["Error"] = "Unable to Deleted Item, Item Exceeded 30days";
+                    return RedirectToAction(nameof(DeleteCourse));
+                }
+                ExistingModule.IsDeleted = false;
+                ExistingModule.DeletedAt = null;
+
+                foreach (var Lessson in ExistingModule.Lessons)
+                {
+                    Lessson.IsDeleted = false;
+                    Lessson.DeletedAt = null;
+                }
+                await _dbContext.SaveChangesAsync();
+                TempData["Success"] = "Module and its lessons have been restored successfully!";
+            }
+
+            // ✅ IMPORTANT: You must return a view or redirect!
+            return RedirectToAction(nameof(Index), new { id = ExistingModule.Id });
+        }
+
+        public async Task<IActionResult> DeletedPermanently(int Id)
+        {
+            var UserID = _userManager.GetUserId(User);
+            var Teacher = _dbContext.DbTeacher.FirstOrDefault(m => m.TeacherId == UserID);
+            if (Teacher == null) return RedirectToAction("Login", "Account");
+
+
+            var ExistingModule = await _dbContext.DbModules.Include(m => m.Lessons).ThenInclude(i => i.LessonContents).FirstOrDefaultAsync(m => m.Id == Id && m.TeacherId == Teacher.Id && m.IsDeleted);
+            if (ExistingModule == null)
+            {
+                TempData["Error"] = "Modules Doesnt Exist";
+                return RedirectToAction(nameof(Index));
+            }
+            if (ExistingModule.DeletedAt.HasValue)
+            {
+                var cutoffDate = DateTime.UtcNow.AddDays(-30);
+
+
+                if (ExistingModule.DeletedAt.Value < cutoffDate)
+                {
+                    TempData["Error"] = "This module is too old to be restored (exceeded 30 days).";
+                    return RedirectToAction(nameof(Index));
+                }
+            }
+            return RedirectToAction(nameof(Index), new { id = ExistingModule.Id });
+            // 4. If we reach here, it's safe to restore!
+            //foreach (var lesson in ExistingModule.Lessons)
+            //{
+            //    lesson.IsDeleted = false;
+            //    lesson.DeletedAt = null;
+
+            //    //// Restore the contents inside each lesson
+            //    //if (lesson.LessonContents != null)
+            //    //{
+            //    //    foreach (var content in lesson.LessonContents)
+            //    //    {
+            //    //        content.IsDeleted = false;
+            //    //        content.DeletedAt = null;
+            //    //    }
+            //    //}
+            //}
+        }
+        public async Task<IActionResult> ArchivedModule(int Id)
+        {
+            var UserID = _userManager.GetUserId(User);
+            var Teacher = _dbContext.DbTeacher.FirstOrDefault(m => m.TeacherId == UserID);
+            if (Teacher == null) return RedirectToAction("Login", "Account");
+
+
+            var ExistingModule = await _dbContext.DbModules.Include(m => m.Lessons).ThenInclude(i => i.LessonContents).FirstOrDefaultAsync(m => m.Id == Id && m.TeacherId == Teacher.Id);
+            if (ExistingModule == null)
+            {
+                TempData["Error"] = "Modules Doesnt Exist";
+                return RedirectToAction(nameof(Index));
+            }
+            ExistingModule.isArchiveModule = true;
+            ExistingModule.ArchiveAt = DateTime.UtcNow;
+            TempData["Info"] = "Module Archived Successful";
+            return RedirectToAction(nameof(Index));
+        }
     }
 }
 
