@@ -1,159 +1,200 @@
-﻿@model MiniSchoolSystem.DTO.CreateLessonViewDTO
-@{
-    ViewData["Title"] = "Create Lesson";
-    Layout = "~/Views/Shared/_Layout.cshtml";
-}
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+    <title>Lesson Details — SabiSpace</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com"/>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet"/>
+    <link rel="stylesheet" href="../css/lesson.css"/>
+</head>
+<body>
 
-@section Styles {
-<link href="/css/Details.css" rel="stylesheet" />
-}
+<div class="lesson-page">
 
-<div class="cp">
-    <div class="ch">
-        <div class="chb1"></div>
-        <div class="chb2"></div>
-        <div class="chi">
-            <div class="bc">
-                <a asp-controller="Home" asp-action="Index">Home</a><span class="bcs">›</span>
-                <a asp-controller="Lesson" asp-action="Index">Lessons</a><span class="bcs">›</span>
-                <span style="color:var(--text-secondary)">Create Lesson</span>
-            </div>
-            <h1 class="chtitle">Create a New Lesson</h1>
-            <p class="chsub">Fill in the details below to publish a lesson for your students.</p>
+    <!-- ======================================================
+         BREADCRUMB
+    ====================================================== -->
+    <div style="max-width:1180px;margin:0 auto;padding:20px 5vw 0">
+        <div class="breadcrumb">
+            <a href="/">Home</a><span>›</span>
+            <a href="/Lesson">Lessons</a><span>›</span>
+            <span id="bcTitle" style="color:var(--text-secondary)">Loading…</span>
         </div>
     </div>
 
-    <div class="fw">
-        <!-- Steps -->
-        <div class="sb">
-            <div class="si"><div class="sn act" id="sn1">1</div><span class="sl act" id="sl1">Basic Info</span></div>
-            <div class="sline"></div>
-            <div class="si"><div class="sn pen" id="sn2">2</div><span class="sl pen" id="sl2">Content</span></div>
-            <div class="sline"></div>
-            <div class="si"><div class="sn pen" id="sn3">3</div><span class="sl pen" id="sl3">Attachment</span></div>
+    <!-- ======================================================
+         HERO BANNER
+    ====================================================== -->
+    <div class="page-header" style="margin-bottom:40px">
+        <div class="blob blob-orange blob-tl" style="opacity:.7"></div>
+        <div class="blob blob-sage   blob-br" style="opacity:.5"></div>
+        <div class="page-header-inner">
+            <div>
+                <div id="heroSection" class="section-tag" style="margin-bottom:14px">Loading…</div>
+                <h1 class="page-header-title" id="heroTitle">Loading lesson…</h1>
+                <p class="page-header-sub"   id="heroDesc"></p>
+                <div style="display:flex;gap:12px;margin-top:20px;flex-wrap:wrap;align-items:center">
+                    <span style="font-size:13px;color:var(--text-secondary)" id="heroMeta"></span>
+                </div>
+                <!-- Action buttons -->
+                <div style="display:flex;gap:10px;margin-top:24px;flex-wrap:wrap">
+                    <button class="btn btn-sabi" onclick="document.getElementById('lessonContent').scrollIntoView({behavior:'smooth'})">▶ View Content</button>
+                    <!-- Teacher / Admin buttons — in Razor these use @if (User.IsInRole) -->
+                    <a href="#" class="btn btn-ghost" id="editBtn"    style="display:none">✏️ Edit</a>
+                    <button     class="btn btn-gold"  id="archiveBtn" style="display:none" onclick="window.location.href='/Lesson/ArchiveLesson?id='+lessonId">📦 Archive</button>
+                    <button     class="btn btn-danger btn-sm" id="deleteBtn" style="display:none" onclick="openModal('deleteModal')">🗑 Delete</button>
+                </div>
+            </div>
+
+            <!-- Teacher card -->
+            <div class="teacher-card" id="teacherCard">
+                <div class="teacher-card-label">Instructor</div>
+                <div class="teacher-av-lg" id="tcAvatar">T</div>
+                <div class="teacher-name-lg" id="tcName">—</div>
+                <div class="teacher-role">SabiSpace Instructor</div>
+                <div class="teacher-stats">
+                    <div class="teacher-stat"><div class="teacher-stat-num">4.9★</div><div class="teacher-stat-label">Rating</div></div>
+                    <div class="teacher-stat"><div class="teacher-stat-num">340+</div><div class="teacher-stat-label">Students</div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================================================
+         CONTENT + SIDEBAR
+    ====================================================== -->
+    <div class="details-grid" id="lessonContent">
+
+        <!-- Main body -->
+        <div class="lesson-body">
+            <div class="tab-bar">
+                <button class="tab-btn active" onclick="switchTab('tab-content', this)">Content</button>
+                <button class="tab-btn"        onclick="switchTab('tab-about',   this)">About</button>
+            </div>
+            <div class="tab-panel active" id="tab-content">
+                <div class="lesson-content-text" id="lessonText">Loading content…</div>
+                <div id="fileSection" style="display:none">
+                    <a class="file-card" id="fileCard" href="#" target="_blank" download>
+                        <div class="file-card-icon">📎</div>
+                        <div>
+                            <div class="file-card-name" id="fileName">Attachment</div>
+                            <div class="file-card-hint">Click to download</div>
+                        </div>
+                        <button class="file-card-dl">↓ Download</button>
+                    </a>
+                </div>
+            </div>
+            <div class="tab-panel" id="tab-about">
+                <div class="lesson-content-text" id="aboutText">—</div>
+            </div>
         </div>
 
-        @if (!ViewData.ModelState.IsValid)
-        {
-            <div class="aerr"><span>⚠️</span><div>@Html.ValidationSummary(false)</div></div>
-        }
-        @if (TempData["Error"] != null)
-        {
-            <div class="aerr"><span>⚠️</span><span>@TempData["Error"]</span></div>
-        }
-
-        <form asp-controller="Lesson" asp-action="CreateLesson" method="post" enctype="multipart/form-data" id="cform">
-            @Html.AntiForgeryToken()
-
-            <!-- STEP 1 -->
-            <div class="fs act" id="step1">
-                <div class="fst">📋 Basic Information</div>
-                <div class="fss">Give your lesson a clear title so students know what to expect.</div>
-                <div class="fg">
-                    <label asp-for="Title">Lesson Title</label>
-                    <input asp-for="Title" class="form-control" placeholder="e.g. Introduction to Algebra" maxlength="120" oninput="cnt(this,'tc',120)" />
-                    <div class="cc" id="tc">0 / 120</div>
-                    <span asp-validation-for="Title" class="field-validation-error"></span>
-                </div>
-                <div class="fg">
-                    <label asp-for="Description">Description</label>
-                    <textarea asp-for="Description" class="form-control" placeholder="What will students learn?" rows="4" maxlength="500" oninput="cnt(this,'dc',500)"></textarea>
-                    <div class="cc" id="dc">0 / 500</div>
-                    <span asp-validation-for="Description" class="field-validation-error"></span>
-                </div>
-                <div class="row2">
-                    <div class="fg">
-                        <label asp-for="LessonSection">Section / Level</label>
-                        <select asp-for="LessonSection" class="form-control">
-                            <option value="" disabled selected>Select section</option>
-                            <optgroup label="Junior Secondary">
-                                <option value="JSS1">JSS 1</option>
-                                <option value="JSS2">JSS 2</option>
-                                <option value="JSS3">JSS 3</option>
-                            </optgroup>
-                            <optgroup label="Senior Secondary">
-                                <option value="SS1">SS 1</option>
-                                <option value="SS2">SS 2</option>
-                                <option value="SS3">SS 3</option>
-                            </optgroup>
-                            <optgroup label="Tertiary & Professional">
-                                <option value="Higher">Higher (University / Poly)</option>
-                                <option value="Professional">Professional</option>
-                            </optgroup>
-                        </select>
-                        <span asp-validation-for="LessonSection" class="field-validation-error"></span>
-                    </div>
-                    <div class="fg">
-                        <label asp-for="Id">Lesson ID</label>
-                        <input asp-for="Id" class="form-control" type="number" placeholder="e.g. 1001" min="1" />
-                        <span asp-validation-for="Id" class="field-validation-error"></span>
-                    </div>
-                </div>
-                <div class="fnav">
-                    <a asp-controller="Lesson" asp-action="Index" class="btn btn-ghost">← Cancel</a>
-                    <button type="button" class="btn btn-sabi" onclick="go(2)">Next: Add Content →</button>
-                </div>
+        <!-- Sidebar -->
+        <div>
+            <div class="sidebar-card">
+                <div class="sidebar-card-title">Lesson Info</div>
+                <div class="info-row"><span class="info-label">Section</span><span class="info-val" id="siSection">—</span></div>
+                <div class="info-row"><span class="info-label">Status</span><span class="info-val"  id="siStatus">—</span></div>
+                <div class="info-row"><span class="info-label">Created</span><span class="info-val" id="siDate">—</span></div>
+                <div class="info-row"><span class="info-label">Instructor</span><span class="info-val" id="siTeacher">—</span></div>
             </div>
 
-            <!-- STEP 2 -->
-            <div class="fs" id="step2">
-                <div class="fst">✏️ Lesson Content</div>
-                <div class="fss">Write the main lesson content students will read and learn from.</div>
-                <div class="tips">
-                    <h5>💡 Writing tips</h5>
-                    <ul>
-                        <li>Start with a clear learning objective</li>
-                        <li>Break content into short readable sections</li>
-                        <li>Use examples relevant to the curriculum</li>
-                        <li>End with a summary or key takeaways</li>
-                    </ul>
-                </div>
-                <div class="fg">
-                    <label for="Content">Content</label>
-                    <textarea name="Content" id="Content" class="ced" placeholder="Write your lesson content here…" rows="12" oninput="cnt(this,'ctc',10000)"></textarea>
-                    <div class="cc" id="ctc">0 / 10,000</div>
-                </div>
-                <div class="fnav">
-                    <button type="button" class="btn btn-ghost" onclick="go(1)">← Back</button>
-                    <button type="button" class="btn btn-sabi" onclick="go(3)">Next: Add Attachment →</button>
+            <!-- Admin card — shown via JS for Teacher/Admin -->
+            <div class="admin-card" id="adminCard" style="display:none">
+                <h4>⚙️ Manage Lesson</h4>
+                <div class="admin-actions">
+                    <a class="btn btn-ghost"  id="editBtnSb"    href="#">✏️ Edit Lesson</a>
+                    <a class="btn btn-gold"   id="archiveBtnSb" href="#">📦 Archive Lesson</a>
+                    <a class="btn btn-danger" id="deleteBtnSb"  href="#" onclick="openModal('deleteModal');return false">🗑 Delete Lesson</a>
                 </div>
             </div>
-
-            <!-- STEP 3 -->
-            <div class="fs" id="step3">
-                <div class="fst">📎 Attachment (Optional)</div>
-                <div class="fss">Upload a supporting file — PDF, slides, or any resource for students.</div>
-                <div class="fdrop" id="fdrop">
-                    <input type="file" name="file" id="fi" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.mp4,.zip" onchange="prevFile(this)" />
-                    <div class="fdicon">📁</div>
-                    <div class="fdtitle">Drag & drop or click to upload</div>
-                    <div class="fdsub">PDF, Word, PowerPoint, Excel, MP4, ZIP — max 50MB</div>
-                </div>
-                <div class="fdprev" id="fdp">
-                    <span id="fdi">📎</span>
-                    <div><div class="fdname" id="fdn">—</div><div class="fdsize" id="fds">—</div></div>
-                    <button type="button" class="fdrm" onclick="rmFile()">✕</button>
-                </div>
-                <div class="fnav" style="margin-top:32px">
-                    <button type="button" class="btn btn-ghost" onclick="go(2)">← Back</button>
-                    <button type="submit" class="btn btn-sabi" id="subBtn" onclick="onSubmit()">
-                        <span class="spin" id="subSpin"></span>
-                        <span id="subTxt">🚀 Publish Lesson</span>
-                    </button>
-                </div>
-            </div>
-        </form>
+        </div>
     </div>
 </div>
 
-@section Scripts {
-    @{
-        await Html.RenderPartialAsync("_ValidationScriptsPartial");
-    }
-    @* 1. Link to the built-in validation scripts (jQuery Validation) *@
-    @* Include standard validation first *@
-    <partial name="_ValidationScriptsPartial" />
+<!-- Delete confirm modal -->
+<div class="modal-backdrop" id="deleteModal">
+    <div class="modal-box">
+        <div class="modal-icon">🗑</div>
+        <h3 class="modal-title">Delete this lesson?</h3>
+        <p class="modal-body" id="deleteModalBody">This action will delete the lesson.</p>
+        <div class="modal-btns">
+            <button class="btn btn-ghost"  onclick="closeModal('deleteModal')">Cancel</button>
+            <button class="btn btn-danger" onclick="confirmDelete()">Yes, Delete</button>
+        </div>
+    </div>
+</div>
 
-    @* Link your custom index.js file *@
-    <script src="~/js/Details.js" asp-append-version="true"></script>
-}
+<script src="../js/lesson.js"></script>
+<script>
+    var lessonId = getLessonIdFromUrl();
+
+    // Fetch and populate
+    fetch('/Lesson/GetLessons')
+        .then(function(r) { return r.json(); })
+        .then(function(lessons) {
+            var l = lessons.find(function(x) { return String(x.id) === String(lessonId); });
+            if (!l) { showError(); return; }
+            populate(l);
+        })
+        .catch(showError);
+
+    function populate(l) {
+        document.title = (l.title || 'Lesson') + ' — SabiSpace';
+        document.getElementById('bcTitle').textContent    = l.title || 'Lesson';
+        document.getElementById('heroSection').textContent = l.lessonSection || 'General';
+        document.getElementById('heroTitle').textContent   = l.title || '';
+        document.getElementById('heroDesc').textContent    = l.description || '';
+        document.getElementById('heroMeta').textContent    =
+            '📅 ' + fmtDate(l.createdAt) + '  ·  👤 ' + (l.teacherName || 'Instructor');
+
+        // Teacher card
+        var init = (l.teacherName || 'T').charAt(0).toUpperCase();
+        document.getElementById('tcAvatar').textContent = init;
+        document.getElementById('tcName').textContent   = l.teacherName || 'Instructor';
+
+        // Content
+        var c = (l.lessonContents || l.lessonContent || [])[0] || {};
+        document.getElementById('lessonText').textContent = c.content || 'No content yet.';
+        document.getElementById('aboutText').textContent  = l.description || '—';
+
+        if (c.fileUrl) {
+            document.getElementById('fileSection').style.display = 'block';
+            document.getElementById('fileCard').href = c.fileUrl;
+            var parts = c.fileUrl.split('/');
+            document.getElementById('fileName').textContent = parts[parts.length - 1] || 'Attachment';
+        }
+
+        // Sidebar info
+        document.getElementById('siSection').textContent = l.lessonSection || '—';
+        document.getElementById('siStatus').innerHTML    = l.isArchived
+            ? '<span class="badge badge-arch">Archived</span>'
+            : '<span class="badge badge-live">Active</span>';
+        document.getElementById('siDate').textContent    = fmtDate(l.createdAt);
+        document.getElementById('siTeacher').textContent = l.teacherName || '—';
+
+        // Wire edit/archive/delete links
+        var editLink    = '/Lesson/EditLesson/'    + l.id;
+        var archiveLink = '/Lesson/ArchiveLesson?id=' + l.id;
+        var deleteLink  = '/Lesson/' + l.id;
+
+        document.getElementById('editBtn').href    = editLink;
+        document.getElementById('editBtnSb').href  = editLink;
+        document.getElementById('archiveBtnSb').href = archiveLink;
+    }
+
+    function showError() {
+        document.getElementById('heroTitle').textContent = 'Lesson not found';
+        document.getElementById('heroDesc').textContent  = 'This lesson may have been deleted.';
+        document.getElementById('lessonText').textContent = '—';
+    }
+
+    function confirmDelete() {
+        sendDelete('/Lesson/' + lessonId, 'Lesson deleted.', '/Lesson');
+        closeModal('deleteModal');
+    }
+</script>
+</body>
+</html>

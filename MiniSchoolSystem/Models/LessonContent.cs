@@ -19,5 +19,7 @@ namespace MiniSchoolSystem.Models
         public Lesson? Lesson { get; set; }
         [ForeignKey(nameof(StudentId))]
       public StudentModel? Student { get; set; }
+        public bool IsDeleted { get; internal set; }
+        public object DeletedAt { get; internal set; }
     }
 }

@@ -17,14 +17,16 @@ namespace MiniSchoolSystem.Controllers
         private readonly AppDbContext _dbContext;
         private readonly ICourseService _courseService;
         private readonly IFileService _fileService;
+        private readonly IEmailService _emailService;
 
-        public CourseController(UserManager<UserDb> userManager, RoleManager<IdentityRole> roleManager, AppDbContext dbContext, ICourseService courseService, IFileService fileService)
+        public CourseController(UserManager<UserDb> userManager, RoleManager<IdentityRole> roleManager, AppDbContext dbContext, ICourseService courseService, IFileService fileService, IEmailService emailService)
         {
             _userManager = userManager;
             _roleManager = roleManager;
             _dbContext = dbContext;
             _courseService = courseService;
             _fileService = fileService;
+            _emailService = emailService;
         }
 
         public IActionResult Index()
@@ -70,6 +72,7 @@ namespace MiniSchoolSystem.Controllers
                 ViewBag.CourseSection = Enum.GetValues(typeof(Sections)).Cast<Sections>().ToList();
                 return View(model);
             }
+          
             var (success, message, courseId) = await _courseService.CreateCourseAsync(model, UserId) ;
 
             if (!success)
@@ -78,8 +81,9 @@ namespace MiniSchoolSystem.Controllers
                 ViewBag.CourseSection = Enum.GetValues(typeof(Sections)).Cast<Sections>().ToList();
                 return View(model);
             }
+            var CourseLink = Url.Action("Details", "Course", new { id = model.Id }, Request.Scheme);
+             await _emailService.SendEmailAsync($"A new course titled '{model.Title}', has been created." ,"Thank You for Your Contribution", "Check Out Your created Course <a href='{CourseLink}'>View Course</a>");
 
-            
             return RedirectToAction("CreateCourseModules" ,"CourseModules", new { id = courseId });
         }
        
@@ -149,6 +153,8 @@ namespace MiniSchoolSystem.Controllers
                 return View(dto);   
 
             }
+          
+            TempData["info"] = "Lesson created successfully.";
             return RedirectToAction(nameof(Details), new {id=dto.Id});  
         }
 

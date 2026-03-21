@@ -13,8 +13,8 @@ namespace MiniSchoolSystem.Implementation.Interfaces
             // Read (List): Get all courses (usually for an Admin)
         Task<List<Course>> GetAllCourseListAsync();
 
-            // Read (Filter): Get courses based on User's section
-        Task<List<Course>> GetCourseBySectionAsync(Sections section);
+        //    // Read (Filter): Get courses based on User's section
+        //Task<List<Course>> GetCourseBySectionAsync(Sections section);
 
             // Read (Single): Get by ID or Slug
         Task<Course?> GetCourseByIDAsync(int courseId);

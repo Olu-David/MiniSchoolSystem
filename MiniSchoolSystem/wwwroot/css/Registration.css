@@ -82,19 +82,18 @@
     animation: d3 7s ease-in-out infinite alternate
 }
 
-@@keyframes d1 {
+@keyframes d1 {
     to {
         transform: translate(30px,20px) scale(1.06)
     }
 }
 
-@@keyframes d2 {
+@keyframes d2 {
     to {
         transform: translate(-20px,30px) scale(1.08)
     }
 }
-
-@@keyframes d3 {
+@keyframes d3 {
     to {
         transform: translate(-50%,-50%) scale(1.22)
     }
@@ -139,7 +138,7 @@
         animation: ring 2.8s ease-in-out infinite
     }
 
-@@keyframes ring {
+@keyframes ring {
     0%, 100% {
         opacity: 0;
         transform: scale(1)
@@ -626,13 +625,13 @@
     flex-shrink: 0
 }
 
-@@keyframes spin {
+@keyframes spin {
     to {
         transform: rotate(360deg)
     }
 }
 
-@@media(max-width:900px) {
+@media(max-width:900px) {
     .auth-wrap {
         grid-template-columns: 1fr
     }
@@ -642,7 +641,7 @@
     }
 }
 
-@@media(max-width:500px) {
+@media(max-width:500px) {
     .auth-right {
         padding: 40px 20px
     }

@@ -94,7 +94,7 @@
     animation: dhd 9s ease-in-out infinite alternate
 }
 
-@@keyframes dhd {
+@keyframes dhd {
     to {
         transform: translate(18px,14px) scale(1.05)
     }
@@ -520,7 +520,7 @@
         width: 100%
     }
 
-@@media(max-width:1024px) {
+@media(max-width:1024px) {
     .dhi {
         grid-template-columns: 1fr
     }
@@ -534,7 +534,7 @@
     }
 }
 
-@@media(max-width:640px) {
+@media(max-width:640px) {
     .dacts {
         flex-direction: column
     }

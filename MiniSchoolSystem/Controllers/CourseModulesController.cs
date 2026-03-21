@@ -6,6 +6,7 @@ using MiniSchoolSystem.DTO;
 using MiniSchoolSystem.Enums;
 using MiniSchoolSystem.Implementation.Interfaces;
 using MiniSchoolSystem.Models;
+using System.Security.Claims;
 
 namespace MiniSchoolSystem.Controllers
 {
@@ -28,12 +29,13 @@ namespace MiniSchoolSystem.Controllers
         {
             return View();
         }
-    
-    
 
-            //-------------------------------------------CREATECOURSEMODULE---------------------------------------------------------------//
 
-           [Authorize(Roles = "SuperAdmin, Teacher")]
+
+        //-------------------------------------------CREATECOURSEMODULE---------------------------------------------------------------//
+
+        [Authorize(Roles = "SuperAdmin, Teacher")]
+        [HttpGet]
         public async Task<IActionResult> CreateCourseModules()
         {
             var UserId = _userManager.GetUserId(User);
@@ -88,9 +90,8 @@ namespace MiniSchoolSystem.Controllers
             // 5. Create and Save
             var newModules = new CourseModule
             {
-                Title = model.Title??"Null",
+                Title = model.Title ?? "Null",
                 TeacherId = Teacher.Id,
-                CourseSections = model.SelectedSection,
                 CourseId = model.CourseId
 
             };
@@ -102,5 +103,111 @@ namespace MiniSchoolSystem.Controllers
             return RedirectToAction(nameof(Index));
         }
 
+        [HttpGet]
+        public async Task<IActionResult> EditCourseModules(EditCourseModuleDTO model, int id)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var Teacher = await _dbContext.DbTeacher.Include(s => s.TeacherSections).FirstOrDefaultAsync(t => t.TeacherId == userId);
+            if (Teacher == null) return RedirectToAction("Login", "Account");
+
+            var ExistingCourseModules = await _dbContext.DbModules.AnyAsync(m => m.Id == id && m.TeacherId == Teacher.Id);
+            if (!ExistingCourseModules)
+            {
+                TempData["Error"] = "CourseModuoes Does Exists or Teacher Does not belong to the Selected Section";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var Modules = await _dbContext.DbModules.FirstOrDefaultAsync(m => m.Id == id);
+            if (Modules == null)
+            {
+                TempData["Error"] = "Modules not found";
+                return RedirectToAction(nameof(Index));
+            }
+            var EditModules = new EditCourseModuleDTO
+            {
+                Title = Modules.Title,
+                CreatedAt = Modules.CreatedAt,
+
+            };
+
+            return View(Modules);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditCourseModules(EditCourseModuleDTO model)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var Teacher = await _dbContext.DbTeacher.Include(s => s.TeacherSections).FirstOrDefaultAsync(t => t.TeacherId == userId);
+            if (Teacher == null) return RedirectToAction("Login", "Account");
+
+            var ExistingCourseModules = await _dbContext.DbModules.AnyAsync(m => m.Id == model.CourseId && m.TeacherId == Teacher.Id);
+            if (!ExistingCourseModules)
+            {
+                TempData["Error"] = "CourseModules Does Exists or Teacher Does not belong to the Selected Section";
+                return RedirectToAction(nameof(Index));
+            }
+            var Modules = await _dbContext.DbModules.FirstOrDefaultAsync(m => m.Id == model.CourseId);
+            if (Modules == null)
+            {
+                TempData["Error"] = "Modules not found";
+                return RedirectToAction(nameof(Index));
+            }
+
+            Modules.Title = model.Title ?? "Null";
+            Modules.CreatedAt = DateTime.UtcNow;
+
+
+            _dbContext.DbModules.Update(Modules);
+            await _dbContext.SaveChangesAsync();
+            return RedirectToAction(nameof(Index), new { id = Modules.Id });
+        }
+
+        [HttpGet]
+        public IActionResult DeleteCourse()
+        { return View(); }
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteCourseModule(int Id)
+        {
+            var UserID =  _userManager.GetUserId(User);
+            var Teacher =  _dbContext.DbTeacher.FirstOrDefault(m => m.TeacherId == UserID);
+            if (Teacher == null) return RedirectToAction("Login", "Account");
+
+            var ModuleExists = await _dbContext.DbModules.AnyAsync(m => m.Id == Id);
+            if(!ModuleExists)
+            {
+                TempData["Error"] = "Modules not Found";
+                return RedirectToAction(nameof(Index));
+            }
+            var ExistingModule = await _dbContext.DbModules.Include(m => m.Lessons).ThenInclude(i => i.LessonContents).FirstOrDefaultAsync(m => m.Id == Id && m.TeacherId == Teacher.Id);
+            if (ExistingModule == null)
+            {
+                TempData["Error"] = "Modules Doesnt Exist";
+                return RedirectToAction(nameof(Index));
+            }
+
+            ExistingModule.IsDeleted = true;
+            ExistingModule.DeletedAt = DateTime.UtcNow;
+            if (ExistingModule.Lessons != null && ExistingModule.Lessons.Any())
+            {
+                foreach (var lesson in ExistingModule.Lessons)
+                {
+                    lesson.IsDeleted = true;
+                    lesson.DeletedAt = DateTime.UtcNow;
+
+                }
+            }
+
+          
+            await _dbContext.SaveChangesAsync();
+            TempData["information"] = "Course Modules Deleted, User can restore within 30-Days";
+            return RedirectToAction(nameof(Index));
+        }
+        
+
+
+       
     }
 }
+

@@ -1,83 +1,123 @@
-﻿@{
-    ViewData["Title"] = "Lessons — SabiSpace";
-    Layout = "~/Views/Shared/_Layout.cshtml";
-}
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+    <title>Lessons — SabiSpace</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com"/>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet"/>
+    <link rel="stylesheet" href="~/css/Lesson.css"/>
+</head>
+<body>
 
-@section Styles {
-   <link href="~/css/Index.css" rel="stylesheet" />
-}
+<div class="lesson-page">
 
-<div class="lp">
-
-    <!-- HERO -->
-    <div class="lp-hero">
-        <div class="hblob hb1"></div>
-        <div class="hblob hb2"></div>
-        <div class="hi">
-            <div class="hi-left">
-                <h1>SabiSpace Lessons</h1>
-                <p>Expert-taught, curriculum-aligned lessons for every section and level.</p>
-                <div class="badge-row">
-                    <span class="hbadge hb-live">Live Now</span>
-                    <span class="hbadge hb-info">🎓 12,000+ Learners</span>
-                    <span class="hbadge hb-info">📚 340+ Lessons</span>
+    <!-- ======================================================
+         PAGE HEADER
+    ====================================================== -->
+    <div class="page-header">
+        <div class="blob blob-orange blob-tl"></div>
+        <div class="blob blob-sage   blob-br"></div>
+        <div class="page-header-inner">
+            <div>
+                <h1 class="page-header-title">SabiSpace Lessons</h1>
+                <p class="page-header-sub">Expert-taught, curriculum-aligned lessons for every section.</p>
+                <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
+                    <span class="badge badge-live"><span class="badge-dot"></span>Live Now</span>
+                    <span class="badge badge-sabi">🎓 12,000+ Learners</span>
+                    <span class="badge badge-sabi">📚 340+ Lessons</span>
                 </div>
             </div>
-            @if (User.IsInRole("Teacher") || User.IsInRole("SuperAdmin"))
-            {
-                <a asp-controller="Lesson" asp-action="CreateLesson" class="btn btn-sabi">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14" /></svg>
+            <!-- Teacher / SuperAdmin only — shown via JS class toggle -->
+            <div id="createBtnWrap" style="display:none">
+                <a href="/Lesson/CreateLesson" class="btn btn-sabi">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
                     Create Lesson
                 </a>
-            }
+            </div>
         </div>
     </div>
 
-    <!-- TOOLBAR -->
+    <!-- ======================================================
+         TOOLBAR
+    ====================================================== -->
     <div class="toolbar">
-        <div class="sw">
-            <span class="si">⌕</span>
-            <input type="search" id="srch" placeholder="Search lessons…" oninput="filter()" />
+        <div class="search-wrap">
+            <span class="search-icon">⌕</span>
+            <input type="search" id="searchInput" placeholder="Search lessons…"/>
         </div>
-        <select class="fsel" id="secFilter" onchange="filter()">
+        <select class="filter-select" id="sectionFilter">
             <option value="">All Sections</option>
-            <option value="1">KG / Nursery</option>
-            <option value="2">Primary 1-6</option>
-            <option value="3">JSS1 - JSS3</option>
-            <option value="4">SS1 - SS3</option>
-            <option value="5">Higher / University</option>
-            <option value="6">Professional</option>
+            <option value="JSS1">JSS 1</option>
+            <option value="JSS2">JSS 2</option>
+            <option value="JSS3">JSS 3</option>
+            <option value="SS1">SS 1</option>
+            <option value="SS2">SS 2</option>
+            <option value="SS3">SS 3</option>
+            <option value="Higher">Higher</option>
+            <option value="Professional">Professional</option>
         </select>
-        <div class="vt">
-            <button class="vtb on" id="btnG" onclick="setView('g')" title="Grid">⊞</button>
-            <button class="vtb" id="btnL" onclick="setView('l')" title="List">☰</button>
+        <div class="view-toggle">
+            <button class="vt-btn active" id="gridBtn" title="Grid">⊞</button>
+            <button class="vt-btn"        id="listBtn" title="List">☰</button>
         </div>
-        <span class="rc" id="rc">Loading…</span>
+        <span class="results-count" id="resultsCount">Loading…</span>
     </div>
 
-    <!-- GRID -->
-    <div class="grid" id="grid">
-        <div class="empty" id="loader">
+    <!-- ======================================================
+         GRID
+    ====================================================== -->
+    <div class="lessons-grid" id="lessonsGrid">
+        <div class="empty-state">
             <div class="empty-icon">⏳</div>
             <h3>Loading lessons…</h3>
             <p>Fetching the latest lessons for you.</p>
         </div>
     </div>
 
-    @if (User.IsInRole("Teacher") || User.IsInRole("SuperAdmin"))
-    {
-        <a asp-controller="Lesson" asp-action="CreateLesson" class="fab" title="Create lesson">＋</a>
-    }
+    <!-- FAB (Teacher/SuperAdmin only — shown via JS) -->
+    <a href="/Lesson/CreateLesson" class="fab" id="fab" style="display:none" title="Create lesson">＋</a>
 
 </div>
 
+<script src="../js/lesson.js"></script>
+<script>
+           // 1. The Filter Engine
+        function filterLessons(lessons, query, section) {
+            const q = query.toLowerCase();
+            return lessons.filter(function(l) {
+                const matchesSearch = l.title.toLowerCase().includes(q) ||
+                                      l.description.toLowerCase().includes(q);
+                const matchesSection = !section || l.section == section;
 
-@section Scripts {
-    @* 1. Link to the built-in validation scripts (jQuery Validation) *@
-   @* Include standard validation first *@
-    <partial name="_ValidationScriptsPartial" />
+                return matchesSearch && matchesSection;
+            });
+        }
 
-    @* Link your custom index.js file *@
-    <script src="~/js/index.js" asp-append-version="true"></script>
+        // 2. The Render Engine
+        function renderLessons(data, grid, countLabel) {
+            // Update the "Found X lessons" text
+            countLabel.innerText = data.length;
 
-}
+            if (data.length === 0) {
+                grid.innerHTML = '<div class="empty-state"><h3>No lessons found</h3></div>';
+                return;
+            }
+
+            // Generate the HTML for the cards
+            grid.innerHTML = data.map(function(lesson) {
+                return `
+                    <div class="lesson-card">
+                        <div class="card-body">
+                            <span class="badge">${lesson.sectionName ?? 'General'}</span>
+                            <h4>${lesson.title}</h4>
+                            <p>${lesson.description.substring(0, 100)}...</p>
+                            <a href="/Lesson/Details/${lesson.id}" class="btn-view">View Lesson</a>
+                        </div>
+                    </div>`;
+            }).join('');
+        }
+</script>
+</body>
+</html>

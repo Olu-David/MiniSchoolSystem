@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http.HttpResults;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using MiniSchoolSystem.Controllers;
@@ -6,9 +7,11 @@ using MiniSchoolSystem.DTO;
 using MiniSchoolSystem.Enums;
 using MiniSchoolSystem.Implementation.Interfaces;
 using MiniSchoolSystem.Models;
+using System;
 
 namespace MiniSchoolSystem.Implementation.Services
 {
+   
     public class CourseService : ICourseService
     {
         private readonly UserManager<UserDb> _userManager;
@@ -25,6 +28,7 @@ namespace MiniSchoolSystem.Implementation.Services
             _logger = logger;
             _fileService = fileService;
         }
+       
 
         public async Task<(bool Success, string Message, int? CourseId)> CreateCourseAsync(CreateCourseViewDTO model, string userId)
         {
@@ -44,13 +48,15 @@ namespace MiniSchoolSystem.Implementation.Services
                 Title = model.Title,
                 Slug = $"{Guid.NewGuid()}-{model.Title ?? "Null".Replace(" ", "-").ToLower()}",
                 CreatedAt = DateTime.UtcNow,
-                CourseSections = model.SelectedSection,
-                TeacherID = Teacher.Id
+                
+               
             };
             try
             {
                 _dbContext.DbCourse.Add(NewCourse);
                 await _dbContext.SaveChangesAsync();
+               
+                
                 return (true, "Success", NewCourse.Id);
             }
             catch
@@ -126,7 +132,7 @@ namespace MiniSchoolSystem.Implementation.Services
                            .ToListAsync();
             return courses; ;
         }
-
+            
         public async Task<Course?> GetCourseByIDAsync(int Id)
         {
 
@@ -134,14 +140,14 @@ namespace MiniSchoolSystem.Implementation.Services
             return C;
         }
 
-        public async Task<List<Course>> GetCourseBySectionAsync(Sections section)
-        {
+        //public async Task<List<Course>> GetCourseBySectionAsync(Sections section)
+        //{
 
-            return await _dbContext.DbCourse
-         .Where(c => c.CourseSections == section && !c.IsDeleted && !c.IsArchived)
-         .OrderByDescending(c => c.CreatedAt)
-         .ToListAsync();
-        }
+        //    return await _dbContext.DbCourse
+        // .Where(c => c.CourseSections == section && !c.IsDeleted && !c.IsArchived)
+        // .OrderByDescending(c => c.CreatedAt)
+        // .ToListAsync();
+        //}
 
         public async Task<List<Course>> GetCourseBySlugAsync(string? slug)
         {
@@ -221,22 +227,39 @@ namespace MiniSchoolSystem.Implementation.Services
                 .Where(c => c.IsDeleted && c.DeletedAt <= cutoff)
                 .ToListAsync();
 
+            
+
             if (!expired.Any()) return 0;
 
             foreach (var course in expired)
             {
-                foreach (var module in course.CourseModules)
+                if (course.CourseModules != null)
                 {
-                    _dbContext.DbLesson.RemoveRange(module.Lessons);
+                    foreach (var module in course.CourseModules)
+                    {
+                        if (module.Lessons != null && module.Lessons.Any())
+                        {
+                            _dbContext.DbLesson.RemoveRange(module.Lessons);
+                        }
+                    }
+     
+                    _dbContext.DbModules.RemoveRange(course.CourseModules);
                 }
-                // Don't forget to remove the modules too!
-                _dbContext.DbModules.RemoveRange(course.CourseModules);
+            
+
+                // 2. Remove Modules (The middle layer)
+                if (course.CourseModules != null && course.CourseModules.Any())
+                {
+                    _dbContext.DbModules.RemoveRange(course.CourseModules);
+                }
             }
 
+            // 3. Finally, remove the Courses themselves
             _dbContext.DbCourse.RemoveRange(expired);
-            await _dbContext.SaveChangesAsync();
 
+            await _dbContext.SaveChangesAsync();
             return expired.Count;
+    
         }
     }
     

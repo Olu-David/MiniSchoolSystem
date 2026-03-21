@@ -1,153 +1,249 @@
-﻿@model MiniSchoolSystem.DTO.CreateLessonViewDTO
-@{
-    ViewData["Title"] = "Edit Lesson";
-    Layout = "~/Views/Shared/_Layout.cshtml";
-    string ec = ViewBag.ExistingContent ?? "";
-    string ef = ViewBag.ExistingFileUrl ?? "";
-}
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>Edit Lesson — SabiSpace</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="../css/lesson.css" />
+</head>
+<body>
 
-@section Styles {
-  <link href="~/css/EditLesson.css" rel="stylesheet" /> 
-}
+    <div class="lesson-page">
 
-<div class="ep">
-    <div class="eh">
-        <div class="ehb1"></div>
-        <div class="ehb2"></div>
-        <div class="ehi">
-            <div>
-                <div class="bc">
-                    <a asp-controller="Home" asp-action="Index">Home</a><span class="bcs">›</span>
-                    <a asp-controller="Lesson" asp-action="Index">Lessons</a><span class="bcs">›</span>
-                    <span style="color:var(--text-secondary)">Edit Lesson</span>
+        <!-- PAGE HEADER -->
+        <div class="page-header">
+            <div class="blob blob-gold blob-tl" style="opacity:.6"></div>
+            <div class="blob blob-sky  blob-br" style="opacity:.4"></div>
+            <div class="page-header-inner">
+                <div>
+                    <div class="breadcrumb">
+                        <a href="/">Home</a><span>›</span>
+                        <a href="/Lesson">Lessons</a><span>›</span>
+                        <span style="color:var(--text-secondary)">Edit Lesson</span>
+                    </div>
+                    <h1 class="page-header-title">Edit Lesson</h1>
+                    <p class="page-header-sub">Update the lesson details, content or attachment below.</p>
+                    <div class="edit-badge">✏️ Editing: <strong id="editingTitle">Loading…</strong></div>
                 </div>
-                <h1 class="ehtitle">Edit Lesson</h1>
-                <p class="ehsub">Update the lesson details, content or attachment.</p>
-                <div class="ebadge">✏️ Editing: <strong>@Model.Title</strong></div>
+                <div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap">
+                    <a id="previewBtn" href="#" class="btn btn-ghost btn-sm">👁 Preview</a>
+                    <a id="deleteBtn" href="#" class="btn btn-danger btn-sm" style="border-radius:50px">🗑 Delete</a>
+                </div>
             </div>
-            <div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap">
-                <a asp-controller="Lesson" asp-action="Details" asp-route-id="@Model.Id" class="btn btn-ghost" style="padding:9px 18px;font-size:13px">👁 Preview</a>
-                <a asp-controller="Lesson" asp-action="DeleteLesson" asp-route-id="@Model.Id" class="btn btn-danger" style="padding:9px 18px;font-size:13px">🗑 Delete</a>
+        </div>
+
+        <!-- FORM -->
+        <div class="form-wrap">
+
+            <div class="alert-err" id="formAlert" style="display:none">
+                <span>⚠️</span><span id="alertMsg"></span>
             </div>
+
+            <form id="editForm" method="post" enctype="multipart/form-data">
+                <!-- Action set by JS: /Lesson/EditLesson/{id} -->
+                <!-- ============================================
+                     CARD 1 — Basic Info
+                ============================================ -->
+                <div class="form-card">
+                    <div class="form-card-header">
+                        <div class="form-card-title">📋 Basic Information</div>
+                        <span class="form-card-badge">Required</span>
+                    </div>
+
+                    <div class="fg">
+                        <label for="Title" id="titleLabel">Lesson Title</label>
+                        <input class="field" type="text" id="Title" name="Title"
+                               placeholder="e.g. Introduction to Algebra"
+                               maxlength="120"
+                               oninput="countChars(this,'titleCount',120); markChanged(document.getElementById('titleLabel'))" />
+                        <div class="char-count" id="titleCount">0 / 120</div>
+                        <div class="field-error" id="titleErr">Title is required.</div>
+                    </div>
+
+                    <div class="fg">
+                        <label for="Description" id="descLabel">Description</label>
+                        <textarea class="field" id="Description" name="Description"
+                                  placeholder="What will students learn?"
+                                  rows="3" maxlength="500"
+                                  oninput="countChars(this,'descCount',500); markChanged(document.getElementById('descLabel'))"></textarea>
+                        <div class="char-count" id="descCount">0 / 500</div>
+                    </div>
+
+                    <div class="row-2">
+                        <div class="fg">
+                            <label for="LessonSection">Section / Level</label>
+                            <select class="field" id="LessonSection" name="LessonSection">
+                                <optgroup label="Junior Secondary">
+                                    <option value="JSS1">JSS 1</option>
+                                    <option value="JSS2">JSS 2</option>
+                                    <option value="JSS3">JSS 3</option>
+                                </optgroup>
+                                <optgroup label="Senior Secondary">
+                                    <option value="SS1">SS 1</option>
+                                    <option value="SS2">SS 2</option>
+                                    <option value="SS3">SS 3</option>
+                                </optgroup>
+                                <optgroup label="Tertiary & Professional">
+                                    <option value="Higher">Higher (University / Poly)</option>
+                                    <option value="Professional">Professional</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                        <div class="fg">
+                            <label>Lesson ID</label>
+                            <input class="field" id="IdDisplay" type="number" disabled />
+                            <input type="hidden" id="Id" name="Id" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ============================================
+                     CARD 2 — Content
+                ============================================ -->
+                <div class="form-card">
+                    <div class="form-card-header">
+                        <div class="form-card-title">✏️ Lesson Content</div>
+                        <span class="form-card-badge">Required</span>
+                    </div>
+                    <div class="fg">
+                        <label for="Content">Content</label>
+                        <textarea class="field" id="Content" name="Content"
+                                  placeholder="Write lesson content here…"
+                                  rows="14" maxlength="10000"
+                                  oninput="countChars(this,'contentCount',10000)"
+                                  style="min-height:260px;line-height:1.8"></textarea>
+                        <div class="char-count" id="contentCount">0 / 10,000</div>
+                        <div class="field-error" id="contentErr">Content cannot be empty.</div>
+                    </div>
+                </div>
+
+                <!-- ============================================
+                     CARD 3 — Attachment
+                ============================================ -->
+                <div class="form-card">
+                    <div class="form-card-header">
+                        <div class="form-card-title">📎 Attachment</div>
+                        <span style="font-size:12px;color:var(--text-dim)">Optional</span>
+                    </div>
+
+                    <!-- Existing file (populated by JS) -->
+                    <div class="existing-file" id="existingFileWrap" style="display:none">
+                        <span class="existing-file-icon">📄</span>
+                        <div>
+                            <div class="existing-file-name">Current attachment</div>
+                            <div class="existing-file-hint">Upload a new file below to replace it</div>
+                        </div>
+                        <a class="existing-file-view" id="existingFileLink" href="#" target="_blank">↗ View</a>
+                    </div>
+
+                    <div class="file-drop" id="fileDrop">
+                        <input type="file" id="fileInput" name="file"
+                               accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.mp4,.zip"
+                               onchange="previewFile(this,'filePreview','dropTitle')" />
+                        <div class="file-drop-icon">📁</div>
+                        <div class="file-drop-title" id="dropTitle">Upload replacement file</div>
+                        <div class="file-drop-sub">PDF, Word, PowerPoint, Excel, MP4, ZIP — max 50MB</div>
+                    </div>
+
+                    <div class="file-preview" id="filePreview">
+                        <span data-file-icon>📎</span>
+                        <div>
+                            <div class="file-preview-name">—</div>
+                            <div class="file-preview-size">—</div>
+                        </div>
+                        <button type="button" class="file-remove"
+                                onclick="removeFile('fileInput','filePreview','dropTitle','Upload replacement file')">
+                            ✕
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ACTIONS -->
+                <div class="form-actions">
+                    <a href="/Lesson" class="btn btn-ghost">← Cancel</a>
+                    <div class="form-actions-right">
+                        <a id="deleteBtnBottom" href="#" class="btn btn-danger" style="border-radius:50px">🗑 Delete</a>
+                        <button type="submit" class="btn btn-sabi" id="saveBtn" onclick="handleSave(event)">
+                            <span class="btn-spin" id="saveSpin"></span>
+                            <span id="saveTxt">💾 Save Changes</span>
+                        </button>
+                    </div>
+                </div>
+
+            </form>
         </div>
     </div>
 
-    <div class="fw">
-        @if (!ViewData.ModelState.IsValid)
-        {
-            <div class="aerr"><span>⚠️</span><div>@Html.ValidationSummary(false)</div></div>
-        }
-        @if (TempData["Error"] != null)
-        {
-            <div class="aerr"><span>⚠️</span><span>@TempData["Error"]</span></div>
-        }
+    <script src="../js/lesson.js"></script>
+    <script>
+        var lessonId = getLessonIdFromUrl();
 
-        <form asp-controller="Lesson" asp-action="EditLesson" asp-route-id="@Model.Id" method="post" enctype="multipart/form-data" id="ef">
-            @Html.AntiForgeryToken()
+        // Load lesson data and pre-fill form
+        fetch('/Lesson/GetLessons')
+            .then(function(r) { return r.json(); })
+            .then(function(lessons) {
+                var l = lessons.find(function(x) { return String(x.id) === String(lessonId); });
+                if (!l) return;
+                prefill(l);
+            });
 
-            <!-- Basic info -->
-            <div class="fcard">
-                <div class="fch"><div class="fct">📋 Basic Information</div><span class="fcb">Required</span></div>
-                <div class="fg">
-                    <label asp-for="Title">Lesson Title</label>
-                    <input asp-for="Title" class="form-control" maxlength="120" oninput="cnt(this,'tc',120)" />
-                    <div class="cc" id="tc">@(Model.Title?.Length ?? 0) / 120</div>
-                    <span asp-validation-for="Title" class="field-validation-error"></span>
-                </div>
-                <div class="fg">
-                    <label asp-for="Description">Description</label>
-                    <textarea asp-for="Description" class="form-control" rows="3" maxlength="500" oninput="cnt(this,'dc',500)"></textarea>
-                    <div class="cc" id="dc">@(Model.Description?.Length ?? 0) / 500</div>
-                    <span asp-validation-for="Description" class="field-validation-error"></span>
-                </div>
-                <div class="row2">
-                    <div class="fg">
-                        <label asp-for="LessonSection">Section / Level</label>
-                        <select asp-for="LessonSection" class="form-control">
-                            <optgroup label="Junior Secondary">
-                                <option value="JSS1">JSS 1</option>
-                                <option value="JSS2">JSS 2</option>
-                                <option value="JSS3">JSS 3</option>
-                            </optgroup>
-                            <optgroup label="Senior Secondary">
-                                <option value="SS1">SS 1</option>
-                                <option value="SS2">SS 2</option>
-                                <option value="SS3">SS 3</option>
-                            </optgroup>
-                            <optgroup label="Tertiary & Professional">
-                                <option value="Higher">Higher (University / Poly)</option>
-                                <option value="Professional">Professional</option>
-                            </optgroup>
-                        </select>
-                        <span asp-validation-for="LessonSection" class="field-validation-error"></span>
-                    </div>
-                    <div class="fg">
-                        <label>Lesson ID</label>
-                        <input asp-for="Id" class="form-control" disabled />
-                        <input type="hidden" asp-for="Id" />
-                    </div>
-                </div>
-            </div>
+        function prefill(l) {
+            // Wire form action
+            document.getElementById('editForm').action = '/Lesson/EditLesson/' + l.id;
 
-            <!-- Content -->
-            <div class="fcard">
-                <div class="fch"><div class="fct">✏️ Lesson Content</div><span class="fcb">Required</span></div>
-                <div class="fg">
-                    <label for="Content">Content</label>
-                    <textarea name="Content" id="Content" class="ced" rows="14" oninput="cnt(this,'ctc',10000)">@ec</textarea>
-                    <div class="cc" id="ctc">@ec.Length / 10,000</div>
-                </div>
-            </div>
+            // Header
+            document.getElementById('editingTitle').textContent = l.title || '';
+            document.title = 'Edit: ' + (l.title || '') + ' — SabiSpace';
 
-            <!-- Attachment -->
-            <div class="fcard">
-                <div class="fch">
-                    <div class="fct">📎 Attachment</div>
-                    <span style="font-size:12px;color:var(--text-dim)">Optional</span>
-                </div>
-                @if (!string.IsNullOrEmpty(ef))
-                {
-                    <div class="exfile">
-                        <span class="eficon">📄</span>
-                        <div><div class="efname">Current attachment</div><div class="efhint">Upload a new file below to replace it</div></div>
-                        <a href="@ef" target="_blank" class="efview">↗ View</a>
-                    </div>
+            // Fields
+            document.getElementById('Title').value       = l.title       || '';
+            document.getElementById('Description').value = l.description || '';
+            document.getElementById('Id').value          = l.id;
+            document.getElementById('IdDisplay').value   = l.id;
+
+            // Select section
+            var sel = document.getElementById('LessonSection');
+            for (var i = 0; i < sel.options.length; i++) {
+                if (sel.options[i].value === l.lessonSection) {
+                    sel.selectedIndex = i; break;
                 }
-                <div class="fdrop" id="fdrop">
-                    <input type="file" name="file" id="fi" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.mp4,.zip" onchange="prevFile(this)" />
-                    <div class="fdicon">📁</div>
-                    <div class="fdtitle">@(string.IsNullOrEmpty(ef) ? "Upload attachment" : "Upload replacement file")</div>
-                    <div class="fdsub">PDF, Word, PowerPoint, Excel, MP4, ZIP — max 50MB</div>
-                </div>
-                <div class="fdprev" id="fdp">
-                    <span id="fdi">📎</span>
-                    <div><div class="fdname" id="fdn">—</div><div class="fdsize" id="fds">—</div></div>
-                    <button type="button" class="fdrm" onclick="rmFile()">✕</button>
-                </div>
-            </div>
+            }
 
-            <div class="acts">
-                <a asp-controller="Lesson" asp-action="Index" class="btn btn-ghost">← Cancel</a>
-                <div style="display:flex;gap:10px;flex-wrap:wrap">
-                    <a asp-controller="Lesson" asp-action="DeleteLesson" asp-route-id="@Model.Id" class="btn btn-danger">🗑 Delete</a>
-                    <button type="submit" class="btn btn-sabi" id="sb" onclick="onSave()">
-                        <span class="spin" id="ss"></span>
-                        <span id="st">💾 Save Changes</span>
-                    </button>
-                </div>
-            </div>
-        </form>
-    </div>
-</div>
+            // Content
+            var c = (l.lessonContents || l.lessonContent || [])[0] || {};
+            document.getElementById('Content').value = c.content || '';
+            countChars(document.getElementById('Content'), 'contentCount', 10000);
+            countChars(document.getElementById('Title'),       'titleCount',   120);
+            countChars(document.getElementById('Description'), 'descCount',    500);
 
-@section Scripts {
-    @{
-        await Html.RenderPartialAsync("_ValidationScriptsPartial");
-    }
-    @* 1. Link to the built-in validation scripts (jQuery Validation) *@
-    @* Include standard validation first *@
-    <partial name="_ValidationScriptsPartial" />
+            // Existing file
+            if (c.fileUrl) {
+                document.getElementById('existingFileWrap').style.display = 'flex';
+                document.getElementById('existingFileLink').href = c.fileUrl;
+            }
 
-    @* Link your custom index.js file *@
-    <script src="~/js/EditLesson.js" asp-append-version="true"></script>
-}
+            // Nav buttons
+            document.getElementById('previewBtn').href    = '/Lesson/Details/' + l.id;
+            document.getElementById('deleteBtn').href     = '/Lesson/DeleteLesson?id=' + l.id;
+            document.getElementById('deleteBtnBottom').href = '/Lesson/DeleteLesson?id=' + l.id;
+        }
+
+        initDragDrop(document.getElementById('fileDrop'));
+        initUnsavedWarning('editForm', 'saveBtn');
+
+        function handleSave(e) {
+            var content = document.getElementById('Content').value.trim();
+            if (!content) {
+                e.preventDefault();
+                document.getElementById('contentErr').classList.add('show');
+                document.getElementById('Content').classList.add('error');
+                return;
+            }
+            showSubmitSpinner('saveBtn', 'saveSpin', 'saveTxt', 'Saving…');
+        }
+    </script>
+</body>
+</html>

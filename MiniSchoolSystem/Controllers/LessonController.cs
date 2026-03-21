@@ -45,7 +45,7 @@ namespace MiniSchoolSystem.Controllers
         [HttpGet]
         public async Task<IActionResult> Details(int id)
         {
-            // BUG FIX: original had no 'id' parameter — view had no data
+           
             var lesson = await _dbContext.DbLesson
                 .Include(l => l.LessonContents)
                 .FirstOrDefaultAsync(l => l.Id == id && !l.IsDeleted && !l.IsArchived);
@@ -142,7 +142,8 @@ namespace MiniSchoolSystem.Controllers
 
             _dbContext.DbLesson.Add(newLesson);
             await _dbContext.SaveChangesAsync();
-
+            var Lessonlink= Url.Action("Details", "Lesson", new { id = newLesson.Id }, Request.Scheme);
+            var emailBody = $"A new lesson titled '{newLesson.Title}' has been created Thank You for Your Contribution. <a href='{Lessonlink}'>View Lesson</a>";
             TempData["info"] = "Lesson created successfully.";
             return RedirectToAction(nameof(Index));
         }
@@ -250,7 +251,8 @@ namespace MiniSchoolSystem.Controllers
 
             // 5. Final Save
             await _dbContext.SaveChangesAsync();
-
+            var Lessonlink = Url.Action("Details", "Lesson", new { id = lesson.Id }, Request.Scheme);
+            var emailBody = $"A Lesson Edited '{lesson.Title}' has been created Thank You for Your Contribution. <a href='{Lessonlink}'>View Lesson</a>";
             TempData["info"] = "Lesson updated successfully.";
             return RedirectToAction(nameof(Index));
         }

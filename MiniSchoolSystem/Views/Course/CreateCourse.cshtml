@@ -1,184 +1,113 @@
-﻿@model MiniSchoolSystem.DTO.CreateLessonViewDTO
+﻿@model MiniSchoolSystem.DTO.CreateCourseViewDTO
 @{
-    ViewData["Title"] = "Create Lesson";
+    ViewData["Title"] = "Create Course";
     Layout = "~/Views/Shared/_Layout.cshtml";
+    var sections = ViewBag.CourseSection as List<MiniSchoolSystem.Enums.Sections>
+                   ?? Enum.GetValues(typeof(MiniSchoolSystem.Enums.Sections))
+                          .Cast<MiniSchoolSystem.Enums.Sections>().ToList();
 }
 
 @section Styles {
-    <link rel="stylesheet" href="~/css/SabiSpace.css" asp-append-version="true" />
+<link rel="stylesheet" href="~/css/SabiSpace.css" asp-append-version="true" />
 }
 
-<div class="cp">
-    <div class="ch">
-        <div class="chb1"></div>
-        <div class="chb2"></div>
-        <div class="chi">
-            <div class="bc">
-                <a asp-controller="Home" asp-action="Index">Home</a><span class="bcs">›</span>
-                <a asp-controller="Lesson" asp-action="Index">Lessons</a><span class="bcs">›</span>
-                <span style="color:var(--text-secondary)">Create Lesson</span>
+<div class="course-page">
+
+    <!-- HEADER -->
+    <div class="page-header">
+        <div class="ph-blob phb1" style="background:rgba(255,92,26,.12)"></div>
+        <div class="ph-blob phb2" style="background:rgba(245,200,66,.07)"></div>
+        <div class="ph-inner">
+            <div>
+                <div class="breadcrumb">
+                    <a asp-controller="Home"   asp-action="Index">Home</a><span>›</span>
+                    <a asp-controller="Course" asp-action="Index">Courses</a><span>›</span>
+                    <span style="color:var(--text-secondary)">Create Course</span>
+                </div>
+                <h1 class="ph-title">Create a New Course</h1>
+                <p class="ph-sub">Fill in the details below and your course will be ready for modules and lessons.</p>
             </div>
-            <h1 class="chtitle">Create a New Lesson</h1>
-            <p class="chsub">Fill in the details below to publish a lesson for your students.</p>
         </div>
     </div>
 
-    <div class="fw">
-        <!-- Steps -->
-        <div class="sb">
-            <div class="si"><div class="sn act" id="sn1">1</div><span class="sl act" id="sl1">Basic Info</span></div>
-            <div class="sline"></div>
-            <div class="si"><div class="sn pen" id="sn2">2</div><span class="sl pen" id="sl2">Content</span></div>
-            <div class="sline"></div>
-            <div class="si"><div class="sn pen" id="sn3">3</div><span class="sl pen" id="sl3">Attachment</span></div>
-        </div>
+    <!-- FORM -->
+    <div class="form-wrap">
 
         @if (!ViewData.ModelState.IsValid)
         {
-            <div class="aerr"><span>⚠️</span><div>@Html.ValidationSummary(false)</div></div>
+            <div class="alert-err">
+                <span>⚠️</span>
+                <div>@Html.ValidationSummary(false)</div>
+            </div>
         }
         @if (TempData["Error"] != null)
         {
-            <div class="aerr"><span>⚠️</span><span>@TempData["Error"]</span></div>
+            <div class="alert-err"><span>⚠️</span><span>@TempData["Error"]</span></div>
         }
 
-        <form asp-controller="Lesson" asp-action="CreateLesson" method="post" enctype="multipart/form-data" id="cform">
+        <form asp-controller="Course" asp-action="CreateCourse"
+              method="post" id="createForm">
             @Html.AntiForgeryToken()
 
-            <!-- STEP 1 -->
-            <div class="fs act" id="step1">
-                <div class="fst">📋 Basic Information</div>
-                <div class="fss">Give your lesson a clear title so students know what to expect.</div>
+            <!-- Card 1: Core info -->
+            <div class="form-card">
+                <div class="form-card-header">
+                    <div class="form-card-title">📋 Course Details</div>
+                    <span class="form-card-badge">Required</span>
+                </div>
+
                 <div class="fg">
-                    <label asp-for="Title">Lesson Title</label>
-                    <input asp-for="Title" class="form-control" placeholder="e.g. Introduction to Algebra" maxlength="120" oninput="cnt(this,'tc',120)" />
-                    <div class="cc" id="tc">0 / 120</div>
-                    <span asp-validation-for="Title" class="field-validation-error"></span>
+                    <label asp-for="Title">Course Title</label>
+                    <input asp-for="Title" class="field"
+                           placeholder="e.g. Complete Web Development for SS3"
+                           maxlength="120"
+                           oninput="countChars(this,'titleCount',120)" />
+                    <div class="char-count" id="titleCount">0 / 120</div>
+                    <span asp-validation-for="Title" class="field-error"></span>
                 </div>
+
                 <div class="fg">
-                    <label asp-for="Description">Description</label>
-                    <textarea asp-for="Description" class="form-control" placeholder="What will students learn?" rows="4" maxlength="500" oninput="cnt(this,'dc',500)"></textarea>
-                    <div class="cc" id="dc">0 / 500</div>
-                    <span asp-validation-for="Description" class="field-validation-error"></span>
+                    <label asp-for="Description">Description <span style="font-weight:400;color:var(--text-dim)">(optional)</span></label>
+                    <textarea asp-for="Description" class="field"
+                              placeholder="What will students learn in this course?"
+                              rows="4" maxlength="500"
+                              oninput="countChars(this,'descCount',500)"></textarea>
+                    <div class="char-count" id="descCount">0 / 500</div>
                 </div>
-                <div class="row2">
-                    <div class="fg">
-                        <label asp-for="LessonSection">Section / Level</label>
-                        <select asp-for="LessonSection" class="form-control">
-                            <option value="" disabled selected>Select section</option>
-                            <optgroup label="Junior Secondary">
-                                <option value="JSS1">JSS 1</option>
-                                <option value="JSS2">JSS 2</option>
-                                <option value="JSS3">JSS 3</option>
-                            </optgroup>
-                            <optgroup label="Senior Secondary">
-                                <option value="SS1">SS 1</option>
-                                <option value="SS2">SS 2</option>
-                                <option value="SS3">SS 3</option>
-                            </optgroup>
-                            <optgroup label="Tertiary & Professional">
-                                <option value="Higher">Higher (University / Poly)</option>
-                                <option value="Professional">Professional</option>
-                            </optgroup>
-                        </select>
-                        <span asp-validation-for="LessonSection" class="field-validation-error"></span>
-                    </div>
-                    <div class="fg">
-                        <label asp-for="Id">Lesson ID</label>
-                        <input asp-for="Id" class="form-control" type="number" placeholder="e.g. 1001" min="1" />
-                        <span asp-validation-for="Id" class="field-validation-error"></span>
-                    </div>
-                </div>
-                <div class="fnav">
-                    <a asp-controller="Lesson" asp-action="Index" class="btn btn-ghost">← Cancel</a>
-                    <button type="button" class="btn btn-sabi" onclick="go(2)">Next: Add Content →</button>
-                </div>
+
+              
+            <!-- Actions -->
+            <div class="form-actions">
+                <a asp-controller="Course" asp-action="Index" class="btn btn-ghost">← Cancel</a>
+                <button type="submit" class="btn btn-sabi" id="submitBtn"
+                        onclick="handleSubmit()">
+                    <span class="btn-spin" id="submitSpin"></span>
+                    <span id="submitTxt">Create Course →</span>
+                </button>
             </div>
 
-            <!-- STEP 2 -->
-            <div class="fs" id="step2">
-                <div class="fst">✏️ Lesson Content</div>
-                <div class="fss">Write the main lesson content students will read and learn from.</div>
-                <div class="tips">
-                    <h5>💡 Writing tips</h5>
-                    <ul>
-                        <li>Start with a clear learning objective</li>
-                        <li>Break content into short readable sections</li>
-                        <li>Use examples relevant to the curriculum</li>
-                        <li>End with a summary or key takeaways</li>
-                    </ul>
-                </div>
-                <div class="fg">
-                    <label for="Content">Content</label>
-                    <textarea name="Content" id="Content" class="ced" placeholder="Write your lesson content here…" rows="12" oninput="cnt(this,'ctc',10000)"></textarea>
-                    <div class="cc" id="ctc">0 / 10,000</div>
-                </div>
-                <div class="fnav">
-                    <button type="button" class="btn btn-ghost" onclick="go(1)">← Back</button>
-                    <button type="button" class="btn btn-sabi" onclick="go(3)">Next: Add Attachment →</button>
-                </div>
-            </div>
-
-            <!-- STEP 3 -->
-            <div class="fs" id="step3">
-                <div class="fst">📎 Attachment (Optional)</div>
-                <div class="fss">Upload a supporting file — PDF, slides, or any resource for students.</div>
-                <div class="fdrop" id="fdrop">
-                    <input type="file" name="file" id="fi" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.mp4,.zip" onchange="prevFile(this)" />
-                    <div class="fdicon">📁</div>
-                    <div class="fdtitle">Drag & drop or click to upload</div>
-                    <div class="fdsub">PDF, Word, PowerPoint, Excel, MP4, ZIP — max 50MB</div>
-                </div>
-                <div class="fdprev" id="fdp">
-                    <span id="fdi">📎</span>
-                    <div><div class="fdname" id="fdn">—</div><div class="fdsize" id="fds">—</div></div>
-                    <button type="button" class="fdrm" onclick="rmFile()">✕</button>
-                </div>
-                <div class="fnav" style="margin-top:32px">
-                    <button type="button" class="btn btn-ghost" onclick="go(2)">← Back</button>
-                    <button type="submit" class="btn btn-sabi" id="subBtn" onclick="onSubmit()">
-                        <span class="spin" id="subSpin"></span>
-                        <span id="subTxt">🚀 Publish Lesson</span>
-                    </button>
-                </div>
-            </div>
         </form>
     </div>
 </div>
 
 @section Scripts {
-    <script src="~/js/SabiSpace.js" asp-append-version="true"></script>
-    @{
-        await Html.RenderPartialAsync("_ValidationScriptsPartial");
-    }
-    <script>
-        var cur = 1;
-        function go(n) {
-            if (n > 1 && cur === 1) {
-                if (!q('Title').value.trim())         { SabiToast('Enter a lesson title.','warning'); return; }
-                if (!q('LessonSection').value)         { SabiToast('Select a section.','warning'); return; }
-                if (!q('Id').value)                    { SabiToast('Enter a lesson ID.','warning'); return; }
-            }
-            if (n > 2 && cur === 2) {
-                if (!document.getElementById('Content').value.trim()) { SabiToast('Add lesson content.','warning'); return; }
-            }
-            [1,2,3].forEach(i => {
-                document.getElementById('step'+i).classList.toggle('act', i===n);
-                var sn=document.getElementById('sn'+i), sl=document.getElementById('sl'+i);
-                if (i<n)      { sn.className='sn done'; sn.textContent='✓'; sl.className='sl act'; }
-                else if (i===n){ sn.className='sn act';  sn.textContent=i;   sl.className='sl act'; }
-                else           { sn.className='sn pen';  sn.textContent=i;   sl.className='sl pen'; }
-            });
-            cur = n;
-            window.scrollTo({top:0,behavior:'smooth'});
-        }
-        function q(n){ return document.querySelector('[name="'+n+'"]'); }
-        function cnt(el,id,max){ var l=el.value.length,c=document.getElementById(id); c.textContent=l.toLocaleString()+' / '+max.toLocaleString(); c.className='cc'+(l>max*.9?' w':''); }
-        function prevFile(inp){ var f=inp.files[0]; if(!f) return; var icons={pdf:'📄',doc:'📝',docx:'📝',ppt:'📊',pptx:'📊',xls:'📋',xlsx:'📋',mp4:'🎬',zip:'🗜️'}; var ext=f.name.split('.').pop().toLowerCase(); var sz=f.size>1048576?(f.size/1048576).toFixed(1)+' MB':(f.size/1024).toFixed(0)+' KB'; document.getElementById('fdi').textContent=icons[ext]||'📎'; document.getElementById('fdn').textContent=f.name; document.getElementById('fds').textContent=sz; document.getElementById('fdp').classList.add('show'); document.querySelector('.fdtitle').textContent='File selected ✓'; }
-        function rmFile(){ document.getElementById('fi').value=''; document.getElementById('fdp').classList.remove('show'); document.querySelector('.fdtitle').textContent='Drag & drop or click to upload'; }
-        var d=document.getElementById('fdrop');
-        ['dragover','dragenter'].forEach(e=>d.addEventListener(e,ev=>{ev.preventDefault();d.classList.add('dg');}));
-        ['dragleave','drop'].forEach(e=>d.addEventListener(e,()=>d.classList.remove('dg')));
-        function onSubmit(){ var btn=document.getElementById('subBtn'); btn.disabled=true; document.getElementById('subSpin').style.display='block'; document.getElementById('subTxt').textContent='Publishing…'; }
-    </script>
+<script src="~/js/SabiSpace.js" asp-append-version="true"></script>
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+<script>
+function countChars(el, id, max) {
+    var len = el.value.length;
+    var el2 = document.getElementById(id);
+    el2.textContent = len + ' / ' + max;
+    el2.className = 'char-count' + (len > max*.9 ? ' warn' : '');
+}
+function handleSubmit() {
+    var title = document.querySelector('[name="Title"]').value.trim();
+    var sec   = document.querySelector('[name="SelectedSection"]').value;
+    if (!title || !sec) return false;
+    var btn = document.getElementById('submitBtn');
+    var spin = document.getElementById('submitSpin');
+    var txt  = document.getElementById('submitTxt');
+    btn.disabled = true; spin.style.display = 'block'; txt.textContent = 'Creating…';
+}
+</script>
 }

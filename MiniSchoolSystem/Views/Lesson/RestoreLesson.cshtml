@@ -1,122 +1,142 @@
-﻿@{
-    ViewData["Title"] = "Restore Lesson";
-    Layout = "~/Views/Shared/_Layout.cshtml";
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>Restore Lesson — SabiSpace</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="../css/lesson.css" />
+</head>
+<body>
 
-    var lesson = ViewBag.Lesson;
-}
+    <div class="page-centered">
+        <div class="blob blob-sage blob-tl"></div>
+        <div class="blob blob-sky  blob-br" style="opacity:.4"></div>
 
-@section Styles {
-    <link href="/css/RestoreLesson.css" rel="stylesheet" />
-}
+        <div class="confirm-card border-sage">
 
-<div class="page">
-    <div class="blob b1"></div>
-    <div class="blob b2"></div>
+            <div class="card-icon sage">♻️</div>
+            <h1 class="card-title">Restore this lesson?</h1>
+            <p class="card-sub">
+                Restoring will make the lesson
+                <strong class="sage">visible to students again</strong>
+                and cancel the scheduled deletion.
+            </p>
 
-    <div class="card">
-        <div class="card-icon">♻️</div>
-        <h1 class="card-title">Restore this lesson?</h1>
-        <p class="card-sub">
-            Restoring will make the lesson <strong>visible to students again</strong> and cancel the scheduled deletion.
-        </p>
-
-        <!-- Lesson preview -->
-        <div class="lesson-preview">
-            <div class="lp-label">Lesson to restore</div>
-            @if (lesson != null)
-            {
-                <div class="lp-title">@lesson.Title</div>
-                @if (!string.IsNullOrEmpty(lesson.Description?.ToString()))
-                {
-                    <div class="lp-desc">@lesson.Description</div>
-                }
-                <div class="lp-meta">
-                    <span class="lp-meta-item">
-                        📅 Deleted: @((lesson.DeletedAt as DateTime?)?.ToString("dd MMM yyyy HH:mm") ?? "—")
-                    </span>
-                    <span class="lp-tag-deleted">Scheduled for deletion</span>
+            <!-- Lesson preview -->
+            <div class="lesson-preview">
+                <div class="lesson-preview-label">Lesson to restore</div>
+                <div class="lesson-preview-title" id="lpTitle">Loading…</div>
+                <div class="lesson-preview-desc" id="lpDesc"></div>
+                <div class="lesson-preview-meta">
+                    <span id="lpDeleted">—</span>
+                    <span class="badge badge-del" id="lpDelBadge" style="display:none">Scheduled for deletion</span>
                 </div>
-            }
-            else
-            {
-                <div class="lp-title" id="lessonTitle">Loading…</div>
-                <div class="lp-meta"><span id="lessonMeta" class="lp-meta-item">—</span></div>
-            }
-        </div>
+            </div>
 
-        <!-- Days remaining ring -->
-        @if (lesson?.DeletedAt != null)
-        {
-            var daysGone = (DateTime.Now - (DateTime)lesson.DeletedAt).TotalDays;
-            var daysRemaining = Math.Max(0, 3 - daysGone);
-            var pct = daysRemaining / 3.0;
-            var dashOffset = 138 - (138 * pct);
-
-            <div class="timer-box">
+            <!-- Days-remaining ring (populated by JS) -->
+            <div class="timer-box" id="timerBox" style="display:none">
                 <div class="timer-ring">
                     <svg width="52" height="52" viewBox="0 0 52 52">
-                        <circle class="timer-ring-bg" cx="26" cy="26" r="22" />
-                        <circle class="timer-ring-fill" cx="26" cy="26" r="22"
-                                style="stroke-dashoffset:@dashOffset.ToString("F1")" />
+                        <circle class="ring-bg" cx="26" cy="26" r="22" />
+                        <circle class="ring-fill" cx="26" cy="26" r="22" id="ringFill" />
                     </svg>
-                    <div class="timer-text">
-                        <div class="timer-days">@daysRemaining.ToString("F0")</div>
+                    <div class="timer-center">
+                        <div class="timer-days" id="timerDays">—</div>
                         <div class="timer-label">days</div>
                     </div>
                 </div>
                 <div class="timer-info">
-                    <p>@daysRemaining.ToString("F0") day@(daysRemaining == 1 ? "" : "s") remaining</p>
-                    <span>
-                        @if (daysRemaining <= 0)
-                        {
-                            <span style="color:#f87171">Window expired — cannot restore</span>
-                        }
-                        else
-                        {
-
-                            <span>Restore window closes @((lesson.DeletedAt as DateTime?)?.AddDays(3).ToString("dd MMM yyyy") ?? "")</span>
-                        }
-                    </span>
+                    <p id="timerTitle">—</p>
+                    <span id="timerSub">—</span>
                 </div>
             </div>
-        }
 
-        <!-- What restoring does -->
-        <div class="info-box">
-            <span class="ib-icon">♻️</span>
-            <div>
-                <p class="ib-title">What restoring does</p>
-                <ul class="ib-list">
-                    <li>Lesson becomes visible to students immediately</li>
-                    <li>All content and files are preserved</li>
-                    <li>Scheduled deletion is cancelled permanently</li>
-                    <li>Teacher is not notified automatically</li>
-                </ul>
+            <!-- What restoring does -->
+            <div class="warn-box warn-box-sage">
+                <span class="warn-box-icon">♻️</span>
+                <div>
+                    <p class="warn-box-title">What restoring does</p>
+                    <ul class="warn-list">
+                        <li>Lesson becomes visible to students immediately</li>
+                        <li>All content and files are preserved</li>
+                        <li>Scheduled deletion is cancelled permanently</li>
+                        <li>Teacher is not notified automatically</li>
+                    </ul>
+                </div>
             </div>
-        </div>
 
-        <!-- Buttons -->
-        <div class="btns">
-            <a asp-controller="Lesson" asp-action="Index" class="btn btn-cancel">← Cancel</a>
-            <form asp-controller="Lesson" asp-action="RestoreLesson"
-                  asp-route-id="@(lesson?.Id ?? 0)"
-                  method="post" style="flex:1;display:contents">
-                @Html.AntiForgeryToken()
-                <button type="submit" class="btn btn-restore"
-                        id="restoreBtn" onclick="handleSubmit(this)">
-                    <span class="spin" id="spin"></span>
-                    <span id="btnTxt">♻️ Restore Lesson</span>
-                </button>
+            <!-- Buttons -->
+            <form id="restoreForm" method="post" style="display:contents">
+                <!-- @Html.AntiForgeryToken() -->
+                <div class="confirm-btns">
+                    <a href="/Lesson" class="btn btn-ghost btn-block">← Cancel</a>
+                    <button type="submit" class="btn btn-sage btn-block"
+                            id="restoreBtn"
+                            onclick="showSubmitSpinner('restoreBtn','restSpin','restTxt','Restoring…')">
+                        <span class="btn-spin" id="restSpin"></span>
+                        <span id="restTxt">♻️ Restore Lesson</span>
+                    </button>
+                </div>
             </form>
+
         </div>
     </div>
-</div>
 
-@section Scripts {
-    @* 1. Link to the built-in validation scripts (jQuery Validation) *@
-    @* Include standard validation first *@
-    <partial name="_ValidationScriptsPartial" />
+    <script src="../js/lesson.js"></script>
+    <script>
+        var lessonId = new URLSearchParams(location.search).get('id') || getLessonIdFromUrl();
 
-    @* Link your custom index.js file *@
-    <script src="~/js/Details.js" asp-append-version="true"></script>
-}
+        // NOTE: GetLessons only returns active lessons.
+        // In the real app, the controller passes ViewBag.Lesson which includes deleted ones.
+        // This HTML file uses a separate endpoint if available, or falls back to a placeholder.
+
+        fetch('/Lesson/GetDeletedLessons')   // you may need to add this endpoint
+            .then(function(r) { return r.json(); })
+            .then(function(lessons) {
+                var l = lessons.find(function(x) { return String(x.id) === String(lessonId); });
+                if (!l) return;
+                populate(l);
+            })
+            .catch(function() {
+                // Fallback — just wire the form
+                document.getElementById('restoreForm').action = '/Lesson/RestoreLesson?id=' + lessonId;
+            });
+
+        function populate(l) {
+            document.getElementById('lpTitle').textContent = l.title || 'Lesson';
+            document.getElementById('lpDesc').textContent  = l.description || '';
+            document.getElementById('lpDelBadge').style.display = 'inline-flex';
+
+            if (l.deletedAt) {
+                document.getElementById('lpDeleted').textContent =
+                    '🗑 Deleted: ' + fmtDate(l.deletedAt);
+
+                var daysGone      = (Date.now() - new Date(l.deletedAt).getTime()) / 86400000;
+                var daysRemaining = Math.max(0, Math.ceil(30 - daysGone));
+
+                document.getElementById('timerBox').style.display  = 'flex';
+                document.getElementById('timerDays').textContent   = daysRemaining;
+                document.getElementById('timerTitle').textContent  =
+                    daysRemaining + ' day' + (daysRemaining !== 1 ? 's' : '') + ' remaining';
+
+                if (daysRemaining <= 0) {
+                    document.getElementById('timerSub').innerHTML =
+                        '<span style="color:var(--danger)">Window expired — cannot restore</span>';
+                    document.getElementById('restoreBtn').disabled = true;
+                } else {
+                    var expiry = new Date(new Date(l.deletedAt).getTime() + 30*86400000);
+                    document.getElementById('timerSub').textContent =
+                        'Window closes ' + fmtDate(expiry.toISOString());
+                }
+
+                initTimerRing(daysRemaining, 30);
+            }
+
+            document.getElementById('restoreForm').action = '/Lesson/RestoreLesson?id=' + l.id;
+        }
+    </script>
+</body>
+</html>

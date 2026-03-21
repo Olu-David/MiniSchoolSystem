@@ -9,6 +9,7 @@ namespace MiniSchoolSystem.DTO
         [Required(ErrorMessage ="Enter Title")]
         public string? Title { get; set; }
         public DateTime CreatedAt { get; set; }
+        public string? Description { get; set; }
         public string? Slug { get; set; }
         public Sections SelectedSection {  get; set; }
         [EmailAddress]
