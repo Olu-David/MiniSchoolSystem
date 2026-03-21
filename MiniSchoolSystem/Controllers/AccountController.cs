@@ -85,7 +85,10 @@ namespace MiniSchoolSystem.Controllers
                 // 3. Show the "Check your inbox" page
                 ViewBag.Success = false;
                 ViewBag.Email = model.Email;
-                return View("EmailMessage");
+                return RedirectToAction(nameof(EmailMessage));
+
+
+                
             }
 
             // 4. Handle Errors
@@ -102,7 +105,7 @@ namespace MiniSchoolSystem.Controllers
             return View();
         }
         [HttpGet]
-        public IActionResult ConfirmEmail()
+        public IActionResult ConfirmEmailSuccess()
         {
             return View();
         }
@@ -112,7 +115,8 @@ namespace MiniSchoolSystem.Controllers
         {
             if (userId == null || token == null)
             {
-                return RedirectToAction("Index", "Home");
+                TempData["Error"] = "Invalid or token Epired";
+                return RedirectToAction(nameof(ResendConfirmation));
             }
 
             var user = await _userManager.FindByIdAsync(userId);
@@ -188,7 +192,7 @@ namespace MiniSchoolSystem.Controllers
 
             if (result.Succeeded)
             {
-                return RedirectToAction("Dashboard", "Home");
+                return RedirectToAction("index", "Home");
             }
 
             ModelState.AddModelError("", "Invalid login");

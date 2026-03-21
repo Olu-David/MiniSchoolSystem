@@ -8,6 +8,7 @@
         MiddleSchool=3,
         HighSchool=4,
         University=5,
-        General=6
+        Proffesional=6,
+        General =7
     }
 }
