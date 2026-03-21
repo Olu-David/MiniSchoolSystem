@@ -1,0 +1,148 @@
+﻿@model IEnumerable<MiniSchoolSystem.Models.UserDb>
+@{
+    ViewData["Title"] = "Manage Users";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/SuperAdmin.css" asp-append-version="true" />
+}
+
+<div class="sa-wrap">
+    @await Html.PartialAsync("_SuperAdminSidebar")
+
+    <div class="sa-content">
+
+        <div class="sa-page-header">
+            <div>
+                <h1 class="sa-page-title">👥 Manage Users</h1>
+                <p class="sa-page-sub">View, lock and manage all registered accounts.</p>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+                <a href="#" onclick="saToast('Export coming soon','info');return false" class="sa-btn sa-btn-ghost">
+                    ⬇️ Export
+                </a>
+            </div>
+        </div>
+
+        <div class="sa-card sa-fade-up">
+            <div class="sa-card-header">
+                <h3 class="sa-card-title">All Users <span style="font-size:13px;color:var(--text-dim);font-weight:400">(@(Model?.Count() ?? 0) total)</span></h3>
+                <div class="sa-filter-bar">
+                    <div class="sa-search">
+                        <span class="sa-search-icon">🔍</span>
+                        <input type="text" id="userSearch" placeholder="Search name or email…" />
+                    </div>
+                    <select class="sa-select" id="roleFilter">
+                        <option value="">All Roles</option>
+                        <option value="SuperAdmin">SuperAdmin</option>
+                        <option value="Admin">Admin</option>
+                        <option value="Teacher">Teacher</option>
+                        <option value="Student">Student</option>
+                    </select>
+                    <select class="sa-select" id="statusFilter">
+                        <option value="">All Status</option>
+                        <option value="Active">Active</option>
+                        <option value="Locked">Locked</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="sa-table-wrap">
+                <table class="sa-table" id="usersTable">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>User</th>
+                            <th>Role</th>
+                            <th>Joined</th>
+                            <th>Status</th>
+                            <th>Last Login</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model != null && Model.Any())
+                        {
+                            int i = 1;
+                            foreach (var user in Model)
+                            {
+                                bool isLocked = user.LockoutEnd.HasValue && user.LockoutEnd > DateTimeOffset.UtcNow;
+                                <tr>
+                                    <td style="color:var(--text-dim)">@i</td>
+                                    <td>
+                                        <div class="sa-user-cell">
+                                            <div class="sa-av">@(user.UserName?.Length > 0 ? user.UserName[0].ToString().ToUpper() : "?")</div>
+                                            <div>
+                                                <div class="sa-user-name">@user.UserName</div>
+                                                <div class="sa-user-email">@user.Email</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        @* Wire roles via ViewBag.UserRoles dictionary later *@
+                                        <span class="sa-badge role-student">Student</span>
+                                    </td>
+                                    <td style="white-space:nowrap">—</td>
+                                    <td>
+                                        @if (isLocked)
+                                        {
+                                            <span class="sa-badge status-locked">🔒 Locked</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="sa-badge status-active">✅ Active</span>
+                                        }
+                                    </td>
+                                    <td style="color:var(--text-dim)">—</td>
+                                    <td>
+                                        <div style="display:flex;gap:6px;align-items:center">
+                                            <!-- Lock / Unlock -->
+                                            <form asp-action="ToggleLock" method="post" style="display:inline">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="userId" value="@user.Id" />
+                                                <input type="hidden" name="isLocked" value="@(!isLocked)" />
+                                                <button type="button"
+                                                        class="sa-btn sa-btn-sm @(isLocked ? "sa-btn-success" : "sa-btn-danger") js-lock-toggle"
+                                                        data-name="@user.UserName"
+                                                        data-locked="@isLocked.ToString().ToLower()">
+                                                    @(isLocked ? "🔓 Unlock" : "🔒 Lock")
+                                                </button>
+                                            </form>
+                                            <!-- Promote (placeholder) -->
+                                            <a href="#" onclick="saToast('Promote feature coming soon','info');return false"
+                                               class="sa-btn sa-btn-ghost sa-btn-sm">⬆️</a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                i++;
+                            }
+                        }
+                        else
+                        {
+                            <tr class="sa-empty-row">
+                                <td colspan="7">
+                                    <div class="sa-empty">
+                                        <div class="sa-empty-icon">👥</div>
+                                        <div class="sa-empty-title">No users found</div>
+                                        <div class="sa-empty-sub">Users will appear here once they register.</div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/SuperAdmin.js" asp-append-version="true"></script>
+    <script>
+        saTableSearch('userSearch', 'usersTable');
+        saTableFilter('roleFilter',   'usersTable', 2);
+        saTableFilter('statusFilter', 'usersTable', 4);
+    </script>
+}

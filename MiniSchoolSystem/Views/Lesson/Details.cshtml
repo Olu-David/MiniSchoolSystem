@@ -1,200 +1,999 @@
-﻿<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8"/>
-    <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-    <title>Lesson Details — SabiSpace</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com"/>
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet"/>
-    <link rel="stylesheet" href="../css/lesson.css"/>
-</head>
-<body>
+﻿@model MiniSchoolSystem.Models.Lesson
 
-<div class="lesson-page">
+@{
+    ViewData["Title"] = (Model?.Title ?? "Lesson") + " — SabiSpace";
+    Layout = "~/Views/Shared/_Layout.cshtml";
 
-    <!-- ======================================================
-         BREADCRUMB
-    ====================================================== -->
-    <div style="max-width:1180px;margin:0 auto;padding:20px 5vw 0">
-        <div class="breadcrumb">
-            <a href="/">Home</a><span>›</span>
-            <a href="/Lesson">Lessons</a><span>›</span>
-            <span id="bcTitle" style="color:var(--text-secondary)">Loading…</span>
-        </div>
-    </div>
+    bool canManage = User.IsInRole("Teacher")
+                  || User.IsInRole("Admin")
+                  || User.IsInRole("SuperAdmin");
 
-    <!-- ======================================================
-         HERO BANNER
-    ====================================================== -->
-    <div class="page-header" style="margin-bottom:40px">
-        <div class="blob blob-orange blob-tl" style="opacity:.7"></div>
-        <div class="blob blob-sage   blob-br" style="opacity:.5"></div>
-        <div class="page-header-inner">
-            <div>
-                <div id="heroSection" class="section-tag" style="margin-bottom:14px">Loading…</div>
-                <h1 class="page-header-title" id="heroTitle">Loading lesson…</h1>
-                <p class="page-header-sub"   id="heroDesc"></p>
-                <div style="display:flex;gap:12px;margin-top:20px;flex-wrap:wrap;align-items:center">
-                    <span style="font-size:13px;color:var(--text-secondary)" id="heroMeta"></span>
-                </div>
-                <!-- Action buttons -->
-                <div style="display:flex;gap:10px;margin-top:24px;flex-wrap:wrap">
-                    <button class="btn btn-sabi" onclick="document.getElementById('lessonContent').scrollIntoView({behavior:'smooth'})">▶ View Content</button>
-                    <!-- Teacher / Admin buttons — in Razor these use @if (User.IsInRole) -->
-                    <a href="#" class="btn btn-ghost" id="editBtn"    style="display:none">✏️ Edit</a>
-                    <button     class="btn btn-gold"  id="archiveBtn" style="display:none" onclick="window.location.href='/Lesson/ArchiveLesson?id='+lessonId">📦 Archive</button>
-                    <button     class="btn btn-danger btn-sm" id="deleteBtn" style="display:none" onclick="openModal('deleteModal')">🗑 Delete</button>
-                </div>
-            </div>
+    // Status logic — based on your actual bool flags
+    bool isArchived = Model.IsArchived;
+    bool isDeleted = Model.IsDeleted;
 
-            <!-- Teacher card -->
-            <div class="teacher-card" id="teacherCard">
-                <div class="teacher-card-label">Instructor</div>
-                <div class="teacher-av-lg" id="tcAvatar">T</div>
-                <div class="teacher-name-lg" id="tcName">—</div>
-                <div class="teacher-role">SabiSpace Instructor</div>
-                <div class="teacher-stats">
-                    <div class="teacher-stat"><div class="teacher-stat-num">4.9★</div><div class="teacher-stat-label">Rating</div></div>
-                    <div class="teacher-stat"><div class="teacher-stat-num">340+</div><div class="teacher-stat-label">Students</div></div>
-                </div>
-            </div>
-        </div>
-    </div>
+    string statusClass = isArchived ? "badge-arch"
+                       : isDeleted ? "badge-deleted"
+                       : "badge-live";
 
-    <!-- ======================================================
-         CONTENT + SIDEBAR
-    ====================================================== -->
-    <div class="details-grid" id="lessonContent">
+    string statusLabel = isArchived ? "📦 Archived"
+                       : isDeleted ? "🗑 Deleted"
+                       : "✅ Active";
 
-        <!-- Main body -->
-        <div class="lesson-body">
-            <div class="tab-bar">
-                <button class="tab-btn active" onclick="switchTab('tab-content', this)">Content</button>
-                <button class="tab-btn"        onclick="switchTab('tab-about',   this)">About</button>
-            </div>
-            <div class="tab-panel active" id="tab-content">
-                <div class="lesson-content-text" id="lessonText">Loading content…</div>
-                <div id="fileSection" style="display:none">
-                    <a class="file-card" id="fileCard" href="#" target="_blank" download>
-                        <div class="file-card-icon">📎</div>
-                        <div>
-                            <div class="file-card-name" id="fileName">Attachment</div>
-                            <div class="file-card-hint">Click to download</div>
-                        </div>
-                        <button class="file-card-dl">↓ Download</button>
-                    </a>
-                </div>
-            </div>
-            <div class="tab-panel" id="tab-about">
-                <div class="lesson-content-text" id="aboutText">—</div>
-            </div>
-        </div>
+    // First LessonContent item (video url, file, content text)
+    var firstContent = Model.LessonContents?.FirstOrDefault();
 
-        <!-- Sidebar -->
-        <div>
-            <div class="sidebar-card">
-                <div class="sidebar-card-title">Lesson Info</div>
-                <div class="info-row"><span class="info-label">Section</span><span class="info-val" id="siSection">—</span></div>
-                <div class="info-row"><span class="info-label">Status</span><span class="info-val"  id="siStatus">—</span></div>
-                <div class="info-row"><span class="info-label">Created</span><span class="info-val" id="siDate">—</span></div>
-                <div class="info-row"><span class="info-label">Instructor</span><span class="info-val" id="siTeacher">—</span></div>
-            </div>
+    // YouTube embed
+    string ytEmbed = "";
+    if (!string.IsNullOrEmpty(firstContent?.VideoUrl))
+    {
+        var m = System.Text.RegularExpressions.Regex.Match(
+            firstContent.VideoUrl, @"(?:youtube\.com/watch\?v=|youtu\.be/)([^&\s]+)");
+        if (m.Success) ytEmbed = "https://www.youtube.com/embed/" + m.Groups[1].Value;
+    }
 
-            <!-- Admin card — shown via JS for Teacher/Admin -->
-            <div class="admin-card" id="adminCard" style="display:none">
-                <h4>⚙️ Manage Lesson</h4>
-                <div class="admin-actions">
-                    <a class="btn btn-ghost"  id="editBtnSb"    href="#">✏️ Edit Lesson</a>
-                    <a class="btn btn-gold"   id="archiveBtnSb" href="#">📦 Archive Lesson</a>
-                    <a class="btn btn-danger" id="deleteBtnSb"  href="#" onclick="openModal('deleteModal');return false">🗑 Delete Lesson</a>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+    // Module / section label
+    string moduleLabel = Model.CourseModule?.Title ?? "Module";
+    string sectionLabel = Model.LessonSection.ToString();
+}
 
-<!-- Delete confirm modal -->
-<div class="modal-backdrop" id="deleteModal">
-    <div class="modal-box">
-        <div class="modal-icon">🗑</div>
-        <h3 class="modal-title">Delete this lesson?</h3>
-        <p class="modal-body" id="deleteModalBody">This action will delete the lesson.</p>
-        <div class="modal-btns">
-            <button class="btn btn-ghost"  onclick="closeModal('deleteModal')">Cancel</button>
-            <button class="btn btn-danger" onclick="confirmDelete()">Yes, Delete</button>
-        </div>
-    </div>
-</div>
-
-<script src="../js/lesson.js"></script>
-<script>
-    var lessonId = getLessonIdFromUrl();
-
-    // Fetch and populate
-    fetch('/Lesson/GetLessons')
-        .then(function(r) { return r.json(); })
-        .then(function(lessons) {
-            var l = lessons.find(function(x) { return String(x.id) === String(lessonId); });
-            if (!l) { showError(); return; }
-            populate(l);
-        })
-        .catch(showError);
-
-    function populate(l) {
-        document.title = (l.title || 'Lesson') + ' — SabiSpace';
-        document.getElementById('bcTitle').textContent    = l.title || 'Lesson';
-        document.getElementById('heroSection').textContent = l.lessonSection || 'General';
-        document.getElementById('heroTitle').textContent   = l.title || '';
-        document.getElementById('heroDesc').textContent    = l.description || '';
-        document.getElementById('heroMeta').textContent    =
-            '📅 ' + fmtDate(l.createdAt) + '  ·  👤 ' + (l.teacherName || 'Instructor');
-
-        // Teacher card
-        var init = (l.teacherName || 'T').charAt(0).toUpperCase();
-        document.getElementById('tcAvatar').textContent = init;
-        document.getElementById('tcName').textContent   = l.teacherName || 'Instructor';
-
-        // Content
-        var c = (l.lessonContents || l.lessonContent || [])[0] || {};
-        document.getElementById('lessonText').textContent = c.content || 'No content yet.';
-        document.getElementById('aboutText').textContent  = l.description || '—';
-
-        if (c.fileUrl) {
-            document.getElementById('fileSection').style.display = 'block';
-            document.getElementById('fileCard').href = c.fileUrl;
-            var parts = c.fileUrl.split('/');
-            document.getElementById('fileName').textContent = parts[parts.length - 1] || 'Attachment';
+@section Styles {
+    <style>
+        /* ── Page shell ── */
+        .lp-wrap {
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: 0 5vw 80px;
         }
 
-        // Sidebar info
-        document.getElementById('siSection').textContent = l.lessonSection || '—';
-        document.getElementById('siStatus').innerHTML    = l.isArchived
-            ? '<span class="badge badge-arch">Archived</span>'
-            : '<span class="badge badge-live">Active</span>';
-        document.getElementById('siDate').textContent    = fmtDate(l.createdAt);
-        document.getElementById('siTeacher').textContent = l.teacherName || '—';
+        /* ── Breadcrumb ── */
+        .lp-breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            padding: 20px 0 0;
+            flex-wrap: wrap;
+        }
 
-        // Wire edit/archive/delete links
-        var editLink    = '/Lesson/EditLesson/'    + l.id;
-        var archiveLink = '/Lesson/ArchiveLesson?id=' + l.id;
-        var deleteLink  = '/Lesson/' + l.id;
+            .lp-breadcrumb a {
+                color: var(--text-secondary);
+                text-decoration: none;
+            }
 
-        document.getElementById('editBtn').href    = editLink;
-        document.getElementById('editBtnSb').href  = editLink;
-        document.getElementById('archiveBtnSb').href = archiveLink;
-    }
+                .lp-breadcrumb a:hover {
+                    color: var(--sabi);
+                }
 
-    function showError() {
-        document.getElementById('heroTitle').textContent = 'Lesson not found';
-        document.getElementById('heroDesc').textContent  = 'This lesson may have been deleted.';
-        document.getElementById('lessonText').textContent = '—';
-    }
+            .lp-breadcrumb span {
+                color: var(--text-dim);
+            }
 
-    function confirmDelete() {
-        sendDelete('/Lesson/' + lessonId, 'Lesson deleted.', '/Lesson');
-        closeModal('deleteModal');
-    }
-</script>
-</body>
-</html>
+        /* ── Hero banner ── */
+        .lp-hero {
+            position: relative;
+            overflow: hidden;
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 48px 44px;
+            margin: 20px 0 32px;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 40px;
+            align-items: start;
+        }
+
+            .lp-hero::before {
+                content: '';
+                position: absolute;
+                inset: 0;
+                background: radial-gradient(ellipse at top left, rgba(255,92,26,.08), transparent 60%), radial-gradient(ellipse at bottom right, rgba(61,186,140,.06), transparent 60%);
+                pointer-events: none;
+            }
+
+        .lp-hero-left {
+            position: relative;
+            z-index: 1;
+        }
+
+        .lp-section-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 50px;
+            background: var(--sabi-dim);
+            border: 1px solid rgba(255,92,26,.2);
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--sabi);
+            text-transform: uppercase;
+            letter-spacing: .8px;
+            margin-bottom: 16px;
+        }
+
+        .lp-title {
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            font-size: clamp(1.6rem, 3vw, 2.4rem);
+            letter-spacing: -.6px;
+            color: var(--text-primary);
+            margin: 0 0 12px;
+            line-height: 1.15;
+        }
+
+        .lp-desc {
+            font-size: 15px;
+            color: var(--text-secondary);
+            line-height: 1.75;
+            margin: 0 0 20px;
+            max-width: 560px;
+        }
+
+        .lp-meta {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 28px;
+        }
+
+        .lp-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .lp-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .lp-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 10px 20px;
+            border-radius: 50px;
+            font-size: 13.5px;
+            font-weight: 600;
+            font-family: 'DM Sans', sans-serif;
+            text-decoration: none;
+            cursor: pointer;
+            border: none;
+            transition: all .2s;
+            white-space: nowrap;
+        }
+
+        .lp-btn-primary {
+            background: var(--sabi);
+            color: #fff;
+            box-shadow: 0 4px 14px rgba(255,92,26,.3);
+        }
+
+            .lp-btn-primary:hover {
+                background: var(--sabi-h,#e0511a);
+                transform: translateY(-1px);
+                color: #fff;
+            }
+
+        .lp-btn-ghost {
+            background: rgba(128,128,128,.08);
+            color: var(--text-secondary);
+            border: 1.5px solid var(--border2);
+        }
+
+            .lp-btn-ghost:hover {
+                background: rgba(128,128,128,.14);
+                color: var(--text-primary);
+            }
+
+        .lp-btn-gold {
+            background: rgba(245,200,66,.15);
+            color: var(--gold,#f5c842);
+            border: 1px solid rgba(245,200,66,.3);
+        }
+
+            .lp-btn-gold:hover {
+                background: rgba(245,200,66,.25);
+            }
+
+        .lp-btn-danger {
+            background: rgba(239,68,68,.1);
+            color: #ef4444;
+            border: 1px solid rgba(239,68,68,.25);
+        }
+
+            .lp-btn-danger:hover {
+                background: rgba(239,68,68,.2);
+            }
+
+        /* ── Instructor card ── */
+        .lp-instructor {
+            position: relative;
+            z-index: 1;
+            background: var(--bg);
+            border: 1px solid var(--border2);
+            border-radius: 18px;
+            padding: 24px 20px;
+            text-align: center;
+            min-width: 180px;
+        }
+
+        .lp-instructor-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .8px;
+            color: var(--text-dim);
+            margin-bottom: 14px;
+        }
+
+        .lp-instructor-av {
+            width: 60px;
+            height: 60px;
+            border-radius: 18px;
+            background: linear-gradient(135deg, var(--sabi), var(--gold,#f5c842));
+            display: grid;
+            place-items: center;
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            font-size: 24px;
+            color: #fff;
+            margin: 0 auto 12px;
+        }
+
+        .lp-instructor-name {
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+
+        .lp-instructor-role {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 3px;
+        }
+
+        .lp-instructor-stats {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            margin-top: 16px;
+            padding-top: 14px;
+            border-top: 1px solid var(--border);
+        }
+
+        .lp-inst-stat-num {
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            font-size: 15px;
+            color: var(--text-primary);
+        }
+
+        .lp-inst-stat-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        /* ── Content grid ── */
+        .lp-grid {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 28px;
+            align-items: start;
+        }
+
+        /* ── Tabs ── */
+        .lp-tab-bar {
+            display: flex;
+            gap: 4px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 28px;
+        }
+
+        .lp-tab {
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-secondary);
+            border-bottom: 2px solid transparent;
+            margin-bottom: -1px;
+            transition: all .2s;
+            font-family: 'DM Sans', sans-serif;
+        }
+
+            .lp-tab:hover {
+                color: var(--text-primary);
+            }
+
+            .lp-tab.active {
+                color: var(--sabi);
+                border-bottom-color: var(--sabi);
+            }
+
+        .lp-tab-panel {
+            display: none;
+        }
+
+            .lp-tab-panel.active {
+                display: block;
+            }
+
+        /* ── Cards ── */
+        .lp-card {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .lp-card-header {
+            padding: 18px 24px;
+            border-bottom: 1px solid var(--border);
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+
+        .lp-card-body {
+            padding: 24px;
+        }
+
+        .lp-content-text {
+            font-size: 15px;
+            color: var(--text-secondary);
+            line-height: 1.85;
+            white-space: pre-wrap;
+        }
+
+        /* ── Video ── */
+        .lp-video-wrap {
+            border-radius: 14px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            margin-bottom: 0;
+        }
+
+            .lp-video-wrap iframe {
+                display: block;
+                width: 100%;
+                aspect-ratio: 16/9;
+                border: none;
+            }
+
+        /* ── File card ── */
+        .lp-file-card {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 16px 20px;
+            background: var(--bg);
+            border: 1px solid var(--border2);
+            border-radius: 12px;
+            text-decoration: none;
+            transition: border-color .2s, transform .2s;
+            margin-top: 16px;
+        }
+
+            .lp-file-card:hover {
+                border-color: var(--sabi);
+                transform: translateY(-2px);
+            }
+
+        .lp-file-icon {
+            font-size: 24px;
+            flex-shrink: 0;
+        }
+
+        .lp-file-name {
+            font-size: 13.5px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .lp-file-hint {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        .lp-file-dl {
+            margin-left: auto;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--sabi);
+            white-space: nowrap;
+        }
+
+        /* ── Info rows ── */
+        .lp-info-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 13.5px;
+            gap: 12px;
+        }
+
+            .lp-info-row:last-child {
+                border-bottom: none;
+            }
+
+        .lp-info-label {
+            color: var(--text-secondary);
+            flex-shrink: 0;
+        }
+
+        .lp-info-val {
+            color: var(--text-primary);
+            font-weight: 500;
+            text-align: right;
+        }
+
+        /* ── Badges ── */
+        .lp-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 10px;
+            border-radius: 50px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .badge-live {
+            background: rgba(61,186,140,.1);
+            color: var(--sage,#3dba8c);
+            border: 1px solid rgba(61,186,140,.2);
+        }
+
+        .badge-arch {
+            background: rgba(245,200,66,.1);
+            color: var(--gold,#f5c842);
+            border: 1px solid rgba(245,200,66,.2);
+        }
+
+        .badge-deleted {
+            background: rgba(239,68,68,.1);
+            color: #ef4444;
+            border: 1px solid rgba(239,68,68,.2);
+        }
+
+        /* ── Manage card ── */
+        .lp-manage-card {
+            background: rgba(255,92,26,.04);
+            border: 1px solid rgba(255,92,26,.15);
+            border-radius: 18px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .lp-manage-title {
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: 14px;
+            color: var(--text-primary);
+            margin: 0 0 14px;
+        }
+
+        .lp-manage-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        /* ── Modal ── */
+        .lp-modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,.6);
+            backdrop-filter: blur(4px);
+            z-index: 999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+            .lp-modal-backdrop.open {
+                display: flex;
+            }
+
+        .lp-modal {
+            background: var(--bg2);
+            border: 1px solid var(--border2);
+            border-radius: 20px;
+            padding: 36px 32px;
+            max-width: 420px;
+            width: 100%;
+            text-align: center;
+            animation: modal-in .25s cubic-bezier(.22,1,.36,1);
+        }
+        @@keyframes modal-in {
+            from
+
+        {
+            transform: translateY(20px) scale(.97);
+            opacity: 0;
+        }
+
+        to {
+            transform: none;
+            opacity: 1;
+        }
+
+        }
+
+        .lp-modal-icon {
+            font-size: 52px;
+            margin-bottom: 12px;
+        }
+
+        .lp-modal-title {
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            font-size: 20px;
+            color: var(--text-primary);
+            margin: 0 0 8px;
+        }
+
+        .lp-modal-body {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin: 0 0 28px;
+        }
+
+        .lp-modal-btns {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        /* ── Responsive ── */
+        @@media (max-width: 900px) {
+            .lp-hero
+
+        {
+            grid-template-columns: 1fr;
+        }
+
+        .lp-instructor {
+            display: none;
+        }
+
+        .lp-grid {
+            grid-template-columns: 1fr;
+        }
+
+        }
+        @@media (max-width: 600px) {
+            .lp-hero
+
+        {
+            padding: 28px 20px;
+            border-radius: 16px;
+        }
+
+        .lp-title {
+            font-size: clamp(1.4rem, 5vw, 2rem);
+        }
+
+        .lp-card-body {
+            padding: 16px;
+        }
+
+        }
+    </style>
+}
+
+<div class="lp-wrap">
+
+    <!-- Breadcrumb -->
+    <div class="lp-breadcrumb">
+        <a asp-controller="Home" asp-action="Index">Home</a>
+        <span>›</span>
+        <a asp-controller="Lesson" asp-action="Index">Lessons</a>
+        <span>›</span>
+        <span style="color:var(--text-primary)">@Model.Title</span>
+    </div>
+
+    <!-- ── Hero ── -->
+    <div class="lp-hero">
+        <div class="lp-hero-left">
+
+            <div class="lp-section-tag">
+                @moduleLabel · @sectionLabel
+            </div>
+
+            <h1 class="lp-title">@Model.Title</h1>
+
+            @if (!string.IsNullOrWhiteSpace(Model.Description))
+            {
+                <p class="lp-desc">@Model.Description</p>
+            }
+
+            <div class="lp-meta">
+                <div class="lp-meta-item">
+                    <span>📅</span>
+                    <span>@Model.CreatedAt.ToString("dd MMM yyyy")</span>
+                </div>
+                <div class="lp-meta-item">
+                    <span>📦</span>
+                    <span>@moduleLabel</span>
+                </div>
+                <div class="lp-meta-item">
+                    <span class="lp-badge @statusClass">@statusLabel</span>
+                </div>
+                @if (Model.LessonContents?.Any() == true)
+                {
+                    <div class="lp-meta-item">
+                        <span>📄</span>
+                        <span>@Model.LessonContents.Count content item(s)</span>
+                    </div>
+                }
+            </div>
+
+            <!-- Action buttons -->
+            <div class="lp-actions">
+                <button class="lp-btn lp-btn-primary"
+                        onclick="document.getElementById('lessonContentSection').scrollIntoView({behavior:'smooth'})">
+                    @(string.IsNullOrEmpty(ytEmbed) ? "📖 View Content" : "▶ Watch Lesson")
+                </button>
+
+                @if (canManage)
+                {
+                    <a asp-action="Edit" asp-route-id="@Model.Id" class="lp-btn lp-btn-ghost">
+                        ✏️ Edit
+                    </a>
+
+                    @if (!Model.IsArchived)
+                    {
+                        <form asp-action="Archive" asp-route-id="@Model.Id" method="post" style="display:inline">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="lp-btn lp-btn-gold">📦 Archive</button>
+                        </form>
+                    }
+                    else
+                    {
+                        <form asp-action="Restore" asp-route-id="@Model.Id" method="post" style="display:inline">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="lp-btn lp-btn-ghost">♻️ Restore</button>
+                        </form>
+                    }
+
+                    <button class="lp-btn lp-btn-danger"
+                            onclick="document.getElementById('deleteModal').classList.add('open')">
+                        🗑 Delete
+                    </button>
+                }
+            </div>
+        </div>
+
+        <!-- Instructor card (desktop) -->
+        <div class="lp-instructor">
+            <div class="lp-instructor-label">Instructor</div>
+            <div class="lp-instructor-av">T</div>
+            <div class="lp-instructor-name">Teacher #@Model.TeacherId</div>
+            <div class="lp-instructor-role">SabiSpace Educator</div>
+            <div class="lp-instructor-stats">
+                <div>
+                    <div class="lp-inst-stat-num">4.9★</div>
+                    <div class="lp-inst-stat-label">Rating</div>
+                </div>
+                <div>
+                    <div class="lp-inst-stat-num">@Model.LessonEnrollments.Count</div>
+                    <div class="lp-inst-stat-label">Enrolled</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Content + Sidebar ── -->
+    <div class="lp-grid" id="lessonContentSection">
+
+        <!-- Main content -->
+        <div>
+            <div class="lp-tab-bar">
+                <button class="lp-tab active" onclick="switchTab('tab-content', this)">📖 Content</button>
+                <button class="lp-tab" onclick="switchTab('tab-about',   this)">ℹ️ About</button>
+                @if (!string.IsNullOrEmpty(ytEmbed))
+                {
+                    <button class="lp-tab" onclick="switchTab('tab-video', this)">🎬 Video</button>
+                }
+            </div>
+
+            <!-- Tab: Content -->
+            <div class="lp-tab-panel active" id="tab-content">
+                @if (Model.LessonContents?.Any() == true)
+                {
+                    foreach (var content in Model.LessonContents)
+                    {
+                        <div class="lp-card">
+                            <div class="lp-card-header">
+                                📄 @(content.Title ?? "Lesson Content")
+                            </div>
+                            <div class="lp-card-body">
+                                <div class="lp-content-text">@content.Content</div>
+
+                                @* File attachment if present *@
+                                @if (!string.IsNullOrEmpty(content.FileUrl))
+                                {
+                                    <a class="lp-file-card" href="@content.FileUrl" target="_blank" download>
+                                        <div class="lp-file-icon">📎</div>
+                                        <div>
+                                            <div class="lp-file-name">
+                                                @(content.FileUrl.Split('/').LastOrDefault() ?? "Attachment")
+                                            </div>
+                                            <div class="lp-file-hint">Click to download</div>
+                                        </div>
+                                        <span class="lp-file-dl">↓ Download</span>
+                                    </a>
+                                }
+
+                                @* Video link per content item if present *@
+                                @if (!string.IsNullOrEmpty(content.VideoUrl))
+                                {
+                                    var vm = System.Text.RegularExpressions.Regex.Match(
+                                    content.VideoUrl, @"(?:youtube\.com/watch\?v=|youtu\.be/)([^&\s]+)");
+                                    if (vm.Success)
+                                    {
+                                        <div class="lp-video-wrap" style="margin-top:20px">
+                                            <iframe src="https://www.youtube.com/embed/@vm.Groups[1].Value"
+                                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                    allowfullscreen></iframe>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <a href="@content.VideoUrl" target="_blank" class="lp-file-card" style="margin-top:16px">
+                                            <div class="lp-file-icon">🎬</div>
+                                            <div>
+                                                <div class="lp-file-name">Watch Video</div>
+                                                <div class="lp-file-hint">Opens in a new tab</div>
+                                            </div>
+                                            <span class="lp-file-dl">Open ↗</span>
+                                        </a>
+                                    }
+                                }
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="lp-card">
+                        <div class="lp-card-body" style="text-align:center;padding:48px 24px">
+                            <div style="font-size:48px;margin-bottom:12px;opacity:.4">📄</div>
+                            <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:16px;color:var(--text-primary);margin-bottom:6px">
+                                No content yet
+                            </div>
+                            <div style="font-size:13.5px;color:var(--text-secondary)">
+                                Content will appear here once added.
+                            </div>
+                            @if (canManage)
+                            {
+                                <a asp-action="Edit" asp-route-id="@Model.Id"
+                                   class="lp-btn lp-btn-primary" style="margin-top:20px;display:inline-flex">
+                                    ✏️ Add Content
+                                </a>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <!-- Tab: About -->
+            <div class="lp-tab-panel" id="tab-about">
+                <div class="lp-card">
+                    <div class="lp-card-header">ℹ️ About this Lesson</div>
+                    <div class="lp-card-body">
+                        <div class="lp-content-text">
+                            @(string.IsNullOrWhiteSpace(Model.Description) ? "No description provided." : Model.Description)
+                        </div>
+                        <div style="margin-top:24px;padding-top:20px;border-top:1px solid var(--border)">
+                            <div class="lp-info-row">
+                                <span class="lp-info-label">Module</span>
+                                <span class="lp-info-val">@moduleLabel</span>
+                            </div>
+                            <div class="lp-info-row">
+                                <span class="lp-info-label">Section</span>
+                                <span class="lp-info-val">@sectionLabel</span>
+                            </div>
+                            <div class="lp-info-row">
+                                <span class="lp-info-label">Created</span>
+                                <span class="lp-info-val">@Model.CreatedAt.ToString("dd MMM yyyy")</span>
+                            </div>
+                            <div class="lp-info-row">
+                                <span class="lp-info-label">Status</span>
+                                <span class="lp-info-val"><span class="lp-badge @statusClass">@statusLabel</span></span>
+                            </div>
+                            <div class="lp-info-row">
+                                <span class="lp-info-label">Enrolled</span>
+                                <span class="lp-info-val">@Model.LessonEnrollments.Count student(s)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Video (only if YouTube embed found) -->
+            @if (!string.IsNullOrEmpty(ytEmbed))
+            {
+                <div class="lp-tab-panel" id="tab-video">
+                    <div class="lp-card">
+                        <div class="lp-card-header">🎬 Lesson Video</div>
+                        <div class="lp-card-body" style="padding:0">
+                            <div class="lp-video-wrap">
+                                <iframe src="@ytEmbed"
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                        allowfullscreen></iframe>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- ── Sidebar ── -->
+        <div>
+            <!-- Lesson Info -->
+            <div class="lp-card">
+                <div class="lp-card-header">📋 Lesson Info</div>
+                <div class="lp-card-body" style="padding: 8px 20px">
+                    <div class="lp-info-row">
+                        <span class="lp-info-label">Module</span>
+                        <span class="lp-info-val">@moduleLabel</span>
+                    </div>
+                    <div class="lp-info-row">
+                        <span class="lp-info-label">Section</span>
+                        <span class="lp-info-val">@sectionLabel</span>
+                    </div>
+                    <div class="lp-info-row">
+                        <span class="lp-info-label">Created</span>
+                        <span class="lp-info-val">@Model.CreatedAt.ToString("dd MMM yyyy")</span>
+                    </div>
+                    <div class="lp-info-row">
+                        <span class="lp-info-label">Status</span>
+                        <span class="lp-info-val">
+                            <span class="lp-badge @statusClass">@statusLabel</span>
+                        </span>
+                    </div>
+                    <div class="lp-info-row">
+                        <span class="lp-info-label">Enrolled</span>
+                        <span class="lp-info-val">@Model.LessonEnrollments.Count</span>
+                    </div>
+                    <div class="lp-info-row">
+                        <span class="lp-info-label">Content Items</span>
+                        <span class="lp-info-val">@Model.LessonContents.Count</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <div class="lp-card">
+                <div class="lp-card-body" style="display:flex;flex-direction:column;gap:8px">
+                    <a asp-action="Index" class="lp-btn lp-btn-ghost" style="justify-content:center">
+                        ← All Lessons
+                    </a>
+                    @if (canManage)
+                    {
+                        <a asp-action="Edit" asp-route-id="@Model.Id"
+                           class="lp-btn lp-btn-ghost" style="justify-content:center">
+                            ✏️ Edit this Lesson
+                        </a>
+                    }
+                </div>
+            </div>
+
+            <!-- Manage card (staff only) -->
+            @if (canManage)
+            {
+                <div class="lp-manage-card">
+                    <h4 class="lp-manage-title">⚙️ Manage Lesson</h4>
+                    <div class="lp-manage-actions">
+                        <a asp-action="Edit" asp-route-id="@Model.Id"
+                           class="lp-btn lp-btn-ghost" style="justify-content:flex-start">
+                            ✏️ Edit Lesson
+                        </a>
+
+                        @if (!Model.IsArchived)
+                        {
+                            <form asp-action="Archive" asp-route-id="@Model.Id" method="post">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="lp-btn lp-btn-gold" style="width:100%;justify-content:flex-start">
+                                    📦 Archive Lesson
+                                </button>
+                            </form>
+                        }
+                        else
+                        {
+                            <form asp-action="Restore" asp-route-id="@Model.Id" method="post">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="lp-btn lp-btn-ghost" style="width:100%;justify-content:flex-start">
+                                    ♻️ Restore Lesson
+                                </button>
+                            </form>
+                        }
+
+                        <button class="lp-btn lp-btn-danger" style="justify-content:flex-start"
+                                onclick="document.getElementById('deleteModal').classList.add('open')">
+                            🗑 Delete Lesson
+                        </button>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- ── Delete Modal ── -->
+<div class="lp-modal-backdrop" id="deleteModal">
+    <div class="lp-modal">
+        <div class="lp-modal-icon">🗑</div>
+        <h3 class="lp-modal-title">Delete this lesson?</h3>
+        <p class="lp-modal-body">
+            You are about to permanently delete <strong>@Model.Title</strong>.
+            This action cannot be undone.
+        </p>
+        <div class="lp-modal-btns">
+            <button class="lp-btn lp-btn-ghost"
+                    onclick="document.getElementById('deleteModal').classList.remove('open')">
+                Cancel
+            </button>
+            <form asp-action="Delete" asp-route-id="@Model.Id" method="post" style="display:inline">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="lp-btn lp-btn-danger" id="deleteConfirmBtn">
+                    Yes, Delete
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function switchTab(panelId, btn) {
+            document.querySelectorAll('.lp-tab-panel').forEach(function(p) { p.classList.remove('active'); });
+            document.querySelectorAll('.lp-tab').forEach(function(b) { b.classList.remove('active'); });
+            document.getElementById(panelId)?.classList.add('active');
+            btn.classList.add('active');
+        }
+
+        document.getElementById('deleteModal').addEventListener('click', function(e) {
+            if (e.target === this) this.classList.remove('open');
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') document.getElementById('deleteModal').classList.remove('open');
+        });
+
+        document.getElementById('deleteConfirmBtn')?.addEventListener('click', function() {
+            this.disabled = true;
+            this.innerHTML = '<span style="display:inline-block;width:12px;height:12px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite;margin-right:6px"></span>Deleting…';
+        });
+    </script>
+    <style>
+        @@keyframes spin {
+            to
+
+        {
+            transform: rotate(360deg);
+        }
+
+        }</style>
+}

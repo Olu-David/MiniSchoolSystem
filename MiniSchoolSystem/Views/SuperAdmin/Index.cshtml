@@ -1,0 +1,85 @@
+﻿@{
+    ViewData["Title"] = "SuperAdmin";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/SuperAdmin.css" asp-append-version="true" />
+}
+
+<div class="sa-wrap">
+    @await Html.PartialAsync("_SuperAdminSidebar")
+
+    <div class="sa-content">
+        <!-- Mobile sidebar toggle -->
+        <button id="saSidebarToggle" class="sa-btn sa-btn-ghost sa-btn-sm" style="display:none;margin-bottom:16px">
+            ☰ Menu
+        </button>
+
+        <div class="sa-page-header">
+            <div>
+                <h1 class="sa-page-title">👋 Welcome back, SuperAdmin</h1>
+                <p class="sa-page-sub">Here's what's happening across SabiSpace today.</p>
+            </div>
+            <a asp-action="Dashboard" class="sa-btn sa-btn-primary">
+                📊 Full Dashboard
+            </a>
+        </div>
+
+        <!-- Quick stat cards -->
+        <div class="sa-stats-grid sa-fade-up">
+            <div class="sa-stat-card c-sabi">
+                <div class="sa-stat-icon">🎓</div>
+                <div class="sa-stat-num" data-count data-target="0">—</div>
+                <div class="sa-stat-label">Total Students</div>
+                <span class="sa-stat-change up">↑ See Dashboard</span>
+            </div>
+            <div class="sa-stat-card c-sky">
+                <div class="sa-stat-icon">👨‍🏫</div>
+                <div class="sa-stat-num" data-count data-target="0">—</div>
+                <div class="sa-stat-label">Total Teachers</div>
+                <span class="sa-stat-change up">↑ See Dashboard</span>
+            </div>
+            <div class="sa-stat-card c-gold">
+                <div class="sa-stat-icon">📚</div>
+                <div class="sa-stat-num" data-count data-target="0">—</div>
+                <div class="sa-stat-label">Active Courses</div>
+                <span class="sa-stat-change up">↑ See Dashboard</span>
+            </div>
+            <div class="sa-stat-card c-sage">
+                <div class="sa-stat-icon">💰</div>
+                <div class="sa-stat-num">—</div>
+                <div class="sa-stat-label">Total Revenue</div>
+                <span class="sa-stat-change up">↑ See Dashboard</span>
+            </div>
+        </div>
+
+        <!-- Quick links -->
+        <div class="sa-card sa-fade-up">
+            <div class="sa-card-header">
+                <h3 class="sa-card-title">⚡ Quick Actions</h3>
+            </div>
+            <div class="sa-card-body" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px">
+                <a asp-action="Dashboard" class="sa-btn sa-btn-ghost" style="justify-content:flex-start;padding:14px 16px">📊 View Dashboard</a>
+                <a asp-action="ManageUsers" class="sa-btn sa-btn-ghost" style="justify-content:flex-start;padding:14px 16px">👥 Manage Users</a>
+                <a asp-action="ManageStaff" class="sa-btn sa-btn-ghost" style="justify-content:flex-start;padding:14px 16px">🧑‍💼 Manage Staff</a>
+                <a asp-action="PromoteToAdmin" class="sa-btn sa-btn-ghost" style="justify-content:flex-start;padding:14px 16px">⬆️ Promote to Admin</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="saSidebarOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:899"></div>
+
+@section Scripts {
+    <script src="~/js/SuperAdmin.js" asp-append-version="true"></script>
+    <script>
+        // Show sidebar toggle on mobile
+        if (window.innerWidth <= 768) {
+            document.getElementById('saSidebarToggle').style.display = 'inline-flex';
+            document.getElementById('saSidebarOverlay').style.display = 'block';
+            document.getElementById('saSidebarOverlay').style.opacity = '0';
+            document.getElementById('saSidebarOverlay').style.pointerEvents = 'none';
+        }
+    </script>
+}

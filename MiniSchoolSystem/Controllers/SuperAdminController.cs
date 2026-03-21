@@ -104,5 +104,15 @@ namespace MiniSchoolSystem.Controllers
 
             return View(stats);
         }
+        [HttpGet]
+        public IActionResult ManageUsers()
+        {
+            return View();
+        }
+        [HttpGet]
+        public IActionResult SideBar()
+        {
+            return View();  
+        }
     }
 }

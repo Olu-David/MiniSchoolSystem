@@ -1,0 +1,81 @@
+﻿@{
+    var ctrl = ViewContext.RouteData.Values["controller"]?.ToString();
+    var action = ViewContext.RouteData.Values["action"]?.ToString();
+
+    bool IsActive(string a) => action?.Equals(a, StringComparison.OrdinalIgnoreCase) == true;
+}
+
+<aside class="sa-sidebar" id="saSidebar">
+    <div class="sa-sidebar-header">
+        <div class="sa-sidebar-role">🔑 SuperAdmin</div>
+        <div class="sa-sidebar-name">@User.Identity?.Name?.Split('@')[0]</div>
+        <div class="sa-sidebar-email">@User.Identity?.Name</div>
+    </div>
+
+    <ul class="sa-nav">
+        <li class="sa-nav-section">Overview</li>
+        <li>
+            <a asp-controller="SuperAdmin" asp-action="Index" class="@(IsActive("Index") ? "active" : "")">
+                <span class="sa-nav-icon">🏠</span> Home
+            </a>
+        </li>
+        <li>
+            <a asp-controller="SuperAdmin" asp-action="Dashboard" class="@(IsActive("Dashboard") ? "active" : "")">
+                <span class="sa-nav-icon">📊</span> Dashboard
+            </a>
+        </li>
+
+        <li class="sa-nav-section">People</li>
+        <li>
+            <a asp-controller="SuperAdmin" asp-action="ManageUsers" class="@(IsActive("ManageUsers") ? "active" : "")">
+                <span class="sa-nav-icon">👥</span> All Users
+            </a>
+        </li>
+        <li>
+            <a asp-controller="SuperAdmin" asp-action="ManageStaff" class="@(IsActive("ManageStaff") ? "active" : "")">
+                <span class="sa-nav-icon">🧑‍💼</span> Staff
+            </a>
+        </li>
+        <li>
+            <a asp-controller="SuperAdmin" asp-action="PromoteToAdmin" class="@(IsActive("PromoteToAdmin") ? "active" : "")">
+                <span class="sa-nav-icon">⬆️</span> Promote to Admin
+            </a>
+        </li>
+
+        <li class="sa-nav-section">Content</li>
+        <li>
+            <a asp-controller="Course" asp-action="Index">
+                <span class="sa-nav-icon">📚</span> Courses
+            </a>
+        </li>
+        <li>
+            <a asp-controller="Lesson" asp-action="Index">
+                <span class="sa-nav-icon">🎓</span> Lessons
+            </a>
+        </li>
+        <li>
+            <a asp-controller="Quiz" asp-action="Index">
+                <span class="sa-nav-icon">🧠</span> Quizzes
+            </a>
+        </li>
+        <li>
+            <a asp-controller="Assignment" asp-action="Index">
+                <span class="sa-nav-icon">📝</span> Assignments
+            </a>
+        </li>
+
+        <li class="sa-nav-section">System</li>
+        <li>
+            <a href="#" onclick="saToast('Settings coming soon','info');return false">
+                <span class="sa-nav-icon">⚙️</span> Settings
+                <span class="sa-nav-badge">Soon</span>
+            </a>
+        </li>
+        <li>
+            <a href="#" onclick="saToast('Audit log coming soon','info');return false">
+                <span class="sa-nav-icon">📋</span> Audit Log
+                <span class="sa-nav-badge">Soon</span>
+            </a>
+        </li>
+    </ul>
+</aside>

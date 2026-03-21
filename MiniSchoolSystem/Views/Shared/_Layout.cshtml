@@ -20,10 +20,18 @@
 
         bool isBlockedUser = User.Identity!.IsAuthenticated && !isAllowedRole;
         bool isLoggedIn = User.Identity!.IsAuthenticated;
+
+        // Determine which dashboard controller to link to
+        string dashController = "Home";
+        if (User.IsInRole("SuperAdmin")) dashController = "SuperAdmin";
+        else if (User.IsInRole("Admin")) dashController = "Admin";
+        else if (User.IsInRole("Teacher")) dashController = "Teacher";
+        // Students → Home (or change to "Student" if you have a student dashboard)
     }
 
     @if (isBlockedUser)
     {
+        <!-- Access Denied -->
         <style>
             .access-denied-wrap {
                 min-height: 100vh;
@@ -112,7 +120,6 @@
             </div>
 
             <ul class="nav-links">
-                <!-- Always visible to everyone -->
                 <li>
                     <a asp-controller="Home" asp-action="Index"
                        class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Home" ? "active" : "")">
@@ -125,8 +132,6 @@
                         Courses
                     </a>
                 </li>
-
-                @* Only show these to logged-in users *@
                 @if (isLoggedIn)
                 {
                     <li>
@@ -174,10 +179,11 @@
                 }
                 else
                 {
-                    @if (User.IsInRole("Teacher") || User.IsInRole("SuperAdmin") || User.IsInRole("Admin"))
-                    {
-                        <a asp-controller="Teacher" asp-action="Index" class="btn btn-ghost" style="font-size:13px;padding:8px 16px">Dashboard</a>
-                    }
+                    <!-- Dashboard button routes to the correct dashboard per role -->
+                    <a asp-controller="@dashController" asp-action="Index"
+                       class="btn btn-ghost" style="font-size:13px;padding:8px 16px">
+                        Dashboard
+                    </a>
                     <button class="nav-icon-btn" style="font-size:15px"
                             onclick="document.getElementById('logoutForm').submit()" title="Sign out">
                         🚪
@@ -195,11 +201,8 @@
 
         <!-- Mobile Drawer -->
         <div class="nav-drawer" id="navDrawer">
-            <!-- Always visible -->
             <a asp-controller="Home" asp-action="Index" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Home" ? "active" : "")">🏠 Home</a>
             <a asp-controller="Course" asp-action="Index" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Course" ? "active" : "")">📚 Courses</a>
-
-            @* Logged-in only *@
             @if (isLoggedIn)
             {
                 <a asp-controller="Lesson" asp-action="Index" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Lesson" ? "active" : "")">🎓 Lessons</a>
@@ -224,12 +227,11 @@
                 }
                 else
                 {
-                    @if (User.IsInRole("Teacher") || User.IsInRole("SuperAdmin") || User.IsInRole("Admin"))
-                    {
-                        <a asp-controller="Teacher" asp-action="Index" class="btn btn-ghost">Dashboard</a>
-                    }
+                    <a asp-controller="@dashController" asp-action="Index" class="btn btn-ghost">Dashboard</a>
                     <button class="btn btn-sabi" onclick="document.getElementById('logoutFormMobile').submit()">Sign Out</button>
-                    <form id="logoutFormMobile" asp-controller="Account" asp-action="Logout" method="post" style="display:none">@Html.AntiForgeryToken()</form>
+                    <form id="logoutFormMobile" asp-controller="Account" asp-action="Logout" method="post" style="display:none">
+                        @Html.AntiForgeryToken()
+                    </form>
                 }
             </div>
         </div>
@@ -263,10 +265,9 @@
                         }
                         else
                         {
-                            <!-- Footer shows teaser links pointing to Register for guests -->
-                            <li><a asp-controller="Account" asp-action="Register">Live Lessons <span class="badge-new">Live</span></a></li>
-                            <li><a asp-controller="Account" asp-action="Register">Quizzes <span class="badge-new">New</span></a></li>
-                            <li><a asp-controller="Account" asp-action="Register">Assignments <span class="badge-new">New</span></a></li>
+                            <li><a asp-controller="Account" asp-action="Registration">Live Lessons <span class="badge-new">Live</span></a></li>
+                            <li><a asp-controller="Account" asp-action="Registration">Quizzes <span class="badge-new">New</span></a></li>
+                            <li><a asp-controller="Account" asp-action="Registration">Assignments <span class="badge-new">New</span></a></li>
                         }
                         <li><a href="#">Certificates</a></li>
                     </ul>

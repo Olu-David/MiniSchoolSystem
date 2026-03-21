@@ -165,7 +165,17 @@ namespace MiniSchoolSystem.Controllers
             ViewBag.Email = email;
             return View("EmailMessage");
         }
-        
+
+        private IActionResult RedirectToDashboard()
+        {
+            if (User.IsInRole("SuperAdmin")) return RedirectToAction("Index", "SuperAdmin");
+            if (User.IsInRole("Admin")) return RedirectToAction("Index", "Admin");
+            if (User.IsInRole("Teacher")) return RedirectToAction("Index", "Teacher");
+            if (User.IsInRole("Student")) return RedirectToAction("Index", "Student");
+
+            // No recognised role → send to Home
+            return RedirectToAction("Index", "Home");
+        }
         [HttpGet]
         public IActionResult Login( )
         {
@@ -192,7 +202,7 @@ namespace MiniSchoolSystem.Controllers
 
             if (result.Succeeded)
             {
-                return RedirectToAction("index", "Home");
+                return RedirectToDashboard();
             }
 
             ModelState.AddModelError("", "Invalid login");

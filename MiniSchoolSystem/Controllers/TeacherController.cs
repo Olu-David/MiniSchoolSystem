@@ -19,7 +19,7 @@ namespace MiniSchoolSystem.Controllers
         private readonly ICourseService _courseService;
         private readonly IFileService _fileService;
         private readonly IUserService _UserService;
-        private double totalRevenue;
+
 
         public TeacherController(UserManager<UserDb> userManager, RoleManager<IdentityRole> roleManager, AppDbContext dbContext, ICourseService courseService, IFileService fileService, IUserService userService, double totalRevenue)
         {
@@ -29,14 +29,14 @@ namespace MiniSchoolSystem.Controllers
             _courseService = courseService;
             _fileService = fileService;
             _UserService = userService;
-            this.totalRevenue = totalRevenue;
+
         }
 
         public async Task<IActionResult> Index()
         {
             // 1. Get the current Teacher's Integer ID (we did this in the last step)
             var loginId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            
+
             var teacher = await _dbContext.DbTeacher.FirstOrDefaultAsync(t => t.TeacherId == loginId);
 
             if (teacher != null)
@@ -73,27 +73,5 @@ namespace MiniSchoolSystem.Controllers
 
 
         }
-        // 2. EDIT MY MODULE
-        [HttpPost]
-        public async Task<IActionResult> EditModule(EditCourseModuleDTO dto)
-        {
-            var user = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var Teacher = await _dbContext.DbTeacher.FirstOrDefaultAsync(m => m.TeacherId == user);
-            if (Teacher == null) return RedirectToAction(nameof(Index));
-
-            var module = await _dbContext.DbModules.FindAsync(dto.CourseId);
-            if (module == null) return Unauthorized("CourseModule Doesnt Belong to you");
-
-            // SECURITY CHECK: Make sure Teacher A isn't editing Teacher B's work
-            if (module.TeacherId != Teacher.Id) return Unauthorized("This is not your module!");
-
-            module.Title = dto.Title ?? "null";
-            module.CreatedAt = DateTime.UtcNow;
-            await _dbContext.SaveChangesAsync();
-            return RedirectToAction(nameof(MyCourses));
-        }
-       // =====================================================//
-       //                
     }
-
 }

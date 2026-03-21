@@ -5,7 +5,7 @@ namespace MiniSchoolSystem.Models
     public class LessonContent
     {
         public int TeacherId {  get; set; }
-
+        public string? Title { get; set; }
         public int Id {  get; set; }
         public string? FileUrl { get; set; }
         public string? VideoUrl {  get; set; }
@@ -19,7 +19,7 @@ namespace MiniSchoolSystem.Models
         public Lesson? Lesson { get; set; }
         [ForeignKey(nameof(StudentId))]
       public StudentModel? Student { get; set; }
-        public bool IsDeleted { get; internal set; }
-        public object DeletedAt { get; internal set; }
+        public bool IsDeleted { get;  set; }
+        public DateTime DeletedAt { get;  set; }
     }
 }

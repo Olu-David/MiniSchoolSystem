@@ -1,0 +1,118 @@
+﻿@{
+    ViewData["Title"] = "Promote to Admin";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/SuperAdmin.css" asp-append-version="true" />
+}
+
+<div class="sa-wrap">
+    @await Html.PartialAsync("_SuperAdminSidebar")
+
+    <div class="sa-content">
+
+        <div class="sa-page-header">
+            <div>
+                <h1 class="sa-page-title">⬆️ Promote to Admin</h1>
+                <p class="sa-page-sub">Grant Admin role to a registered user by their User ID.</p>
+            </div>
+            <a asp-action="ManageStaff" class="sa-btn sa-btn-ghost">← Back to Staff</a>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start" class="sa-fade-up">
+
+            <!-- Promote form -->
+            <div class="sa-card">
+                <div class="sa-card-header">
+                    <h3 class="sa-card-title">Promote a User</h3>
+                </div>
+                <div class="sa-card-body">
+                    @if (TempData["Success"] != null)
+                    {
+                        <div style="padding:12px 16px;border-radius:10px;background:rgba(61,186,140,.1);border:1px solid rgba(61,186,140,.2);color:var(--sage);font-size:13.5px;margin-bottom:20px">
+                            ✅ @TempData["Success"]
+                        </div>
+                    }
+                    @if (TempData["Error"] != null)
+                    {
+                        <div style="padding:12px 16px;border-radius:10px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);color:#ef4444;font-size:13.5px;margin-bottom:20px">
+                            ❌ @TempData["Error"]
+                        </div>
+                    }
+
+                    <form asp-action="PromoteToAdmin" method="post">
+                        @Html.AntiForgeryToken()
+
+                        <div class="sa-form-group">
+                            <label class="sa-label">User ID <span>*</span></label>
+                            <input type="text" name="userId" class="sa-input"
+                                   placeholder="Paste the user's ID here…" required />
+                            <div class="sa-form-hint">
+                                You can find the User ID from the <a asp-action="ManageUsers" style="color:var(--sabi)">All Users</a> table.
+                            </div>
+                        </div>
+
+                        <div class="sa-form-group">
+                            <label class="sa-label">Role to assign</label>
+                            <select name="role" class="sa-input sa-form-select">
+                                <option value="Admin">Admin</option>
+                                <option value="Teacher">Teacher</option>
+                                <option value="SuperAdmin">SuperAdmin</option>
+                            </select>
+                            <div class="sa-form-hint">SuperAdmin has full system access — assign with caution.</div>
+                        </div>
+
+                        <button type="submit" class="sa-btn sa-btn-primary" style="width:100%;justify-content:center">
+                            ⬆️ Promote User
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Info card -->
+            <div style="display:flex;flex-direction:column;gap:16px">
+                <div class="sa-card">
+                    <div class="sa-card-header"><h3 class="sa-card-title">🔑 Role Permissions</h3></div>
+                    <div class="sa-card-body" style="display:flex;flex-direction:column;gap:14px">
+                        <div>
+                            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                                <span class="sa-badge role-superadmin">SuperAdmin</span>
+                            </div>
+                            <div style="font-size:13px;color:var(--text-secondary)">Full system access. Can manage all roles, users, content and system settings.</div>
+                        </div>
+                        <hr style="border:none;border-top:1px solid var(--border)">
+                        <div>
+                            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                                <span class="sa-badge role-admin">Admin</span>
+                            </div>
+                            <div style="font-size:13px;color:var(--text-secondary)">Can manage courses, lessons, quizzes, assignments and student accounts.</div>
+                        </div>
+                        <hr style="border:none;border-top:1px solid var(--border)">
+                        <div>
+                            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                                <span class="sa-badge role-teacher">Teacher</span>
+                            </div>
+                            <div style="font-size:13px;color:var(--text-secondary)">Can create and manage their own courses, lessons and review student work.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="sa-card" style="border-color:rgba(245,200,66,.3)">
+                    <div class="sa-card-body">
+                        <div style="font-size:13px;color:var(--gold);font-weight:600;margin-bottom:6px">⚠️ Important</div>
+                        <div style="font-size:13px;color:var(--text-secondary);line-height:1.6">
+                            Promoting a user to <strong>SuperAdmin</strong> gives them the same level of access as you.
+                            Only do this for fully trusted administrators.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/SuperAdmin.js" asp-append-version="true"></script>
+}
