@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using MiniSchoolSystem.Models;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace MiniSchoolSystem.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260320235027_InitialPostgresCreate")]
+    partial class InitialPostgresCreate
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -668,7 +671,7 @@ namespace MiniSchoolSystem.Migrations
                             LockoutEnabled = false,
                             NormalizedEmail = "OLUSANYADAVID@YAHOO.COM",
                             NormalizedUserName = "OLUSANYADAVID@YAHOO.COM",
-                            PasswordHash = "AQAAAAIAAYagAAAAEIX3em27td+b+Kpf4Xh6EdeK8U/cVim9Vv6PaK5lIWFeQzhsAtH12Gwp+aqIVu11TA==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEEiBlnC2o10DPLLcwfhSeU1PT8/l329z89a3053Cta/Npao2gegcazS8bHBW9N8Lvw==",
                             PhoneNumber = "0807212372",
                             PhoneNumberConfirmed = false,
                             SecurityStamp = "STAMP100",
@@ -686,7 +689,7 @@ namespace MiniSchoolSystem.Migrations
                             LockoutEnabled = false,
                             NormalizedEmail = "ADMIN@SCHOOL.COM",
                             NormalizedUserName = "ADMIN@SCHOOL.COM",
-                            PasswordHash = "AQAAAAIAAYagAAAAELvErj2GTOLxKN0n4kUzXpOhaF8s+0wD0n+60vP6yFh6tnzOKySpwlClHEMFOFsM2Q==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEMZsx7GSPeVrdB029TVlDC+Y16ld17nfREgsUbSxpEc/PfClSwF3d1cYlJuIZrXpxQ==",
                             PhoneNumber = "0812329221",
                             PhoneNumberConfirmed = false,
                             SecurityStamp = "STAMP101",
@@ -704,7 +707,7 @@ namespace MiniSchoolSystem.Migrations
                             LockoutEnabled = false,
                             NormalizedEmail = "TEACHER@SCHOOL.COM",
                             NormalizedUserName = "TEACHER@SCHOOL.COM",
-                            PasswordHash = "AQAAAAIAAYagAAAAEFLL6KvXz2hXgk5BO1mcHP/LaZJnZOCBEe/2KmAlRyEpNpo6ElZrnsB5R1NZqp2nFA==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEOvIkJ5fcM3TG/2BY96Sr470Upk9P12X+5f+NFWsys6zI1qfjHRzTQ18VvXHaqmM4w==",
                             PhoneNumber = "09120292232",
                             PhoneNumberConfirmed = false,
                             SecurityStamp = "STAMP102",
@@ -722,7 +725,7 @@ namespace MiniSchoolSystem.Migrations
                             LockoutEnabled = false,
                             NormalizedEmail = "EMMANUELESTHEROLUWASHEYI17.COM",
                             NormalizedUserName = "ESTHER OLUWASHEYI",
-                            PasswordHash = "AQAAAAIAAYagAAAAEG8kcwNytYMn68j5VzbHl3k6yzlPXfbp5P3CTKD4+JvJ54qqfsfhG/UWSuEoIAyM1w==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEBJbD1RSIFOOPPr6mhFvVS2/+LxoEDDH13kwYSx64y4FHetpG8kOc1avuNttsz/d3w==",
                             PhoneNumber = "09120292232",
                             PhoneNumberConfirmed = false,
                             SecurityStamp = "STAMP0107",
@@ -740,7 +743,7 @@ namespace MiniSchoolSystem.Migrations
                             LockoutEnabled = false,
                             NormalizedEmail = "GODWINLEVELL139@GMAIL.COM",
                             NormalizedUserName = "GODWIN HYACINTH",
-                            PasswordHash = "AQAAAAIAAYagAAAAENSX9/IGqCFMZJ7W129jSkdaLTeHV6bfPw8YlSCR8OP78t3u6teSh+JEOYdnGZUmjw==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEJ6UeBjfDsuNVpMPGFIXW+3slQqCHEJWloHrBUDeDerdiSokBp7qwLUHPArKlfTiLQ==",
                             PhoneNumber = "09022341091",
                             PhoneNumberConfirmed = false,
                             SecurityStamp = "STAMP0109",
@@ -758,7 +761,7 @@ namespace MiniSchoolSystem.Migrations
                             LockoutEnabled = false,
                             NormalizedEmail = "STUDENT@SCHOOL.COM",
                             NormalizedUserName = "STUDENT@SCHOOL.COM",
-                            PasswordHash = "AQAAAAIAAYagAAAAED9S3PeoxmXvR3aFOWzFA9PJHOxaH4Q2O5ay/xdj5calf9iKBuW2bAfu+O64/Pb08Q==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEEgprmmn8OOOmUCevefyW1M/AtxAdkltSxSvMe4ytk4nkQVaHT3zk6ebPt84zlEPiA==",
                             PhoneNumber = "01290322332",
                             PhoneNumberConfirmed = false,
                             SecurityStamp = "STAMP0108",
@@ -776,7 +779,7 @@ namespace MiniSchoolSystem.Migrations
                             LockoutEnabled = false,
                             NormalizedEmail = "PARENT@SCHOOL.COM",
                             NormalizedUserName = "PARENT@SCHOOL.COM",
-                            PasswordHash = "AQAAAAIAAYagAAAAEGN2+SXGgb/jBdXaIryMpExW7tLw+FUFSpdCS+gPd/6PhAwtuRHwmBvbGsL1QDXcew==",
+                            PasswordHash = "AQAAAAIAAYagAAAAENaoyk+DlgQHuFPuL/BRmoOmvyagbkQcPdrOL/HcOd6dPhJJ5SdlBjqWcv8pFB/Nlg==",
                             PhoneNumber = "0810000000",
                             PhoneNumberConfirmed = false,
                             SecurityStamp = "STAMP104",

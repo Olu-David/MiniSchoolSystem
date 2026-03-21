@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using MiniSchoolSystem.Implementation.Interfaces;
@@ -92,7 +93,12 @@ else
             // ── 9. Course Service ───────────────────────────────────  
             
              builder.Services.AddScoped<ICourseService, CourseService>();
- 
+            
+
+            // This tells ASP.NET: "Save my security keys in the database table we created"
+            builder.Services.AddDataProtection()
+                .PersistKeysToDbContext<AppDbContext>();
+
             // ── BUILD APP ─────────────────────────────────────────
             var app = builder.Build();
 
