@@ -69,6 +69,7 @@ namespace MiniSchoolSystem.Controllers
                     return View(model);
                 }
             }
+            Temp["Error"]="Registration Successful";
 
             return RedirectToAction(nameof(Login));
 
