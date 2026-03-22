@@ -223,7 +223,7 @@ namespace MiniSchoolSystem.Controllers
 
                 if (await _userManager.IsInRoleAsync(user, "Student"))
                     return RedirectToAction("Index", "Student");
-
+             TempData["Info"="Login Successful ";
                 
             }
 
