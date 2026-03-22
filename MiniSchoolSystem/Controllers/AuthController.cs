@@ -11,15 +11,15 @@ namespace MiniSchoolSystem.Controllers
         }
         public IActionResult GoogleLogin()
         {
-            return Content("Google Login Coming, Stay Jiggy");
+            return Content("Google Login Coming Soon, Stay Jiggy");
         }
         public IActionResult AppleLogin()
         { 
-            return Content("Apple Login Coming, Stay Jiggy");
+            return Content("Apple Login Coming Soon, Stay Jiggy");
         }
         public IActionResult YahooLogin()
         {
-            return Content("Yahoo Login Coming, Stay Jiggy");
+            return Content("Yahoo Login Coming Soon, Stay Jiggy");
         }
     }
 }

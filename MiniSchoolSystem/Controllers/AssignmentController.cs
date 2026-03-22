@@ -6,7 +6,8 @@ namespace MiniSchoolSystem.Controllers
     {
         public IActionResult Index()
         {
-            return View();
+            return Content("Assignment  Coming Soon, Stay Jiggy");
         }
+
     }
 }
