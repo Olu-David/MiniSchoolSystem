@@ -10,6 +10,7 @@ using System.Security.Claims;
 
 namespace MiniSchoolSystem.Controllers
 {
+    [Authorize(Roles ="SuperAdmin, Admin")]
     public class CourseController : Controller
     {
         private readonly UserManager<UserDb> _userManager;
@@ -58,36 +59,55 @@ namespace MiniSchoolSystem.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateCourse(CreateCourseViewDTO model)
         {
-            //1---GetUserIdentity
-            var UserId = _userManager.GetUserId(User);
-            if(UserId==null) return BadRequest();
-            var Teacher = await _dbContext.DbTeacher.Include(m => m.TeacherSections).FirstOrDefaultAsync(m => m.TeacherId == UserId);
-            if (Teacher == null)
+            // 1. Get User
+            var userId = _userManager.GetUserId(User);
+            if (string.IsNullOrEmpty(userId))
             {
-                return BadRequest();
+                TempData["Error"] = "User session expired. Please login again.";
+                return RedirectToAction("Login", "Account");
             }
-            //2---Validation Check
+
+            // 2. Check if Teacher exists
+            var teacher = await _dbContext.DbTeacher
+                .Include(m => m.TeacherSections)
+                .FirstOrDefaultAsync(m => m.TeacherId == userId);
+
+            if (teacher == null)
+            {
+                // 💡 Instead of 400, show a helpful message
+                TempData["Error"] = "Only registered Teachers can create courses. Please contact Admin.";
+                return RedirectToAction("Index", "Home");
+            }
+
+            // 3. Validation Check
             if (!ModelState.IsValid)
             {
+                // Log the errors to your console so you can see them!
+                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage);
                 ViewBag.CourseSection = Enum.GetValues(typeof(Sections)).Cast<Sections>().ToList();
                 return View(model);
             }
-          
-            var (success, message, courseId) = await _courseService.CreateCourseAsync(model, UserId) ;
+
+            // 4. Call Service
+            var (success, message, courseId) = await _courseService.CreateCourseAsync(model, userId);
 
             if (!success)
             {
-                ModelState.AddModelError("", "There was an error saving the course. Please try again.");
+                ModelState.AddModelError("", message ?? "Error saving course.");
                 ViewBag.CourseSection = Enum.GetValues(typeof(Sections)).Cast<Sections>().ToList();
                 return View(model);
             }
-            var CourseLink = Url.Action("Details", "Course", new { id = model.Id }, Request.Scheme);
-             await _emailService.SendEmailAsync($"A new course titled '{model.Title}', has been created." ,"Thank You for Your Contribution", "Check Out Your created Course <a href='{CourseLink}'>View Course</a>");
 
-            return RedirectToAction("CreateCourseModules" ,"CourseModules", new { id = courseId });
+            // 5. Send Email & Redirect
+            var courseLink = Url.Action("Details", "Course", new { id = courseId }, Request.Scheme);
+            await _emailService.SendEmailAsync(
+                "Course Created",
+                $"A new course '{model.Title}' was created.",
+                $"Check it out: <a href='{courseLink}'>View Course</a>"
+            );
+
+            return RedirectToAction("CreateCourseModules", "CourseModules", new { id = courseId });
         }
-       
-       
         [Authorize(Roles = "SuperAdmin, Admin")]
         [HttpGet]
        

@@ -126,12 +126,7 @@
                         Home
                     </a>
                 </li>
-                <li>
-                    <a asp-controller="Course" asp-action="Index"
-                       class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Course" ? "active" : "")">
-                        Courses
-                    </a>
-                </li>
+                
                 @if (isLoggedIn)
                 {
                     <li>
@@ -150,6 +145,12 @@
                         <a asp-controller="Assignment" asp-action="Index"
                            class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Assignment" ? "active" : "")">
                             Assignments <span class="nav-badge assign">New</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a asp-controller="Course" asp-action="Index"
+                           class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Course" ? "active" : "")">
+                            Courses
                         </a>
                     </li>
                 }

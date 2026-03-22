@@ -1,15 +1,32 @@
 ﻿
     /* Role toggle */
-    function selectRole(role) {
-      document.getElementById('roleInput').value = role;
-      document.getElementById('btnStudent').classList.toggle('on', role === 'Student');
-      document.getElementById('btnParent').classList.toggle('on',  role === 'Parent');
-      const sg = document.getElementById('sectionGroup');
-      sg.classList.toggle('show', role === 'Student');
-      document.getElementById('sectionSelect').required = (role === 'Student');
-    }
-    document.getElementById('sectionSelect').required = true;
+function selectRole(role) {
+    console.log("Role selected: " + role); // 👈 This helps you debug!
 
+    // 1. Set the hidden input value
+    const roleInput = document.getElementById('roleInput');
+    if (roleInput) roleInput.value = role;
+
+    // 2. Handle Button Highlights
+    // This turns 'on' for the clicked one and 'off' for the other
+    document.getElementById('btnStudent').classList.toggle('on', role === 'Student');
+    document.getElementById('btnParent').classList.toggle('on', role === 'Parent');
+
+    // 3. Handle the Section Group Visibility
+    const sg = document.getElementById('sectionGroup');
+    const ss = document.getElementById('sectionSelect');
+
+    if (role === 'Student') {
+        sg.style.display = 'block'; // Or sg.classList.add('show')
+        ss.required = true;
+    } else {
+        sg.style.display = 'none'; // Or sg.classList.remove('show')
+        ss.required = false;
+        ss.value = ""; // Clear the value so it doesn't send JSS1 for a Parent
+    }
+}
+
+// 
     /* Password eye */
     function toggleEye(id, btn) {
       const inp = document.getElementById(id);

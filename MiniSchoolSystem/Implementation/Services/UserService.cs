@@ -77,7 +77,7 @@ namespace MiniSchoolSystem.Implementation.Services
             var user = await _userManager.FindByEmailAsync(model.Email??"null");
             if (user == null || !await _userManager.IsEmailConfirmedAsync(user)) return (SignInResult.Failed, false);
 
-            var result = await _signInManager.PasswordSignInAsync(user, model.Password??"null", false, lockoutOnFailure: false);
+            var result = await _signInManager.PasswordSignInAsync(user, model.Password??"", false, lockoutOnFailure: false);
             if (result.RequiresTwoFactor)
             {
                 await Send2FAAsync(user);
@@ -86,7 +86,7 @@ namespace MiniSchoolSystem.Implementation.Services
             if (result.Succeeded)
             {
                 return (SignInResult.Success, false);
-
+                
             }
             return (SignInResult.Failed, false);
 

@@ -6,6 +6,7 @@ using MiniSchoolSystem.DTO;
 using MiniSchoolSystem.Enums;
 using MiniSchoolSystem.Implementation.Interfaces;
 using MiniSchoolSystem.Models;
+using System.Reflection;
 using System.Security.Claims;
 
 namespace MiniSchoolSystem.Controllers
@@ -110,20 +111,28 @@ namespace MiniSchoolSystem.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> EditCourseModules(EditCourseModuleDTO model, int id)
+        public async Task<IActionResult> EditCourseModules(EditCourseModuleDTO model, string id,int moduleID)
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var Teacher = await _dbContext.DbTeacher.Include(s => s.TeacherSections).FirstOrDefaultAsync(t => t.TeacherId == userId);
+            // 1. Get the ID of the person logged in
+            //=============================================
+            var user =  _userManager.GetUserId(User);
+            if (User == null) return RedirectToAction("Login","Account");
+            // 2. Get the actual User Object (Needed for Role checking)
+            //=================================================================
+            var currentUser = await _userManager.FindByIdAsync(id);
+            if (currentUser == null) return NotFound();
+            var Teacher = await _dbContext.DbTeacher.Include(s => s.TeacherSections).FirstOrDefaultAsync(t => t.TeacherId == user);
             if (Teacher == null) return RedirectToAction("Login", "Account");
-
-            var ExistingCourseModules = await _dbContext.DbModules.AnyAsync(m => m.Id == id && m.TeacherId == Teacher.Id);
-            if (!ExistingCourseModules)
+            //#3=====================Veriffication================================
+            bool isStaff = await _userManager.IsInRoleAsync(currentUser,"SuperAdmin") ||
+               await _userManager.IsInRoleAsync(currentUser, "Admin");
+            if (Teacher==null|| !isStaff)
             {
-                TempData["Error"] = "CourseModuoes Does Exists or Teacher Does not belong to the Selected Section";
-                return RedirectToAction(nameof(Index));
+
+                return RedirectToAction("Login", "Account"); ;
             }
 
-            var Modules = await _dbContext.DbModules.FirstOrDefaultAsync(m => m.Id == id);
+            var Modules = await _dbContext.DbModules.FirstOrDefaultAsync(m => m.Id == moduleID);
             if (Modules == null)
             {
                 TempData["Error"] = "Modules not found";
@@ -141,11 +150,26 @@ namespace MiniSchoolSystem.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> EditCourseModules(EditCourseModuleDTO model)
+        public async Task<IActionResult> EditCourseModules(EditCourseModuleDTO model, string id)
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var Teacher = await _dbContext.DbTeacher.Include(s => s.TeacherSections).FirstOrDefaultAsync(t => t.TeacherId == userId);
+            // 1. Get the ID of the person logged in
+            //=============================================
+            var user = _userManager.GetUserId(User);
+            if (User == null) return NotFound();
+            // 2. Get the actual User Object (Needed for Role checking)
+            //=================================================================
+            var currentUser = await _userManager.FindByIdAsync(id);
+            if (currentUser == null) return NotFound();
+            var Teacher = await _dbContext.DbTeacher.Include(s => s.TeacherSections).FirstOrDefaultAsync(t => t.TeacherId == user);
             if (Teacher == null) return RedirectToAction("Login", "Account");
+
+            bool isStaff = await _userManager.IsInRoleAsync(currentUser, "SuperAdmin") ||
+               await _userManager.IsInRoleAsync(currentUser, "Admin");
+            if (Teacher == null || !isStaff)
+            {
+
+                return RedirectToAction("Login", "Account"); ;
+            }
 
             var ExistingCourseModules = await _dbContext.DbModules.AnyAsync(m => m.Id == model.CourseId && m.TeacherId == Teacher.Id);
             if (!ExistingCourseModules)
@@ -174,13 +198,28 @@ namespace MiniSchoolSystem.Controllers
         { return View(); }
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteCourseModule(int Id)
+        public async Task<IActionResult> DeleteCourseModule(int Id, string userID)
         {
-            var UserID = _userManager.GetUserId(User);
-            var Teacher = _dbContext.DbTeacher.FirstOrDefault(m => m.TeacherId == UserID);
+            // 1. Get the ID of the person logged in
+            //=============================================
+            var user = _userManager.GetUserId(User);
+            if (User == null) return NotFound();
+            // 2. Get the actual User Object (Needed for Role checking)
+            //=================================================================
+            var currentUser = await _userManager.FindByIdAsync(userID);
+            if (currentUser == null) return NotFound();
+            var Teacher = await _dbContext.DbTeacher.Include(s => s.TeacherSections).FirstOrDefaultAsync(t => t.TeacherId == user);
             if (Teacher == null) return RedirectToAction("Login", "Account");
 
-            var ModuleExists = await _dbContext.DbModules.AnyAsync(m => m.Id == Id);
+            bool isStaff = await _userManager.IsInRoleAsync(currentUser, "SuperAdmin") ||
+               await _userManager.IsInRoleAsync(currentUser, "Admin");
+            if (Teacher == null || !isStaff)
+            {
+
+                return RedirectToAction("Login", "Account"); ;
+            }
+
+        var ModuleExists = await _dbContext.DbModules.AnyAsync(m => m.Id == Id);
             if (!ModuleExists)
             {
                 TempData["Error"] = "Modules not Found";
@@ -211,11 +250,27 @@ namespace MiniSchoolSystem.Controllers
             return RedirectToAction(nameof(Index));
         }
         [HttpGet]
-        public async Task<IActionResult> ManageDeletedModules(int Id)
+        public async Task<IActionResult> ManageDeletedModules(int Id, string userID)
         {
-            var UserID = _userManager.GetUserId(User);
-            var Teacher = _dbContext.DbTeacher.FirstOrDefault(m => m.TeacherId == UserID);
+            // 1. Get the ID of the person logged in
+            //=============================================
+            var user = _userManager.GetUserId(User);
+            if (User == null) return NotFound();
+            // 2. Get the actual User Object (Needed for Role checking)
+            //=================================================================
+            var currentUser = await _userManager.FindByIdAsync(userID);
+            if (currentUser == null) return NotFound();
+            var Teacher = await _dbContext.DbTeacher.Include(s => s.TeacherSections).FirstOrDefaultAsync(t => t.TeacherId == user);
             if (Teacher == null) return RedirectToAction("Login", "Account");
+
+            bool isStaff = await _userManager.IsInRoleAsync(currentUser, "SuperAdmin") ||
+               await _userManager.IsInRoleAsync(currentUser, "Admin");
+            if (Teacher == null || !isStaff)
+            {
+
+                return RedirectToAction("Login", "Account"); ;
+            }
+
 
 
             var ExistingModule = await _dbContext.DbModules.Include(m => m.Lessons).ThenInclude(i => i.LessonContents).Where(m => m.Id == Id && m.TeacherId == Teacher.Id && m.IsDeleted).OrderByDescending(m => m.DeletedAt).ToListAsync();

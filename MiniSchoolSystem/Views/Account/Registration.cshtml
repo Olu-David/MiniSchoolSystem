@@ -49,7 +49,7 @@
                 <h1 class="panel-title">Create your account 🎉</h1>
                 <p class="panel-sub">
                     Already registered?
-                    <a asp-controller="Auth" asp-action="Login">Sign in →</a>
+                    <a asp-controller="Account" asp-action="Login">Sign in →</a>
                 </p>
 
                 <!-- Social auth -->
@@ -96,7 +96,7 @@
                 }
 
                 <!-- Register form -->
-                <form asp-controller="Auth" asp-action="Register" method="post" id="regForm">
+                <form asp-controller="Account" asp-action="Registeration" method="post" id="regForm">
                     @Html.AntiForgeryToken()
 
                     <div class="row2">
@@ -204,6 +204,33 @@
                             <div class="sw-label" id="sl"></div>
                         </div>
                         <span asp-validation-for="Password" class="field-validation-error"></span>
+                    </div>
+                    <!-- Password -->
+                    <div class="fg">
+                        <label asp-for="ConfirmPassword">Password</label>
+                        <div class="pw-wrap">
+                            <input asp-for="Password" class="form-control" type="password"
+                                   id="regPw" placeholder="Min. 8 characters"
+                                   oninput="measureStrength(this.value)"
+                                   autocomplete="new-password" />
+                            <button type="button" class="pw-eye" onclick="toggleEye('regPw',this)" aria-label="Show password">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                    <circle cx="12" cy="12" r="3" />
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="sw" id="sw">
+                            <div class="sw-bars">
+                                <div class="sw-bar" id="sb1"></div>
+                                <div class="sw-bar" id="sb2"></div>
+                                <div class="sw-bar" id="sb3"></div>
+                                <div class="sw-bar" id="sb4"></div>
+                            </div>
+                            <div class="sw-label" id="sl"></div>
+                        </div>
+                        <span asp-validation-for="ConfirmPassword" class="field-validation-error"></span>
                     </div>
 
                     <!-- Terms -->

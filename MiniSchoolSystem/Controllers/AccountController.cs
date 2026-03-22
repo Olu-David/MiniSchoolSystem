@@ -201,7 +201,7 @@ namespace MiniSchoolSystem.Controllers
             }
             var user = new UserDb { Email = model.Email };
             var (result, requires2FA) = await _userService.LoginUserAsync(model);
-
+         
 
             if (requires2FA)
             {
@@ -211,6 +211,7 @@ namespace MiniSchoolSystem.Controllers
 
             if (result.Succeeded)
             {
+               
                 if (await _userManager.IsInRoleAsync(user, "SuperAdmin"))
                     return RedirectToAction("Index", "SuperAdmin");
 
@@ -223,12 +224,12 @@ namespace MiniSchoolSystem.Controllers
                 if (await _userManager.IsInRoleAsync(user, "Student"))
                     return RedirectToAction("Index", "Student");
 
-                return RedirectToAction("Index", "Home");
+                
             }
 
             ModelState.AddModelError("", "Invalid login");
-
-            return View(model);
+            return RedirectToAction("Index", "Home");
+  
         }
         [HttpGet]
         public IActionResult DeactivateAccount()

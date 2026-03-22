@@ -11,7 +11,7 @@ using System;
 
 namespace MiniSchoolSystem.Implementation.Services
 {
-   
+
     public class CourseService : ICourseService
     {
         private readonly UserManager<UserDb> _userManager;
@@ -28,18 +28,24 @@ namespace MiniSchoolSystem.Implementation.Services
             _logger = logger;
             _fileService = fileService;
         }
-       
+
 
         public async Task<(bool Success, string Message, int? CourseId)> CreateCourseAsync(CreateCourseViewDTO model, string userId)
         {
             var User = await _userManager.FindByIdAsync(userId);
-            //Get Teacher Id, So that Not just any person can Create course
-            var Teacher = await _dbContext.DbTeacher.Include(t => t.TeacherSections).FirstOrDefaultAsync(m => m.TeacherId == userId);
-            if (Teacher == null) return (false, "Teacher Not Found", null);
+            if (User == null) return (false, "User not Found", null);
+
+            bool isStaff = await _userManager.IsInRoleAsync(User, "SuperAdmin") ||
+               await _userManager.IsInRoleAsync(User, "Admin");
+            if (!isStaff)
+            {
+
+                return (false, "Access Denied: You must be an Admin to create courses.", 0);
+            }
 
             // 2. Check for duplicate titles for this specific teacher
             bool hasCourse = await _dbContext.DbCourse.AnyAsync(m =>
-                m.Title == model.Title && m.TeacherID == Teacher.Id);
+                m.Title == model.Title);
 
             if (hasCourse)
                 return (false, "You already have a course with this title.", null);
@@ -48,15 +54,15 @@ namespace MiniSchoolSystem.Implementation.Services
                 Title = model.Title,
                 Slug = $"{Guid.NewGuid()}-{model.Title ?? "Null".Replace(" ", "-").ToLower()}",
                 CreatedAt = DateTime.UtcNow,
-                
-               
+
+
             };
             try
             {
                 _dbContext.DbCourse.Add(NewCourse);
                 await _dbContext.SaveChangesAsync();
-               
-                
+
+
                 return (true, "Success", NewCourse.Id);
             }
             catch
@@ -71,20 +77,26 @@ namespace MiniSchoolSystem.Implementation.Services
         public async Task<(bool Success, string Message)> DeleteCourseAsync(string userId, int courseId)
         {
             var User = await _userManager.FindByIdAsync(userId);
-            var Teacher = await _dbContext.DbTeacher.Include(t => t.TeacherSections).FirstOrDefaultAsync(f => f.TeacherId == userId);
-            if (Teacher == null) return (false, "Teacher Not Found");
+            if (User == null) return (false, "User not Found");
 
+
+            bool isStaff = await _userManager.IsInRoleAsync(User, "SuperAdmin") ||
+              await _userManager.IsInRoleAsync(User, "Admin");
+            if (!isStaff)
+            {
+
+                return (false, "Access Denied: You must be an Admin to create courses.");
+            }
 
             // 2. Check if Course is available for deletion
-            bool hasCourse = await _dbContext.DbCourse.AnyAsync(m => m.TeacherID == Teacher.Id);
+            bool hasCourse = await _dbContext.DbCourse.AnyAsync();
 
             if (!hasCourse)
             {
                 return (false, "Course Doesnt Exist");
             }
 
-            var ExistingCourse = await _dbContext.DbCourse.Include(m => m.CourseModules).ThenInclude(w => w.Lessons).FirstOrDefaultAsync(m =>
-                 m.TeacherID == Teacher.Id);
+            var ExistingCourse = await _dbContext.DbCourse.Include(m => m.CourseModules).ThenInclude(w => w.Lessons).FirstOrDefaultAsync(m => m.Id == courseId);
             if (ExistingCourse == null)
             { return (false, "Empty"); }
 
@@ -99,7 +111,7 @@ namespace MiniSchoolSystem.Implementation.Services
                 }
 
             await _dbContext.SaveChangesAsync();
-            return (true, "Course Deleted, Course available Untill 30days");
+            return (true, "Course Deleted, Course available Until 30days");
 
         }
 
@@ -110,7 +122,14 @@ namespace MiniSchoolSystem.Implementation.Services
             if (User == null) return (false, "User not Found");
 
             var Teacher = await _dbContext.DbTeacher.Include(w => w.TeacherSections).AsNoTracking().FirstOrDefaultAsync(m => m.TeacherId == UserId);
-            if (Teacher == null) return (false, "Teacher doesnt Exist");
+
+            bool isStaff = await _userManager.IsInRoleAsync(User, "SuperAdmin") ||
+              await _userManager.IsInRoleAsync(User, "Admin");
+            if (Teacher == null || !isStaff)
+            {
+
+                return (false, "Access Denied: You must be a Teacher or Admin to edit courses.");
+            }
 
             var ExistingCourse = await _dbContext.DbCourse.Include(m => m.CourseModules).AsNoTracking().FirstOrDefaultAsync(m => m.Id == model.Id);
             if (ExistingCourse == null) return (false, "Course No Found");
@@ -132,7 +151,7 @@ namespace MiniSchoolSystem.Implementation.Services
                            .ToListAsync();
             return courses; ;
         }
-            
+
         public async Task<Course?> GetCourseByIDAsync(int Id)
         {
 
@@ -163,11 +182,16 @@ namespace MiniSchoolSystem.Implementation.Services
             if (User == null) return (false, "User Not Found");
 
             // 2. Check if Teacher exists
-            var Teacher = await _dbContext.DbTeacher
-                .Include(i => i.TeacherSections)
-                .FirstOrDefaultAsync(m => m.TeacherId == Id);
 
-            if (Teacher == null) return (false, "Teacher Not Found");
+
+            bool isStaff = await _userManager.IsInRoleAsync(User, "SuperAdmin") ||
+              await _userManager.IsInRoleAsync(User, "Admin");
+            if (!isStaff)
+            {
+
+                return (false, "Access Denied: You must be a Teacher or Admin to Restore courses.");
+            }
+
 
             // 3. Get Course with Children
             var course = await _dbContext.DbCourse
@@ -217,8 +241,8 @@ namespace MiniSchoolSystem.Implementation.Services
 
 
 
-     public async Task<int> DeleteExpiredCourses()
-    {
+        public async Task<int> DeleteExpiredCourses()
+        {
             var cutoff = DateTime.UtcNow.AddDays(-30);
 
             var expired = await _dbContext.DbCourse
@@ -227,7 +251,6 @@ namespace MiniSchoolSystem.Implementation.Services
                 .Where(c => c.IsDeleted && c.DeletedAt <= cutoff)
                 .ToListAsync();
 
-            
 
             if (!expired.Any()) return 0;
 
@@ -237,32 +260,24 @@ namespace MiniSchoolSystem.Implementation.Services
                 {
                     foreach (var module in course.CourseModules)
                     {
+                        // 1. Clear Lessons for this module
                         if (module.Lessons != null && module.Lessons.Any())
                         {
                             _dbContext.DbLesson.RemoveRange(module.Lessons);
                         }
                     }
-     
-                    _dbContext.DbModules.RemoveRange(course.CourseModules);
-                }
-            
 
-                // 2. Remove Modules (The middle layer)
-                if (course.CourseModules != null && course.CourseModules.Any())
-                {
+                    // 2. Clear all Modules for this course (ONLY CALL THIS ONCE)
                     _dbContext.DbModules.RemoveRange(course.CourseModules);
                 }
             }
 
-            // 3. Finally, remove the Courses themselves
+
+            // 3. Finally, remove the courses themselves
             _dbContext.DbCourse.RemoveRange(expired);
 
-            await _dbContext.SaveChangesAsync();
-            return expired.Count;
-    
+            return await _dbContext.SaveChangesAsync();
+
         }
     }
-    
 }
-
-    
