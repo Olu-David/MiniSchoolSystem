@@ -258,7 +258,7 @@ namespace MiniSchoolSystem.Controllers
                 return NotFound();
 
             var result = await _userService.ForgotPasswordAsync(email);
-
+            ModelState.AddModelError("", "Invalid Password");
             return RedirectToAction(nameof(ResetPassoword));
         }
         [HttpGet]
