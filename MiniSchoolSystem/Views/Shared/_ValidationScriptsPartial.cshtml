@@ -1,2 +1,27 @@
-﻿<script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
-<script src="~/lib/jquery-validation-unobtrusive/dist/jquery.validate.unobtrusive.min.js"></script>
+﻿@{
+    var validatePath = Url.Content("~/lib/jquery-validation/dist/jquery.validate.min.js");
+    var unobtrusivePath = Url.Content("~/lib/jquery-validation-unobtrusive/dist/jquery.validate.unobtrusive.min.js");
+}
+<script>
+    (function loadValidation() {
+        if (window.jQuery) {
+            // load jquery.validate if not already present
+            if (typeof jQuery.validator === 'undefined' && !document.querySelector('script[src="@validatePath"]')) {
+                var s = document.createElement('script');
+                s.src = '@validatePath';
+                s.async = false;
+                document.head.appendChild(s);
+            }
+            // load jquery.validate.unobtrusive if not already present
+            if (typeof jQuery.validator === 'object' && typeof jQuery.validator.unobtrusive === 'undefined' && !document.querySelector('script[src="@unobtrusivePath"]')) {
+                var s2 = document.createElement('script');
+                s2.src = '@unobtrusivePath';
+                s2.async = false;
+                document.head.appendChild(s2);
+            }
+        } else {
+            // try again shortly until jQuery is available
+            setTimeout(loadValidation, 50);
+        }
+    })();
+</script>

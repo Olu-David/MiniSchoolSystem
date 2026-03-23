@@ -12,7 +12,10 @@
 }
 
 <div class="course-page">
-
+    @if (User.IsInRole("SuperAdmin"))
+    {
+        @await Html.PartialAsync("_SabiSpaceSidebar")
+    }
     <!-- HEADER -->
     <div class="page-header">
         <div class="ph-blob phb1" style="background:rgba(245,200,66,.09)"></div>

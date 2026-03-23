@@ -1,0 +1,36 @@
+﻿@using MiniSchoolSystem.Models;
+
+@using System.Security.Claims;
+
+@using Microsoft.AspNetCore.Identity
+@inject SignInManager<UserDb> signInManager;
+
+
+
+<ul class="navbar-nav ms-auto align-items-center">
+    @if (signInManager.IsSignedIn(User))
+    {
+        <li class="nav-item">
+            <form asp-controller="Account"
+                  asp-action="Logout"
+                  method="post"
+                  class="d-flex">
+
+                @Html.AntiForgeryToken()
+
+                <button type="submit" class="btn nav-link text-black fw-bold border-0  nav-btn"> LOGOUT</button>
+
+            </form>
+        </li>
+    }
+
+    else
+    {
+        <li class="nav-item elsee">
+            <a class="nav-link" asp-controller="Account" asp-action="Login">LOGIN</a>
+            <a class="nav-link" asp-controller="Account" asp-action="Registration">REGISTER</a>
+        </li>
+
+    }
+</ul>
+

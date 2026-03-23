@@ -6,9 +6,9 @@ namespace MiniSchoolSystem.Implementation.Interfaces
 {
     public interface ICourseService
     {
-        
-            // Create: Returns a Tuple with the new ID for redirection
-        Task<(bool Success, string Message, int? CourseId)> CreateCourseAsync(CreateCourseViewDTO model, string userId);
+
+        // Create: Returns a Tuple with the new ID for redirection
+        Task<(bool Success, string Message, int? CourseId)> CreateCourseAsync(CreateCourseViewDTO model, string userId, string id);
 
             // Read (List): Get all courses (usually for an Admin)
         Task<List<Course>> GetAllCourseListAsync();

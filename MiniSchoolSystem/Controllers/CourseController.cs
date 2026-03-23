@@ -57,29 +57,9 @@ namespace MiniSchoolSystem.Controllers
         [Authorize(Roles = "SuperAdmin, Admin")]
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> CreateCourse(CreateCourseViewDTO model)
+        public async Task<IActionResult> CreateCourse(CreateCourseViewDTO model, string Id, string UserId)
         {
-            // 1. Get User
-            var userId = _userManager.GetUserId(User);
-            if (string.IsNullOrEmpty(userId))
-            {
-                TempData["Error"] = "User session expired. Please login again.";
-                return RedirectToAction("Login", "Account");
-            }
-
-            // 2. Check if Teacher exists
-            var teacher = await _dbContext.DbTeacher
-                .Include(m => m.TeacherSections)
-                .FirstOrDefaultAsync(m => m.TeacherId == userId);
-
-            if (teacher == null)
-            {
-                // 💡 Instead of 400, show a helpful message
-                TempData["Error"] = "Only registered Teachers can create courses. Please contact Admin.";
-                return RedirectToAction("Index", "Home");
-            }
-
-            // 3. Validation Check
+         
             if (!ModelState.IsValid)
             {
                 // Log the errors to your console so you can see them!
@@ -89,7 +69,7 @@ namespace MiniSchoolSystem.Controllers
             }
 
             // 4. Call Service
-            var (success, message, courseId) = await _courseService.CreateCourseAsync(model, userId);
+            var (success, message, courseId) = await _courseService.CreateCourseAsync(model,UserId,Id ) ;
 
             if (!success)
             {
@@ -142,12 +122,7 @@ namespace MiniSchoolSystem.Controllers
             };
             return View(DisplayCourses);
         }
-        /// <summary>
-        /// ///////////////////////////////////////////////////////////////////////////////////
-        /// </summary>
-        /// <param name="Id"></param>
-        /// <returns></returns>
-        /// 
+     
         [Authorize(Roles = "SuperAdmin, Admin")]
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -183,34 +158,32 @@ namespace MiniSchoolSystem.Controllers
         [HttpGet]
         public IActionResult ArchiveCourse()
         {
-            var Userid = _userManager.GetUserId(User);
-            if (Userid == null)
-            {
-                return BadRequest();
-            }
-
-            if (!User.IsInRole("SuperAdmin"))
-            {
-                return Unauthorized();
-            }
+          
             return View();
         }
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ArchiveCourse(int id)
+        public async Task<IActionResult> ArchiveCourse(string id, int ID)
         {
-            if (!User.IsInRole("SuperAdmin")) return Unauthorized();
+            var findUser = await _userManager.FindByIdAsync(id);
+            if (findUser == null) return RedirectToAction("Login", "Account");
 
-            var course = await _dbContext.DbCourse.FirstOrDefaultAsync(c => c.Id == id);
+            bool Staff = await _userManager.IsInRoleAsync(findUser, "SuperAdmin" ) ||  await _userManager.IsInRoleAsync(findUser, "Admin");
+            if(!Staff)
+            {
+                TempData["Info"] = "Only Admin have the acesss";
+                return RedirectToAction("Login", "Account");
+            }
+            var course = await _dbContext.DbCourse.FirstOrDefaultAsync(c => c.Id == ID);
             if (course == null) return NotFound();
 
             course.IsArchived = true;
             await _dbContext.SaveChangesAsync();
-            return Ok("Course archived successfully");
+            return RedirectToAction(nameof(ArchiveCourse));
         }
 
 
-        [Authorize(Roles = " Admin")]
+        [Authorize(Roles = "SuperAdmin,Admin")]
         [HttpPost]
         public async Task<IActionResult> DeleteCourse(int CourseId, string Id )
         {
@@ -233,7 +206,7 @@ namespace MiniSchoolSystem.Controllers
 
         // Restore Course (SuperAdmin only)
         [HttpPost]
-        [Authorize(Roles = "SuperAdmin")]
+        [Authorize(Roles = "SuperAdmin, Admin")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RestoreCourse(int CourseId, string id)
         {

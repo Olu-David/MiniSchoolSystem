@@ -1,4 +1,27 @@
-﻿<!DOCTYPE html>
+﻿@using Microsoft.AspNetCore.Identity
+@using System.Security.Claims
+@inject SignInManager<UserDb> SignInManager;
+@inject UserManager<UserDb> UserManager;
+
+@{
+    var userRole = User.FindFirstValue(ClaimTypes.Role);
+    var displayName = User.Identity?.Name ?? "User";
+    var currentCtrl = ViewContext.RouteData.Values["controller"]?.ToString();
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
+
+    bool isAllowedRole = User.IsInRole("SuperAdmin")
+                      || User.IsInRole("Admin")
+                      || User.IsInRole("Teacher")
+                      || User.IsInRole("Student");
+
+    bool isBlockedUser = User.Identity!.IsAuthenticated && !isAllowedRole;
+    bool isLoggedIn = User.Identity!.IsAuthenticated;
+
+    
+    }
+}
+}
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8"/>
@@ -11,6 +34,10 @@
 </head>
 <body>
 
+    @if (User.IsInRole("SuperAdmin"))
+    {
+        @await Html.PartialAsync("_SabiSpaceSidebar")
+    }
 <div class="lesson-page">
 
     <!-- ======================================================

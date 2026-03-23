@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MiniSchoolSystem.Controllers;
 using MiniSchoolSystem.DTO;
@@ -30,13 +31,13 @@ namespace MiniSchoolSystem.Implementation.Services
         }
 
 
-        public async Task<(bool Success, string Message, int? CourseId)> CreateCourseAsync(CreateCourseViewDTO model, string userId)
+        public async Task<(bool Success, string Message, int? CourseId)> CreateCourseAsync(CreateCourseViewDTO model, string userId, string id)
         {
-            var User = await _userManager.FindByIdAsync(userId);
-            if (User == null) return (false, "User not Found", null);
-
-            bool isStaff = await _userManager.IsInRoleAsync(User, "SuperAdmin") ||
-               await _userManager.IsInRoleAsync(User, "Admin");
+            var appUser = await _userManager.FindByIdAsync(userId);
+            if (appUser == null) return (false, "User not Found", null);
+          
+            bool isStaff = await _userManager.IsInRoleAsync(appUser, "SuperAdmin") ||
+               await _userManager.IsInRoleAsync(appUser, "Admin");
             if (!isStaff)
             {
 
@@ -76,12 +77,12 @@ namespace MiniSchoolSystem.Implementation.Services
 
         public async Task<(bool Success, string Message)> DeleteCourseAsync(string userId, int courseId)
         {
-            var User = await _userManager.FindByIdAsync(userId);
-            if (User == null) return (false, "User not Found");
+            var appUser = await _userManager.FindByIdAsync(userId);
+            if (appUser == null) return (false, "User not Found");
 
 
-            bool isStaff = await _userManager.IsInRoleAsync(User, "SuperAdmin") ||
-              await _userManager.IsInRoleAsync(User, "Admin");
+            bool isStaff = await _userManager.IsInRoleAsync(appUser, "SuperAdmin") ||
+              await _userManager.IsInRoleAsync(appUser, "Admin");
             if (!isStaff)
             {
 
@@ -115,17 +116,17 @@ namespace MiniSchoolSystem.Implementation.Services
 
         }
 
-
+        
         public async Task<(bool Success, string Message)> EditCourseAsync(EditCourseDTO model, string UserId)
         {
-            var User = await _userManager.FindByIdAsync(UserId);
-            if (User == null) return (false, "User not Found");
+            var appUser = await _userManager.FindByIdAsync(UserId);
+            if (appUser == null) return (false, "User not Found");
 
-            var Teacher = await _dbContext.DbTeacher.Include(w => w.TeacherSections).AsNoTracking().FirstOrDefaultAsync(m => m.TeacherId == UserId);
+           
 
-            bool isStaff = await _userManager.IsInRoleAsync(User, "SuperAdmin") ||
-              await _userManager.IsInRoleAsync(User, "Admin");
-            if (Teacher == null || !isStaff)
+            bool isStaff = await _userManager.IsInRoleAsync(appUser, "SuperAdmin") ||
+              await _userManager.IsInRoleAsync(appUser, "Admin");
+            if ( !isStaff)
             {
 
                 return (false, "Access Denied: You must be a Teacher or Admin to edit courses.");
@@ -178,14 +179,14 @@ namespace MiniSchoolSystem.Implementation.Services
         public async Task<(bool Success, string Message)> RestoreCourseAsync(int CourseId, string Id)
         {
             // 1. Check if User exists (Correction: check for null)
-            var User = await _userManager.FindByIdAsync(Id);
-            if (User == null) return (false, "User Not Found");
+            var appUser = await _userManager.FindByIdAsync(Id);
+            if (appUser == null) return (false, "User Not Found");
 
             // 2. Check if Teacher exists
 
 
-            bool isStaff = await _userManager.IsInRoleAsync(User, "SuperAdmin") ||
-              await _userManager.IsInRoleAsync(User, "Admin");
+            bool isStaff = await _userManager.IsInRoleAsync(appUser, "SuperAdmin") ||
+              await _userManager.IsInRoleAsync(appUser, "Admin");
             if (!isStaff)
             {
 

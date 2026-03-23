@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using MiniSchoolSystem.DTO;
 using MiniSchoolSystem.Implementation.Interfaces;
 using MiniSchoolSystem.Models;
+using System.Security.Claims;
 
 namespace MiniSchoolSystem.Controllers
 {
@@ -188,24 +189,29 @@ namespace MiniSchoolSystem.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, CreateLessonViewDTO model, CreateLessonContentDTO dto)
+        public async Task<IActionResult> EditLesson(int id, EditLessonContentDTO dto, EditLessonDTO model ,string Id)
         {
-            var userId = _userManager.GetUserId(User);
+            var appUser = await _userManager.FindByIdAsync(Id);
+
+            if (appUser == null) return RedirectToAction("Login", "Account");
+            bool isStaff = await _userManager.IsInRoleAsync(appUser, "SuperAdmin") ||
+               await _userManager.IsInRoleAsync(appUser, "Admin");
+            var FindT = _userManager.GetUserId(User);
+            var Teacher = await _dbContext.DbTeacher.Include(m => m.TeacherSections).FirstOrDefaultAsync(m => m.TeacherId == FindT);
+            if (Teacher == null|| !isStaff)
+            {
+
+                return RedirectToAction("Login", "Account");
+            }
+          
 
             // 1. Fetch the lesson and its content
             var lesson = await _dbContext.DbLesson
                 .Include(l => l.LessonContents)
                 .FirstOrDefaultAsync(l => l.Id == id);
 
-            if (lesson == null) return NotFound();
-
-            // 2. Teacher Ownership Check
-            var teacher = await _dbContext.DbTeacher
-                .FirstOrDefaultAsync(t => t.TeacherId == userId);
-
-            if (teacher == null || lesson.TeacherId != teacher.Id)
-                return Forbid();
-
+            if (lesson == null) return RedirectToAction(nameof(Index));
+           
             if (!ModelState.IsValid)
             {
                 ViewBag.IsEdit = true;
@@ -243,7 +249,7 @@ namespace MiniSchoolSystem.Controllers
                 {
                     Content = dto.Content,
                     FileUrl = fileUrl,
-                    TeacherId = teacher.Id, // <--- MUST BE HERE
+                    TeacherId = Teacher.Id, // <--- MUST BE HERE
                     CreatedAt = DateTime.UtcNow,
                     LessonId = lesson.Id     // Link it to the current lesson
                 });

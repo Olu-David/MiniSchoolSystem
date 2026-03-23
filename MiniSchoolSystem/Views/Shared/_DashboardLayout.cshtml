@@ -1,0 +1,392 @@
+﻿<!DOCTYPE html>
+<html lang="en" data-theme="dark" id="htmlRoot">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] — SabiSpace</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" />
+    <link href="~/css/Layout.css" rel="stylesheet" asp-append-version="true" />
+    <link href="~/css/Dashboard.css" rel="stylesheet" asp-append-version="true" />
+    @RenderSection("Styles", required: false)
+</head>
+<body>
+
+    @{
+        /* ── Determine role for sidebar + header ── */
+        string userRole = "User";
+        string dashController = "Home";
+        string roleColor = "var(--sabi)";
+        string roleIcon = "👤";
+
+        if (User.IsInRole("SuperAdmin")) { userRole = "SuperAdmin"; dashController = "SuperAdmin"; roleColor = "var(--sabi)"; roleIcon = "🔑"; }
+        else if (User.IsInRole("Admin")) { userRole = "Admin"; dashController = "Admin"; roleColor = "#a855f7"; roleIcon = "🛡️"; }
+        else if (User.IsInRole("Teacher")) { userRole = "Teacher"; dashController = "Teacher"; roleColor = "var(--sky,#1a7cff)"; roleIcon = "👨‍🏫"; }
+        else if (User.IsInRole("Student")) { userRole = "Student"; dashController = "Student"; roleColor = "var(--sage)"; roleIcon = "🎓"; }
+
+        string currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+        string currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+
+        bool isSuperAdmin = User.IsInRole("SuperAdmin");
+        bool isAdmin = User.IsInRole("Admin") || isSuperAdmin;
+        bool isTeacher = User.IsInRole("Teacher") || isAdmin;
+        bool isStudent = User.IsInRole("Student");
+
+        string userName = User.Identity?.Name ?? "User";
+        string userInit = userName.Length > 0 ? userName[0].ToString().ToUpper() : "U";
+    }
+
+    <!-- ── Top bar ── -->
+    <header class="dash-topbar" id="dashTopbar">
+        <!-- Left: burger + brand -->
+        <div class="dash-topbar-left">
+            <button class="dash-burger" id="dashBurger" onclick="toggleDashSidebar()" aria-label="Toggle sidebar">
+                <span></span><span></span><span></span>
+            </button>
+            <a class="dash-brand" asp-controller="Home" asp-action="Index">
+                <div class="dash-brand-logo">S</div>
+                <span class="dash-brand-name">Sabi<span>Space</span></span>
+            </a>
+            <div class="dash-role-tag" style="--rc:@roleColor">
+                @roleIcon @userRole
+            </div>
+        </div>
+
+        <!-- Center: search -->
+        <div class="dash-search">
+            <span class="dash-search-icon">⌕</span>
+            <input type="search" placeholder="Search…" id="dashSearch" autocomplete="off" />
+        </div>
+
+        <!-- Right: actions -->
+        <div class="dash-topbar-right">
+            <!-- Theme toggle -->
+            <button class="dash-icon-btn" onclick="toggleTheme()" title="Toggle theme" aria-label="Toggle theme">
+                <div class="toggle-track" style="font-size:11px"><span>🌙</span><span>☀️</span></div>
+                <div class="toggle-thumb" style="width:18px;height:18px;top:3px"></div>
+            </button>
+
+            <!-- Notifications -->
+            <button class="dash-icon-btn" onclick="dashToast('No new notifications','info')" aria-label="Notifications">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                    <path d="M13.73 21a2 2 0 01-3.46 0" />
+                </svg>
+                <span class="dash-notif-dot"></span>
+            </button>
+
+            <!-- View public site -->
+            <a asp-controller="Home" asp-action="Index"
+               class="dash-icon-btn" title="View site" style="text-decoration:none;font-size:14px">🌐</a>
+
+            <!-- User menu -->
+            <div class="dash-user-menu" id="dashUserMenu">
+                <button class="dash-user-btn" onclick="toggleUserMenu()">
+                    <div class="dash-user-av" style="background:linear-gradient(135deg,var(--sabi),var(--gold,#f5c842))">
+                        @userInit
+                    </div>
+                    <div class="dash-user-info">
+                        <div class="dash-user-name">@userName.Split('@')[0]</div>
+                        <div class="dash-user-role">@userRole</div>
+                    </div>
+                    <span style="font-size:10px;color:var(--text-dim);margin-left:4px">▼</span>
+                </button>
+                <div class="dash-user-dropdown" id="dashUserDropdown">
+                    <a asp-controller="@dashController" asp-action="Index" class="dash-drop-item">🏠 My Dashboard</a>
+                    <a href="#" onclick="dashToast('Profile coming soon','info');return false" class="dash-drop-item">👤 Profile</a>
+                    <a href="#" onclick="dashToast('Settings coming soon','info');return false" class="dash-drop-item">⚙️ Settings</a>
+                    <div class="dash-drop-sep"></div>
+                    <form asp-controller="Account" asp-action="Logout" method="post">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="dash-drop-item dash-drop-logout">🚪 Sign Out</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- ── Body: sidebar + content ── -->
+    <div class="dash-body">
+
+        <!-- ══════════════════════════════════════
+             SIDEBAR
+        ══════════════════════════════════════ -->
+        <aside class="dash-sidebar" id="dashSidebar">
+
+            <!-- Role header -->
+            <div class="dash-sidebar-header">
+                <div class="dash-sidebar-av" style="background:linear-gradient(135deg,var(--sabi),var(--gold,#f5c842))">
+                    @userInit
+                </div>
+                <div>
+                    <div class="dash-sidebar-name">@userName.Split('@')[0]</div>
+                    <div class="dash-sidebar-role" style="color:@roleColor">@roleIcon @userRole</div>
+                </div>
+            </div>
+
+            <nav class="dash-nav">
+
+                <!-- ── Overview ── -->
+                <div class="dash-nav-section">Overview</div>
+                <a asp-controller="@dashController" asp-action="Index"
+                   class="dash-nav-link @(currentAction == "Index" && currentController == dashController ? "active" : "")">
+                    <span class="dash-nav-icon">🏠</span> Dashboard
+                </a>
+
+                @if (isSuperAdmin)
+                {
+                    <a asp-controller="SuperAdmin" asp-action="Dashboard"
+                       class="dash-nav-link @(currentAction == "Dashboard" ? "active" : "")">
+                        <span class="dash-nav-icon">📊</span> Statistics
+                    </a>
+                }
+
+                <!-- ── People ── -->
+                @if (isAdmin)
+                {
+                    <div class="dash-nav-section">People</div>
+
+                    @if (isSuperAdmin)
+                    {
+                        <a asp-controller="SuperAdmin" asp-action="ManageUsers"
+                           class="dash-nav-link @(currentAction == "ManageUsers" ? "active" : "")">
+                            <span class="dash-nav-icon">👥</span> All Users
+                        </a>
+                        <a asp-controller="SuperAdmin" asp-action="ManageStaff"
+                           class="dash-nav-link @(currentAction == "ManageStaff" ? "active" : "")">
+                            <span class="dash-nav-icon">🧑‍💼</span> Staff
+                        </a>
+                        <a asp-controller="SuperAdmin" asp-action="PromoteToAdmin"
+                           class="dash-nav-link @(currentAction == "PromoteToAdmin" ? "active" : "")">
+                            <span class="dash-nav-icon">⬆️</span> Promote User
+                        </a>
+                    }
+                    else
+                    {
+                        <a asp-controller="Admin" asp-action="ManageUsers"
+                           class="dash-nav-link @(currentAction == "ManageUsers" ? "active" : "")">
+                            <span class="dash-nav-icon">👥</span> Users
+                        </a>
+                    }
+                }
+
+                <!-- ── Content ── -->
+                <div class="dash-nav-section">Content</div>
+                <a asp-controller="Course" asp-action="Index"
+                   class="dash-nav-link @(currentController == "Course" ? "active" : "")">
+                    <span class="dash-nav-icon">📚</span> Courses
+                </a>
+                <a asp-controller="CourseModule" asp-action="Index"
+                   class="dash-nav-link @(currentController == "CourseModule" ? "active" : "")">
+                    <span class="dash-nav-icon">🗂️</span> Modules
+                </a>
+                <a asp-controller="Lesson" asp-action="Index"
+                   class="dash-nav-link @(currentController == "Lesson" ? "active" : "")">
+                    <span class="dash-nav-icon">🎓</span> Lessons
+                </a>
+                <a asp-controller="Quiz" asp-action="Index"
+                   class="dash-nav-link @(currentController == "Quiz" ? "active" : "")">
+                    <span class="dash-nav-icon">🧠</span> Quizzes
+                </a>
+                <a asp-controller="Assignment" asp-action="Index"
+                   class="dash-nav-link @(currentController == "Assignment" ? "active" : "")">
+                    <span class="dash-nav-icon">📝</span> Assignments
+                </a>
+
+                <!-- ── Coming Soon features ── -->
+                <div class="dash-nav-section">Features</div>
+                <a href="#" onclick="dashToast('Course ratings &amp; reviews coming soon 🌟','info');return false"
+                   class="dash-nav-link dash-nav-soon">
+                    <span class="dash-nav-icon">⭐</span> Ratings &amp; Reviews
+                    <span class="dash-nav-badge">Soon</span>
+                </a>
+                <a href="#" onclick="dashToast('Student enrollment tracking coming soon 📈','info');return false"
+                   class="dash-nav-link dash-nav-soon">
+                    <span class="dash-nav-icon">📈</span> Enrollment Tracking
+                    <span class="dash-nav-badge">Soon</span>
+                </a>
+                <a href="#" onclick="dashToast('Quiz timer coming soon ⏱','info');return false"
+                   class="dash-nav-link dash-nav-soon">
+                    <span class="dash-nav-icon">⏱</span> Quiz Timer
+                    <span class="dash-nav-badge">Soon</span>
+                </a>
+                <a href="#" onclick="dashToast('Assignment file upload coming soon 📎','info');return false"
+                   class="dash-nav-link dash-nav-soon">
+                    <span class="dash-nav-icon">📎</span> File Uploads
+                    <span class="dash-nav-badge">Soon</span>
+                </a>
+                <a href="#" onclick="dashToast('Certificate generation coming soon 🏅','info');return false"
+                   class="dash-nav-link dash-nav-soon">
+                    <span class="dash-nav-icon">🏅</span> Certificates
+                    <span class="dash-nav-badge">Soon</span>
+                </a>
+                <a href="#" onclick="dashToast('Discussion &amp; comments coming soon 💬','info');return false"
+                   class="dash-nav-link dash-nav-soon">
+                    <span class="dash-nav-icon">💬</span> Discussions
+                    <span class="dash-nav-badge">Soon</span>
+                </a>
+                <a href="#" onclick="dashToast('Video progress tracking coming soon 🎬','info');return false"
+                   class="dash-nav-link dash-nav-soon">
+                    <span class="dash-nav-icon">🎬</span> Video Progress
+                    <span class="dash-nav-badge">Soon</span>
+                </a>
+
+                <!-- ── Student specific ── -->
+                @if (isStudent)
+                {
+                    <div class="dash-nav-section">My Learning</div>
+                    <a asp-controller="Student" asp-action="MyCourses"
+                       class="dash-nav-link @(currentAction == "MyCourses" ? "active" : "")">
+                        <span class="dash-nav-icon">📚</span> My Courses
+                    </a>
+                    <a asp-controller="Student" asp-action="MyProgress"
+                       class="dash-nav-link @(currentAction == "MyProgress" ? "active" : "")">
+                        <span class="dash-nav-icon">📈</span> My Progress
+                    </a>
+                    <a href="#" onclick="dashToast('Certificates coming soon 🏅','info');return false"
+                       class="dash-nav-link dash-nav-soon">
+                        <span class="dash-nav-icon">🏅</span> My Certificates
+                        <span class="dash-nav-badge">Soon</span>
+                    </a>
+                }
+
+                <!-- ── System (SuperAdmin only) ── -->
+                @if (isSuperAdmin)
+                {
+                    <div class="dash-nav-section">System</div>
+                    <a href="#" onclick="dashToast('Settings coming soon','info');return false"
+                       class="dash-nav-link dash-nav-soon">
+                        <span class="dash-nav-icon">⚙️</span> Settings
+                        <span class="dash-nav-badge">Soon</span>
+                    </a>
+                    <a href="#" onclick="dashToast('Audit log coming soon','info');return false"
+                       class="dash-nav-link dash-nav-soon">
+                        <span class="dash-nav-icon">📋</span> Audit Log
+                        <span class="dash-nav-badge">Soon</span>
+                    </a>
+                    <a href="#" onclick="dashToast('Notifications coming soon 🔔','info');return false"
+                       class="dash-nav-link dash-nav-soon">
+                        <span class="dash-nav-icon">🔔</span> Notifications
+                        <span class="dash-nav-badge">Soon</span>
+                    </a>
+                }
+
+                <!-- ── Bottom: sign out ── -->
+                <div style="margin-top:auto;padding:20px 0 0">
+                    <div class="dash-nav-sep"></div>
+                    <a asp-controller="Home" asp-action="Index" class="dash-nav-link">
+                        <span class="dash-nav-icon">🌐</span> Public Site
+                    </a>
+                    <form asp-controller="Account" asp-action="Logout" method="post" style="margin:0">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="dash-nav-link dash-nav-logout">
+                            <span class="dash-nav-icon">🚪</span> Sign Out
+                        </button>
+                    </form>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Sidebar overlay (mobile) -->
+        <div class="dash-sidebar-overlay" id="dashSidebarOverlay" onclick="toggleDashSidebar()"></div>
+
+        <!-- ══════════════════════════════════════
+             MAIN CONTENT
+        ══════════════════════════════════════ -->
+        <main class="dash-main">
+            <!-- Toast zone -->
+            <div class="toast-zone" id="toastZone"></div>
+
+            @RenderBody()
+        </main>
+
+    </div>
+
+    @RenderSection("Scripts", required: false)
+
+    <script>
+        /* ── Theme ── */
+        (function(){
+            var t = localStorage.getItem('sabi-theme') || 'dark';
+            document.getElementById('htmlRoot').setAttribute('data-theme', t);
+        })();
+
+        function toggleTheme() {
+            var h = document.getElementById('htmlRoot');
+            var n = h.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            h.setAttribute('data-theme', n);
+            localStorage.setItem('sabi-theme', n);
+        }
+
+        /* ── Sidebar toggle ── */
+        function toggleDashSidebar() {
+            var s = document.getElementById('dashSidebar');
+            var o = document.getElementById('dashSidebarOverlay');
+            var b = document.getElementById('dashBurger');
+            var open = s.classList.toggle('open');
+            o.classList.toggle('open', open);
+            b.classList.toggle('open', open);
+            document.body.style.overflow = open ? 'hidden' : '';
+        }
+
+        /* ── User dropdown ── */
+        function toggleUserMenu() {
+            document.getElementById('dashUserDropdown').classList.toggle('open');
+        }
+        document.addEventListener('click', function(e) {
+            var menu = document.getElementById('dashUserMenu');
+            if (menu && !menu.contains(e.target)) {
+                document.getElementById('dashUserDropdown')?.classList.remove('open');
+            }
+        });
+
+        /* ── Toast ── */
+        window.dashToast = window.SabiToast = function(msg, type, duration, title) {
+            type = type || 'info'; duration = duration || 4500;
+            var icons = { success:'✅', error:'❌', info:'ℹ️', warning:'⚠️' };
+            var zone = document.getElementById('toastZone');
+            var t = document.createElement('div');
+            t.className = 'toast ' + type;
+            t.innerHTML = '<span class="t-icon">' + (icons[type]||'ℹ️') + '</span>' +
+                '<div class="t-body">' + (title ? '<div class="t-title">' + title + '</div>' : '') +
+                '<div class="t-msg">' + msg + '</div></div>' +
+                '<button class="t-close" onclick="this.closest(\'.toast\').remove()">×</button>';
+            zone.appendChild(t);
+            setTimeout(function() {
+                t.style.animation = 'toast-out .35s forwards';
+                setTimeout(function() { t.remove(); }, 370);
+            }, duration);
+        };
+
+        /* ── TempData toasts ── */
+        var _ti='@TempData["info"]', _te='@TempData["Error"]', _ts='@TempData["Success"]';
+        if(_ti&&_ti!=='') dashToast(_ti,'info');
+        if(_te&&_te!=='') dashToast(_te,'error');
+        if(_ts&&_ts!=='') dashToast(_ts,'success');
+
+        /* ── Search stub ── */
+        document.getElementById('dashSearch')?.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && this.value.trim())
+                dashToast('Searching for "' + this.value.trim() + '"…', 'info');
+        });
+
+        /* ── Topbar scroll shadow ── */
+        window.addEventListener('scroll', function() {
+            document.getElementById('dashTopbar')?.classList.toggle('scrolled', scrollY > 4);
+        }, { passive: true });
+
+        /* ── Fade-up ── */
+        var fels = document.querySelectorAll('.sa-fade-up, .dash-fade-up');
+        if (fels.length) {
+            var fio = new IntersectionObserver(function(en) {
+                en.forEach(function(e) {
+                    if (e.isIntersecting) { e.target.classList.add('visible'); fio.unobserve(e.target); }
+                });
+            }, { threshold: 0.1 });
+            fels.forEach(function(el) { fio.observe(el); });
+        }
+    </script>
+
+</body>
+</html>

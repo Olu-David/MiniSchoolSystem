@@ -5,6 +5,7 @@ using MiniSchoolSystem.DTO;
 using MiniSchoolSystem.Enums;
 using MiniSchoolSystem.Implementation.Interfaces;
 using MiniSchoolSystem.Models;
+using Npgsql.Internal;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace MiniSchoolSystem.Controllers
@@ -191,45 +192,105 @@ namespace MiniSchoolSystem.Controllers
             return View();
         }
 
-            [HttpPost]
+       
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(LoginViewDTO model)
         {
             if (!ModelState.IsValid)
-            {
                 return View(model);
-            }
-            var user = new UserDb { Email = model.Email };
+
             var (result, requires2FA) = await _userService.LoginUserAsync(model);
-         
 
             if (requires2FA)
             {
                 TempData["2FAEmail"] = model.Email;
-                await _userService.Send2FAAsync(user);
+                return RedirectToAction("TwoFactor", "Account");
+ 
             }
 
             if (result.Succeeded)
             {
-               
-                if (await _userManager.IsInRoleAsync(user, "SuperAdmin"))
-                    return RedirectToAction("Index", "SuperAdmin");
+                // ✅ Get the real user — sign-in already happened inside LoginUserAsync
+                var appUser = await _userManager.FindByEmailAsync(model.Email ?? "");
 
-                if (await _userManager.IsInRoleAsync(user, "Admin"))
-                    return RedirectToAction("Index", "Admin");
+                if (appUser != null)
+                {
+                    if (await _userManager.IsInRoleAsync(appUser, "SuperAdmin"))
+                        return RedirectToAction("Index", "SuperAdmin");
 
-                if (await _userManager.IsInRoleAsync(user, "Teacher"))
-                    return RedirectToAction("Index", "Teacher");
+                    if (await _userManager.IsInRoleAsync(appUser, "Admin"))
+                        return RedirectToAction("Index", "Admin");
 
-                if (await _userManager.IsInRoleAsync(user, "Student"))
-                    return RedirectToAction("Index", "Student");
-             
-                
+                    if (await _userManager.IsInRoleAsync(appUser, "Teacher"))
+                        return RedirectToAction("Index", "Teacher");
+
+                    if (await _userManager.IsInRoleAsync(appUser, "Student"))
+                        return RedirectToAction("Index", "Student");
+                }
+
+                // Logged in but no recognised role → Home
+                return RedirectToAction("Index", "Home");
             }
 
-            ModelState.AddModelError("", "Invalid login");
-            return RedirectToAction("Index", "Home");
-  
+            ModelState.AddModelError("", "Invalid email or password.");
+            return View(model);
+        }
+
+        [HttpGet]
+        public IActionResult SendTwoFactorAuthentication()
+        {
+            return View();
+        }
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SendTwoFactorAuthentication(string Id)
+        {
+            var appUser = await _userManager.FindByIdAsync(Id);
+            if(appUser==null||!appUser.EmailConfirmed)
+            {
+                ModelState.AddModelError("", "User Not Found");
+                return RedirectToAction(nameof(Registration));
+            }
+            var result = _userService.Send2FAAsync(appUser);
+            
+            if(result==null)
+            {
+                return RedirectToAction(nameof(Login));
+            }
+            return RedirectToAction(nameof(Verify2FaAuth));
+        }
+        [HttpGet]
+        public IActionResult Verify2FaAuth()
+        {
+            return View();
+        }
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Verify2FaAuth(Verify2FAViewModel model)
+        {
+            if (!ModelState.IsValid) return View(model);
+
+            // 1. Verify the code
+            var result = await _userService.Verify2FAAsync(model);
+
+            if (result.Succeeded)
+            {
+                // 2. Now that they are officially IN, find who they are
+                var appUser = await _userManager.FindByEmailAsync(model.Email);
+
+                // 3. DO THE REDIRECT LOGIC AGAIN HERE
+                if (await _userManager.IsInRoleAsync(appUser, "SuperAdmin"))
+                    return RedirectToAction("Index", "SuperAdmin");
+
+                if (await _userManager.IsInRoleAsync(appUser, "Teacher"))
+                    return RedirectToAction("Index", "Teacher");
+
+                return RedirectToAction("Index", "Home");
+            }
+
+            ModelState.AddModelError("", "Invalid Verification Code");
+            return View(model);
         }
         [HttpGet]
         public IActionResult DeactivateAccount()

@@ -92,7 +92,26 @@ namespace MiniSchoolSystem.Implementation.Services
 
 
         }
+        public async Task Send2FAAsync(UserDb user)
+        {
+            if (user == null) throw new ArgumentNullException(nameof(user), "Token is missing.");
 
+            var token = await _userManager.GenerateTwoFactorTokenAsync(user, TokenOptions.DefaultEmailProvider);
+
+            await _emailService.SendEmailAsync(user.Email ?? "null", "TwoFactorAuthenticator Code", $"Your Code is {token}");
+        }
+
+        public async Task<SignInResult> Verify2FAAsync(Verify2FAViewModel model)
+        {
+            if (model.Email == null)
+                if (model.Email == null) throw new ArgumentNullException(nameof(model.Email), "Token is missing.");
+
+            var result = await _signInManager.TwoFactorSignInAsync(TokenOptions.DefaultEmailProvider, model.Code, false, false);
+            return result;
+
+
+
+        }
         public async Task<IdentityResult> RegistrationAsync(RegisterViewModel model, string? ConfirmationLink)
         {
             // 1. Create the User object from the ViewModel
@@ -140,26 +159,7 @@ namespace MiniSchoolSystem.Implementation.Services
             return result;
         }
 
-        public async Task Send2FAAsync(UserDb user)
-        {
-            if (user == null) throw new ArgumentNullException(nameof(user), "Token is missing.");
-
-            var token = await _userManager.GenerateTwoFactorTokenAsync(user, TokenOptions.DefaultEmailProvider);
-
-            await _emailService.SendEmailAsync(user.Email ?? "null", "TwoFactorAuthenticator Code", $"Your Code is {token}");
-        }
-
-        public async Task<SignInResult> Verify2FAAsync(Verify2FAViewModel model)
-        {
-            if (model.Email == null)
-                if (model.Email == null) throw new ArgumentNullException(nameof(model.Email), "Token is missing.");
-
-            var result = await _signInManager.TwoFactorSignInAsync(TokenOptions.DefaultEmailProvider, model.Code, false, false);
-            return result;
-
-
-
-        }
+       
         public async Task<(bool Success, string Message)> SetUserLockoutAsync(string userId, bool shouldLock)
         {
             // 1. Find the user in the identity database

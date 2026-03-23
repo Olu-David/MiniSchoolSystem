@@ -1,4 +1,47 @@
-﻿<!DOCTYPE html>
+﻿@using Microsoft.AspNetCore.Identity
+@using MiniSchoolSystem.Models
+@using System.Security.Claims
+
+@inject SignInManager<UserDb> SignInManager
+@inject UserManager<UserDb> UserManager
+
+@{
+    var userRole = User.FindFirstValue(ClaimTypes.Role);
+    var displayName = User.Identity?.Name ?? "User";
+    var currentCtrl = ViewContext.RouteData.Values["controller"]?.ToString();
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
+
+    bool isAllowedRole = User.IsInRole("SuperAdmin")
+                      || User.IsInRole("Admin")
+                      || User.IsInRole("Teacher")
+                      || User.IsInRole("Student");
+
+    bool isBlockedUser = User.Identity!.IsAuthenticated && !isAllowedRole;
+    bool isLoggedIn = User.Identity!.IsAuthenticated;
+
+    string dashController = "Home"; // Default fallback
+
+    // 1. Get the current user object from the database
+    var currentUser = await UserManager.GetUserAsync(User);
+
+    if (currentUser != null)
+    {
+        // 2. Ask the Database: "Is this specific user a SuperAdmin?"
+        if (await UserManager.IsInRoleAsync(currentUser, "SuperAdmin"))
+        {
+            dashController = "SuperAdmin";
+        }
+        else if (await UserManager.IsInRoleAsync(currentUser, "Admin"))
+        {
+            dashController = "Admin";
+        }
+        else if (await UserManager.IsInRoleAsync(currentUser, "Teacher"))
+        {
+            dashController = "Teacher";
+        }
+    }
+}
+<!DOCTYPE html>
 <html lang="en" data-theme="dark" id="htmlRoot">
 <head>
     <meta charset="UTF-8" />
@@ -8,32 +51,20 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" />
     <link href="~/css/Layout.css" rel="stylesheet" asp-append-version="true" />
-    @RenderSection("Styles", required: false)
+
+    @await RenderSectionAsync("Styles", required: false)
+
+    <!-- jQuery must be available before any plugin/unobtrusive scripts -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-+d0P3Qk6k9b8U6p2rGq8Kk2s9n6bYl1P6K5f6qv0oE=" crossorigin="anonymous"></script>
+    <script>window.jQuery || document.write('<script src="/lib/jquery/jquery-3.7.1.min.js"><\/script>')</script>
 </head>
 <body>
 
-    @{
-        bool isAllowedRole = User.IsInRole("SuperAdmin")
-        || User.IsInRole("Admin")
-        || User.IsInRole("Teacher")
-        || User.IsInRole("Student");
-
-        bool isBlockedUser = User.Identity!.IsAuthenticated && !isAllowedRole;
-        bool isLoggedIn = User.Identity!.IsAuthenticated;
-
-        // Determine which dashboard controller to link to
-        string dashController = "Home";
-        if (User.IsInRole("SuperAdmin")) dashController = "SuperAdmin";
-        else if (User.IsInRole("Admin")) dashController = "Admin";
-        else if (User.IsInRole("Teacher")) dashController = "Teacher";
-        // Students → Home (or change to "Student" if you have a student dashboard)
-    }
-
     @if (isBlockedUser)
     {
-        <!-- Access Denied -->
+        <!-- ══ ACCESS DENIED ══ -->
         <style>
-            .access-denied-wrap {
+            .ad-wrap {
                 min-height: 100vh;
                 display: flex;
                 flex-direction: column;
@@ -43,37 +74,37 @@
                 gap: 16px;
                 padding: 40px 24px;
                 background: var(--bg, #0f0f13);
-                color: var(--text, #f0f0f5);
+                color: var(--text-primary, #f0f0f5);
                 font-family: 'DM Sans', sans-serif;
             }
 
-            .access-denied-icon {
+            .ad-icon {
                 font-size: 72px;
                 line-height: 1;
             }
 
-            .access-denied-wrap h1 {
+            .ad-wrap h1 {
                 font-family: 'Syne', sans-serif;
                 font-size: clamp(28px,5vw,42px);
                 font-weight: 800;
                 margin: 0;
             }
 
-            .access-denied-wrap p {
+            .ad-wrap p {
                 font-size: 16px;
                 color: var(--text-secondary, #888);
                 max-width: 400px;
                 margin: 0;
             }
 
-            .access-denied-wrap a {
+            .ad-wrap a {
                 display: inline-flex;
                 align-items: center;
                 gap: 8px;
                 margin-top: 8px;
                 padding: 12px 28px;
                 border-radius: 10px;
-                background: linear-gradient(135deg,#6c63ff,#48cfad);
+                background: linear-gradient(135deg, #6c63ff, #48cfad);
                 color: #fff;
                 font-weight: 600;
                 font-size: 15px;
@@ -81,33 +112,52 @@
                 transition: opacity .2s;
             }
 
-                .access-denied-wrap a:hover {
+                .ad-wrap a:hover {
                     opacity: .85;
                 }
+
+            .ad-signout {
+                background: transparent;
+                border: 1px solid #2a2a35;
+                color: #888;
+                font-size: 13px;
+                padding: 8px 20px;
+                border-radius: 8px;
+                cursor: pointer;
+                font-family: 'DM Sans', sans-serif;
+                margin-top: 4px;
+            }
         </style>
-        <div class="access-denied-wrap">
-            <div class="access-denied-icon">🚫</div>
+        <div class="ad-wrap">
+            <div class="ad-icon">🚫</div>
             <h1>Access Restricted</h1>
             <p>Your account doesn't have a recognised role to access SabiSpace. Please contact support or sign in with an authorised account.</p>
             <a asp-controller="Home" asp-action="Index">← Back to Home</a>
-            <form asp-controller="Account" asp-action="Logout" method="post" style="margin-top:8px">
+            <form asp-controller="Account" asp-action="Logout" method="post" style="margin-top:4px">
                 @Html.AntiForgeryToken()
-                <button type="submit" style="background:transparent;border:1px solid #2a2a35;color:#888;font-size:13px;padding:8px 20px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;">
-                    Sign out of this account
-                </button>
+                <button type="submit" class="ad-signout">Sign out of this account</button>
             </form>
         </div>
     }
     else
     {
+        <!-- ══ NORMAL LAYOUT ══ -->
         <div class="progress-bar" id="progressBar"></div>
 
         <div class="announce-bar" id="announceBar">
             <span>🎉 New — Quizzes &amp; Assignments are now live for all sections!</span>
-            <a asp-controller="Quiz" asp-action="Index">Try a quiz →</a>
+            @if (isLoggedIn)
+            {
+                <a asp-controller="Quiz" asp-action="Index">Try a quiz →</a>
+            }
+            else
+            {
+                <a asp-controller="Account" asp-action="Registration">Get started →</a>
+            }
             <button class="announce-close" onclick="dismissAnnounce()" aria-label="Close">×</button>
         </div>
 
+        <!-- ══ NAV ══ -->
         <nav class="nav" id="mainNav">
             <a class="nav-brand" asp-controller="Home" asp-action="Index">
                 <div class="nav-logo">S</div>
@@ -122,47 +172,58 @@
             <ul class="nav-links">
                 <li>
                     <a asp-controller="Home" asp-action="Index"
-                       class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Home" ? "active" : "")">
+                       class="@(currentCtrl == "Home" ? "active" : "")">
                         Home
                     </a>
                 </li>
-                
+                <li>
+                    <a asp-controller="Course" asp-action="Index"
+                       class="@(currentCtrl == "Course" ? "active" : "")">
+                        Courses
+                    </a>
+                </li>
+
                 @if (isLoggedIn)
                 {
+                    @* Modules — staff only *@
+                    @if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin") || User.IsInRole("Teacher"))
+                    {
+                        <li>
+                            <a asp-controller="CourseModule" asp-action="Index"
+                               class="@(currentCtrl == "CourseModule" ? "active" : "")">
+                                Modules
+                            </a>
+                        </li>
+                    }
+
                     <li>
                         <a asp-controller="Lesson" asp-action="Index"
-                           class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Lesson" ? "active" : "")">
+                           class="@(currentCtrl == "Lesson" ? "active" : "")">
                             Lessons <span class="nav-badge live">Live</span>
                         </a>
                     </li>
                     <li>
                         <a asp-controller="Quiz" asp-action="Index"
-                           class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Quiz" ? "active" : "")">
+                           class="@(currentCtrl == "Quiz" ? "active" : "")">
                             Quizzes <span class="nav-badge quiz">New</span>
                         </a>
                     </li>
                     <li>
                         <a asp-controller="Assignment" asp-action="Index"
-                           class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Assignment" ? "active" : "")">
+                           class="@(currentCtrl == "Assignment" ? "active" : "")">
                             Assignments <span class="nav-badge assign">New</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a asp-controller="Course" asp-action="Index"
-                           class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Course" ? "active" : "")">
-                            Courses
                         </a>
                     </li>
                 }
             </ul>
-
             <div class="nav-actions">
                 <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark / light mode" aria-label="Toggle theme">
                     <div class="toggle-track"><span>🌙</span><span>☀️</span></div>
                     <div class="toggle-thumb"></div>
                 </button>
 
-                <button class="nav-icon-btn" aria-label="Notifications" onclick="SabiToast('No new notifications', 'info')">
+                <button class="nav-icon-btn" aria-label="Notifications"
+                        onclick="SabiToast('No new notifications', 'info')">
                     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
                         <path d="M13.73 21a2 2 0 01-3.46 0" />
@@ -175,21 +236,24 @@
                     <a asp-controller="Account" asp-action="Login" class="btn btn-ghost">Sign In</a>
                     <a asp-controller="Account" asp-action="Registration" class="btn btn-sabi">
                         Get Started
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M5 12h14M12 5l7 7-7 7" />
+                        </svg>
                     </a>
                 }
                 else
                 {
-                    <!-- Dashboard button routes to the correct dashboard per role -->
                     <a asp-controller="@dashController" asp-action="Index"
                        class="btn btn-ghost" style="font-size:13px;padding:8px 16px">
                         Dashboard
                     </a>
                     <button class="nav-icon-btn" style="font-size:15px"
-                            onclick="document.getElementById('logoutForm').submit()" title="Sign out">
+                            onclick="document.getElementById('logoutForm').submit()"
+                            title="Sign out">
                         🚪
                     </button>
-                    <form id="logoutForm" asp-controller="Account" asp-action="Logout" method="post" style="display:none">
+                    <form id="logoutForm" asp-controller="Account" asp-action="Logout"
+                          method="post" style="display:none">
                         @Html.AntiForgeryToken()
                     </form>
                 }
@@ -200,15 +264,20 @@
             </div>
         </nav>
 
-        <!-- Mobile Drawer -->
+        <!-- ══ MOBILE DRAWER ══ -->
         <div class="nav-drawer" id="navDrawer">
-            <a asp-controller="Home" asp-action="Index" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Home" ? "active" : "")">🏠 Home</a>
-            <a asp-controller="Course" asp-action="Index" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Course" ? "active" : "")">📚 Courses</a>
+            <a asp-controller="Home" asp-action="Index"
+               class="@(currentCtrl == "Home" ? "active" : "")">🏠 Home</a>
+            <a asp-controller="Course" asp-action="Index"
+               class="@(currentCtrl == "Course" ? "active" : "")">📚 Courses</a>
             @if (isLoggedIn)
             {
-                <a asp-controller="Lesson" asp-action="Index" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Lesson" ? "active" : "")">🎓 Lessons</a>
-                <a asp-controller="Quiz" asp-action="Index" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Quiz" ? "active" : "")">🧠 Quizzes</a>
-                <a asp-controller="Assignment" asp-action="Index" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Assignment" ? "active" : "")">📝 Assignments</a>
+                <a asp-controller="Lesson" asp-action="Index"
+                   class="@(currentCtrl == "Lesson" ? "active" : "")">🎓 Lessons</a>
+                <a asp-controller="Quiz" asp-action="Index"
+                   class="@(currentCtrl == "Quiz" ? "active" : "")">🧠 Quizzes</a>
+                <a asp-controller="Assignment" asp-action="Index"
+                   class="@(currentCtrl == "Assignment" ? "active" : "")">📝 Assignments</a>
             }
 
             <div class="drawer-sep"></div>
@@ -228,9 +297,15 @@
                 }
                 else
                 {
-                    <a asp-controller="@dashController" asp-action="Index" class="btn btn-ghost">Dashboard</a>
-                    <button class="btn btn-sabi" onclick="document.getElementById('logoutFormMobile').submit()">Sign Out</button>
-                    <form id="logoutFormMobile" asp-controller="Account" asp-action="Logout" method="post" style="display:none">
+                    <a asp-controller="@dashController" asp-action="Index" class="btn btn-ghost">
+                        Dashboard
+                    </a>
+                    <button class="btn btn-sabi"
+                            onclick="document.getElementById('logoutFormMobile').submit()">
+                        Sign Out
+                    </button>
+                    <form id="logoutFormMobile" asp-controller="Account" asp-action="Logout"
+                          method="post" style="display:none">
                         @Html.AntiForgeryToken()
                     </form>
                 }
@@ -241,6 +316,7 @@
 
         <main>@RenderBody()</main>
 
+        <!-- ══ FOOTER ══ -->
         <footer>
             <div class="footer-top">
                 <div class="footer-brand">
@@ -304,82 +380,129 @@
                 <div class="footer-social">
                     <a href="#" class="social-icon" title="X" target="_blank" rel="noopener">𝕏</a>
                     <a href="#" class="social-icon" title="Instagram" target="_blank" rel="noopener">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5" /><path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z" /><line x1="17.5" y1="6.5" x2="17.51" y2="6.5" /></svg>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+                            <path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z" />
+                            <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+                        </svg>
                     </a>
                     <a href="#" class="social-icon" title="LinkedIn" target="_blank" rel="noopener">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2z" /><circle cx="4" cy="4" r="2" /></svg>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2z" />
+                            <circle cx="4" cy="4" r="2" />
+                        </svg>
                     </a>
                     <a href="#" class="social-icon" title="YouTube" target="_blank" rel="noopener">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22.54 6.42a2.78 2.78 0 00-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46a2.78 2.78 0 00-1.95 1.96A29 29 0 001 12a29 29 0 00.46 5.58A2.78 2.78 0 003.41 19.6C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 001.95-1.95A29 29 0 0023 12a29 29 0 00-.46-5.58z" /><polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02" /></svg>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22.54 6.42a2.78 2.78 0 00-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46a2.78 2.78 0 00-1.95 1.96A29 29 0 001 12a29 29 0 00.46 5.58A2.78 2.78 0 003.41 19.6C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 001.95-1.95A29 29 0 0023 12a29 29 0 00-.46-5.58z" />
+                            <polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02" />
+                        </svg>
                     </a>
                 </div>
             </div>
         </footer>
 
-        @RenderSection("Scripts", required: false)
-
-        <script>
-            (function(){
-                var t=localStorage.getItem('sabi-theme')||'dark';
-                document.getElementById('htmlRoot').setAttribute('data-theme',t);
-            })();
-            function toggleTheme(){
-                var h=document.getElementById('htmlRoot');
-                var n=h.getAttribute('data-theme')==='dark'?'light':'dark';
-                h.setAttribute('data-theme',n);localStorage.setItem('sabi-theme',n);
-            }
-            (function(){
-                var bar=document.getElementById('progressBar'),w=0;
-                var iv=setInterval(function(){w=Math.min(w+Math.random()*18,85);bar.style.width=w+'%'},120);
-                window.addEventListener('load',function(){clearInterval(iv);bar.style.width='100%';setTimeout(function(){bar.style.opacity='0'},400)});
-            })();
-            window.addEventListener('scroll',function(){document.getElementById('mainNav').classList.toggle('scrolled',scrollY>20)},{passive:true});
-            function toggleDrawer(){
-                var d=document.getElementById('navDrawer'),b=document.getElementById('burger');
-                var o=d.classList.toggle('open');b.classList.toggle('open',o);
-                document.body.style.overflow=o?'hidden':'';
-            }
-            document.getElementById('navDrawer').addEventListener('click',function(e){if(e.target===this)toggleDrawer()});
-            function dismissAnnounce(){
-                var b=document.getElementById('announceBar');
-                b.style.transition='opacity .3s,max-height .4s';
-                b.style.opacity='0';b.style.maxHeight='0';b.style.padding='0';b.style.overflow='hidden';
-                sessionStorage.setItem('sabi-announce-dismissed','1');
-            }
-            if(sessionStorage.getItem('sabi-announce-dismissed'))dismissAnnounce();
-            window.SabiToast=function(msg,type,duration,title){
-                type=type||'info';duration=duration||4500;
-                var icons={success:'✅',error:'❌',info:'ℹ️',warning:'⚠️'};
-                var zone=document.getElementById('toastZone');
-                var t=document.createElement('div');
-                t.className='toast '+type;
-                t.innerHTML='<span class="t-icon">'+(icons[type]||'ℹ️')+'</span>'+
-                    '<div class="t-body">'+(title?'<div class="t-title">'+title+'</div>':'')+
-                    '<div class="t-msg">'+msg+'</div></div>'+
-                    '<button class="t-close" onclick="this.closest(\'.toast\').remove()">×</button>';
-                zone.appendChild(t);
-                setTimeout(function(){t.style.animation='toast-out .35s forwards';setTimeout(function(){t.remove()},370)},duration);
-            };
-            var _ti='@TempData["info"]',_te='@TempData["Error"]',_ts='@TempData["Success"]';
-            if(_ti&&_ti!=='')SabiToast(_ti,'info');
-            if(_te&&_te!=='')SabiToast(_te,'error');
-            if(_ts&&_ts!=='')SabiToast(_ts,'success');
-            function subscribeNewsletter(){
-                var e=document.getElementById('newsletterEmail').value.trim();
-                if(!e||!/^[^\s@@]+@@[^\s@@]+\.[^\s@@]+$/.test(e)){SabiToast('Please enter a valid email.','warning');return}
-                SabiToast("You're subscribed! Welcome to SabiSpace 🎉",'success',5000,'Subscribed!');
-                document.getElementById('newsletterEmail').value='';
-            }
-            var fels=document.querySelectorAll('.fade-up');
-            if(fels.length){
-                var fio=new IntersectionObserver(function(en){en.forEach(function(e){if(e.isIntersecting){e.target.classList.add('visible');fio.unobserve(e.target)}})},{threshold:0.1});
-                fels.forEach(function(el){fio.observe(el)});
-            }
-            document.getElementById('globalSearch').addEventListener('keydown',function(e){
-                if(e.key==='Enter'&&this.value.trim())SabiToast('Searching for "'+this.value.trim()+'"…','info');
-            });
-        </script>
     }
+    <script>
+        (function(){
+            var t = localStorage.getItem('sabi-theme') || 'dark';
+            document.getElementById('htmlRoot').setAttribute('data-theme', t);
+        })();
 
+        function toggleTheme() {
+            var h = document.getElementById('htmlRoot');
+            var n = h.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            h.setAttribute('data-theme', n);
+            localStorage.setItem('sabi-theme', n);
+        }
+
+        (function(){
+            var bar = document.getElementById('progressBar'), w = 0;
+            var iv = setInterval(function(){ w = Math.min(w + Math.random() * 18, 85); bar.style.width = w + '%'; }, 120);
+            window.addEventListener('load', function(){
+                clearInterval(iv);
+                bar.style.width = '100%';
+                setTimeout(function(){ bar.style.opacity = '0'; }, 400);
+            });
+        })();
+
+        window.addEventListener('scroll', function(){
+            document.getElementById('mainNav').classList.toggle('scrolled', scrollY > 20);
+        }, { passive: true });
+
+        function toggleDrawer() {
+            var d = document.getElementById('navDrawer');
+            var b = document.getElementById('burger');
+            var open = d.classList.toggle('open');
+            b.classList.toggle('open', open);
+            document.body.style.overflow = open ? 'hidden' : '';
+        }
+        document.getElementById('navDrawer').addEventListener('click', function(e){
+            if (e.target === this) toggleDrawer();
+        });
+
+        function dismissAnnounce() {
+            var b = document.getElementById('announceBar');
+            b.style.transition = 'opacity .3s, max-height .4s';
+            b.style.opacity = '0'; b.style.maxHeight = '0';
+            b.style.padding = '0'; b.style.overflow = 'hidden';
+            sessionStorage.setItem('sabi-announce-dismissed', '1');
+        }
+        if (sessionStorage.getItem('sabi-announce-dismissed')) dismissAnnounce();
+
+        window.SabiToast = function(msg, type, duration, title) {
+            type = type || 'info'; duration = duration || 4500;
+            var icons = { success:'✅', error:'❌', info:'ℹ️', warning:'⚠️' };
+            var zone = document.getElementById('toastZone');
+            var t = document.createElement('div');
+            t.className = 'toast ' + type;
+            t.innerHTML = '<span class="t-icon">' + (icons[type]||'ℹ️') + '</span>' +
+                '<div class="t-body">' + (title ? '<div class="t-title">' + title + '</div>' : '') +
+                '<div class="t-msg">' + msg + '</div></div>' +
+                '<button class="t-close" onclick="this.closest(\'.toast\').remove()">×</button>';
+            zone.appendChild(t);
+            setTimeout(function(){
+                t.style.animation = 'toast-out .35s forwards';
+                setTimeout(function(){ t.remove(); }, 370);
+            }, duration);
+        };
+
+        var _ti='@TempData["info"]', _te='@TempData["Error"]', _ts='@TempData["Success"]';
+        if(_ti&&_ti!=='') SabiToast(_ti,'info');
+        if(_te&&_te!=='') SabiToast(_te,'error');
+        if(_ts&&_ts!=='') SabiToast(_ts,'success');
+
+        function subscribeNewsletter() {
+            var e = document.getElementById('newsletterEmail').value.trim();
+            if(!e||!/^[^\s@@]+@@[^\s@@]+\.[^\s@@]+$/.test(e)){
+                SabiToast('Please enter a valid email.','warning'); return;
+            }
+            SabiToast("You're subscribed! Welcome to SabiSpace 🎉",'success',5000,'Subscribed!');
+            document.getElementById('newsletterEmail').value='';
+        }
+
+        var fels = document.querySelectorAll('.fade-up');
+        if (fels.length) {
+            var fio = new IntersectionObserver(function(en){
+                en.forEach(function(e){
+                    if(e.isIntersecting){ e.target.classList.add('visible'); fio.unobserve(e.target); }
+                });
+            }, { threshold: 0.1 });
+            fels.forEach(function(el){ fio.observe(el); });
+        }
+
+        document.getElementById('globalSearch').addEventListener('keydown', function(e){
+            if(e.key==='Enter'&&this.value.trim())
+                SabiToast('Searching for "'+this.value.trim()+'"…','info');
+        });
+    </script>
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/Layout.js" asp-append-version="true"></script>
+
+    @* Load jquery.validate + unobtrusive safely (waits for jQuery) *@
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+
+    @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
