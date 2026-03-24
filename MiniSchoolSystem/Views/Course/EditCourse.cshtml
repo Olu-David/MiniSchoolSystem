@@ -1,7 +1,12 @@
 ﻿@model MiniSchoolSystem.DTO.EditCourseDTO
 @{
     ViewData["Title"] = "Edit Course";
+    if (User.IsInRole("SuperAdmin"))
+    {
+        Layout = "~/Views/Shared/_SuperAdminSidebar.cshtml";
+    }
     Layout = "~/Views/Shared/_Layout.cshtml";
+
     var sections = ViewBag.CourseSection as List<MiniSchoolSystem.Enums.Sections>
                    ?? Enum.GetValues(typeof(MiniSchoolSystem.Enums.Sections))
                           .Cast<MiniSchoolSystem.Enums.Sections>().ToList();
@@ -12,10 +17,7 @@
 }
 
 <div class="course-page">
-    @if (User.IsInRole("SuperAdmin"))
-    {
-        @await Html.PartialAsync("_SabiSpaceSidebar")
-    }
+   
     <!-- HEADER -->
     <div class="page-header">
         <div class="ph-blob phb1" style="background:rgba(245,200,66,.09)"></div>

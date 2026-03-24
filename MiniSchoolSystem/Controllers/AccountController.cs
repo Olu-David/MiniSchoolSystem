@@ -199,6 +199,7 @@ namespace MiniSchoolSystem.Controllers
         {
             if (!ModelState.IsValid)
                 return View(model);
+            
 
             var (result, requires2FA) = await _userService.LoginUserAsync(model);
 
@@ -278,19 +279,18 @@ namespace MiniSchoolSystem.Controllers
             {
                 // 2. Now that they are officially IN, find who they are
                 var appUser = await _userManager.FindByEmailAsync(model.Email);
+                if(appUser==null) return RedirectToAction(nameof(Login));
+            
+                if (await _userManager.IsInRoleAsync(appUser, "Student"))
+                    return RedirectToAction("Index", "Student");
 
-                // 3. DO THE REDIRECT LOGIC AGAIN HERE
-                if (await _userManager.IsInRoleAsync(appUser, "SuperAdmin"))
-                    return RedirectToAction("Index", "SuperAdmin");
-
-                if (await _userManager.IsInRoleAsync(appUser, "Teacher"))
-                    return RedirectToAction("Index", "Teacher");
-
-                return RedirectToAction("Index", "Home");
+              
+                
             }
-
-            ModelState.AddModelError("", "Invalid Verification Code");
-            return View(model);
+            ModelState.AddModelError("", "Invalid Verification Code"); 
+            return RedirectToAction("Index", "Home");
+        
+            
         }
         [HttpGet]
         public IActionResult DeactivateAccount()

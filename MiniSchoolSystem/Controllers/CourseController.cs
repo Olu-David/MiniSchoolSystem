@@ -44,14 +44,8 @@ namespace MiniSchoolSystem.Controllers
         //-------------------------------------------CREATECOURSE---------------------------------------------------------------//
         [HttpGet]
         [Authorize(Roles = "SuperAdmin, Teacher")]
-        public async Task<IActionResult> CreateCourse()
+        public  IActionResult CreateCourse()
         {
-            var UserId = _userManager.GetUserId(User);
-            var Teacher = await _dbContext.DbTeacher.FirstOrDefaultAsync(m => m.TeacherId == UserId);
-            if (Teacher == null)
-            {
-                return BadRequest();
-            }
             return View();
         }
         [Authorize(Roles = "SuperAdmin, Admin")]

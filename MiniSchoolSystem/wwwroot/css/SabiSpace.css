@@ -5619,3 +5619,26 @@ footer {
         padding: 28px 22px;
     }
 }
+/* Hide course view-toggle and theme toggle on laptop widths (769px–1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .view-toggle,
+    .vt-btn,
+    .theme-toggle,
+    .toggle-track,
+    .toggle-thumb {
+        display: none !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+    }
+}
+
+/* If you want to hide only the course page view-toggle (keep theme toggle), use:
+@media (min-width: 769px) and (max-width: 1024px) {
+    .course-page .view-toggle,
+    .course-page .vt-btn {
+        display: none !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+    }
+}
+*/

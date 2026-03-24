@@ -1,15 +1,53 @@
-﻿<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-    <title>Archive Lesson — SabiSpace</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="../css/lesson.css" />
-</head>
-<body>
+﻿@using Microsoft.AspNetCore.Http
+@using Microsoft.AspNetCore.Identity
+@using System.Security.Claims
+@using Org.BouncyCastle.Asn1.Ocsp
+@inject SignInManager<UserDb> SignInManager
+@inject UserManager<UserDb> UserManager
+@inject IHttpContextAccessor HttpContextAccessor
+
+@{
+    ViewData["Title"] = "Archive Lesson";
+
+    if (User.IsInRole("SuperAdmin"))
+    {
+        Layout = "~/Views/Shared/_SuperAdminSidebar.cshtml";
+    }
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var userRole = User.FindFirstValue(ClaimTypes.Role);
+    var displayName = User.Identity?.Name ?? "User";
+
+    bool isAllowedRole = User.IsInRole("SuperAdmin")
+                      || User.IsInRole("Admin")
+                      || User.IsInRole("Teacher")
+                      || User.IsInRole("Student");
+
+    bool isBlockedUser = User.Identity!.IsAuthenticated && !isAllowedRole;
+    bool isLoggedIn = User.Identity!.IsAuthenticated;
+
+    // Fix: Use HttpContextAccessor to access query string
+    var qsId = HttpContextAccessor.HttpContext?.Request.Query["id"].ToString();
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/SabiSpace.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/Lesson.css" asp-append-version="true" />
+}
+
+@if (isBlockedUser)
+{
+    <div style="padding:40px;text-align:center">
+        <h2>Access Restricted</h2>
+        <p>Your account doesn't have a recognised role. Contact support.</p>
+    </div>
+}
+else
+{
+    @if (User.IsInRole("SuperAdmin"))
+    {
+        @await Html.PartialAsync("_SabiSpaceSidebar")
+    }
 
     <div class="page-centered">
         <div class="blob blob-gold   blob-tl"></div>
@@ -61,10 +99,11 @@
             </div>
 
             <!-- Buttons -->
-            <form id="archiveForm" method="post" style="display:contents">
-                <!-- @Html.AntiForgeryToken() -->
+            <form id="archiveForm" asp-controller="Lesson" asp-action="ArchiveLesson" asp-route-id="@(qsId)" method="post" style="display:contents">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="Id" name="id" value="@(qsId)" />
                 <div class="confirm-btns">
-                    <a href="/Lesson" class="btn btn-ghost btn-block">← Cancel</a>
+                    <a asp-controller="Lesson" asp-action="Index" class="btn btn-ghost btn-block">← Cancel</a>
                     <button type="submit" class="btn btn-gold btn-block"
                             id="archiveBtn" disabled
                             onclick="showSubmitSpinner('archiveBtn','archSpin','archTxt','Archiving…')">
@@ -78,27 +117,44 @@
         </div>
     </div>
 
-    <script src="../js/lesson.js"></script>
-    <script>
-        var lessonId = new URLSearchParams(location.search).get('id') || getLessonIdFromUrl();
+    @section Scripts {
+        <script src="~/js/lesson.js" asp-append-version="true"></script>
+        <script>
+            (function(){
+                // lesson id from query or URL helper
+                var lessonId = new URLSearchParams(location.search).get('id') || getLessonIdFromUrl();
 
-        fetch('/Lesson/GetLessons')
-            .then(function(r) { return r.json(); })
-            .then(function(lessons) {
-                var l = lessons.find(function(x) { return String(x.id) === String(lessonId); });
-                if (!l) return;
-                document.getElementById('lpTitle').textContent      = l.title || 'Lesson';
-                document.getElementById('lpDesc').textContent       = l.description || '';
-                document.getElementById('lpDate').textContent       = '📅 ' + fmtDate(l.createdAt);
-                document.getElementById('confirmTitle').textContent = l.title || 'this lesson';
-                if (l.lessonSection) {
-                    var s = document.getElementById('lpSection');
-                    s.textContent   = l.lessonSection;
-                    s.style.display = 'inline-block';
-                }
-            });
+                // Load list (or call an API that returns a single lesson) and populate preview fields
+                fetch('/Lesson/GetLessons')
+                    .then(function(r){ return r.json(); })
+                    .then(function(lessons){
+                        var l = lessons.find(function(x){ return String(x.id) === String(lessonId); });
+                        if(!l) return;
+                        document.getElementById('lpTitle').textContent      = l.title || 'Lesson';
+                        document.getElementById('lpDesc').textContent       = l.description || '';
+                        document.getElementById('lpDate').textContent       = '📅 ' + fmtDate(l.createdAt);
+                        document.getElementById('confirmTitle').textContent = l.title || 'this lesson';
+                        if(l.lessonSection){
+                            var s = document.getElementById('lpSection');
+                            s.textContent = l.lessonSection;
+                            s.style.display = 'inline-block';
+                        }
+                        // Ensure form hidden id matches loaded id
+                        var hidden = document.getElementById('Id');
+                        if(hidden) hidden.value = l.id;
+                        // If qsId was empty, update form action to include id
+                        var form = document.getElementById('archiveForm');
+                        if(form && (!form.getAttribute('asp-route-id') || form.getAttribute('asp-route-id')==='')) {
+                            form.action = '/Lesson/ArchiveLesson?id=' + l.id;
+                        }
+                    })
+                    .catch(function(){
+                        // ignore — preview remains minimal
+                    });
 
-        document.getElementById('archiveForm').action = '/Lesson/ArchiveLesson?id=' + lessonId;
-    </script>
-</body>
-</html>
+                // enable/disable confirm button helper exists in SabiSpace.js
+                // toggleConfirmBtn('confirmCheck','archiveBtn') already wired via onchange in markup
+            })();
+        </script>
+    }
+}

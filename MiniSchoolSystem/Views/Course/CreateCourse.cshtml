@@ -1,7 +1,17 @@
-﻿@model MiniSchoolSystem.DTO.CreateCourseViewDTO
+﻿@using Microsoft.AspNetCore.Identity
+@inject SignInManager<UserDb> SigInManager;
+@inject UserManager<UserDb> UserManager;
+
+
+@model MiniSchoolSystem.DTO.CreateCourseViewDTO
 @{
     ViewData["Title"] = "Create Course";
+     if (User.IsInRole("SuperAdmin"))
+    {
+        Layout = "~/Views/Shared/_SuperAdminSidebar.cshtml";
+    }
     Layout = "~/Views/Shared/_Layout.cshtml";
+
     var sections = ViewBag.CourseSection as List<MiniSchoolSystem.Enums.Sections>
                    ?? Enum.GetValues(typeof(MiniSchoolSystem.Enums.Sections))
                           .Cast<MiniSchoolSystem.Enums.Sections>().ToList();
@@ -12,10 +22,7 @@
 }
 
 <div class="course-page">
-    @if (User.IsInRole("SuperAdmin"))
-    {
-        @await Html.PartialAsync("_SabiSpaceSidebar")
-    }
+   
     <!-- HEADER -->
     <div class="page-header">
         <div class="ph-blob phb1" style="background:rgba(255,92,26,.12)"></div>

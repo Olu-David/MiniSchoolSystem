@@ -1,9 +1,17 @@
 ﻿@using Microsoft.AspNetCore.Identity
 @using System.Security.Claims
-@inject SignInManager<UserDb> SignInManager;
-@inject UserManager<UserDb> UserManager;
+@inject SignInManager<UserDb> SignInManager
+@inject UserManager<UserDb> UserManager
 
 @{
+    ViewData["Title"] = "Lessons";
+  
+    if (User.IsInRole("SuperAdmin"))
+    {
+        Layout = "~/Views/Shared/_SuperAdminSidebar.cshtml";
+    }
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
     var userRole = User.FindFirstValue(ClaimTypes.Role);
     var displayName = User.Identity?.Name ?? "User";
     var currentCtrl = ViewContext.RouteData.Values["controller"]?.ToString();
@@ -16,135 +24,170 @@
 
     bool isBlockedUser = User.Identity!.IsAuthenticated && !isAllowedRole;
     bool isLoggedIn = User.Identity!.IsAuthenticated;
-
-    
-    }
 }
-}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8"/>
-    <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-    <title>Lessons — SabiSpace</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com"/>
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet"/>
-    <link rel="stylesheet" href="~/css/Lesson.css"/>
-</head>
-<body>
 
+@section Styles {
+    <link rel="stylesheet" href="~/css/SabiSpace.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/Lesson.css" asp-append-version="true" />
+}
+
+@if (isBlockedUser)
+{
+    <div style="padding:40px;text-align:center">
+        <h2>Access Restricted</h2>
+        <p>Your account doesn't have a recognised role. Contact support.</p>
+    </div>
+}
+else
+{
+    @* Render super-admin sidebar as a partial inside the layout (not as Layout) *@
     @if (User.IsInRole("SuperAdmin"))
     {
-        @await Html.PartialAsync("_SabiSpaceSidebar")
+        @await Html.PartialAsync("_SuperAdminSidebar")
     }
-<div class="lesson-page">
 
-    <!-- ======================================================
-         PAGE HEADER
-    ====================================================== -->
-    <div class="page-header">
-        <div class="blob blob-orange blob-tl"></div>
-        <div class="blob blob-sage   blob-br"></div>
-        <div class="page-header-inner">
-            <div>
-                <h1 class="page-header-title">SabiSpace Lessons</h1>
-                <p class="page-header-sub">Expert-taught, curriculum-aligned lessons for every section.</p>
-                <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
-                    <span class="badge badge-live"><span class="badge-dot"></span>Live Now</span>
-                    <span class="badge badge-sabi">🎓 12,000+ Learners</span>
-                    <span class="badge badge-sabi">📚 340+ Lessons</span>
+    <div class="lesson-page">
+
+        <!-- PAGE HEADER -->
+        <div class="page-header">
+            <div class="blob blob-orange blob-tl"></div>
+            <div class="blob blob-sage blob-br"></div>
+            <div class="page-header-inner">
+                <div>
+                    <h1 class="page-header-title">SabiSpace Lessons</h1>
+                    <p class="page-header-sub">Expert-taught, curriculum-aligned lessons for every section.</p>
+                    <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
+                        <span class="badge badge-live"><span class="badge-dot"></span>Live Now</span>
+                        <span class="badge badge-sabi">🎓 12,000+ Learners</span>
+                        <span class="badge badge-sabi">📚 340+ Lessons</span>
+                    </div>
                 </div>
+
+                @* Show create button server-side for Teacher / SuperAdmin *@
+                @if (User.IsInRole("Teacher") || User.IsInRole("SuperAdmin"))
+                {
+                    <div id="createBtnWrap">
+                        <a href="/Lesson/CreateLesson" class="btn btn-sabi">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                            Create Lesson
+                        </a>
+                    </div>
+                }
             </div>
-            <!-- Teacher / SuperAdmin only — shown via JS class toggle -->
-            <div id="createBtnWrap" style="display:none">
-                <a href="/Lesson/CreateLesson" class="btn btn-sabi">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-                    Create Lesson
-                </a>
+        </div>
+
+        <!-- TOOLBAR -->
+        <div class="toolbar">
+            <div class="search-wrap">
+                <span class="search-icon">⌕</span>
+                <input type="search" id="searchInput" placeholder="Search lessons…" />
+            </div>
+            <select class="filter-select" id="sectionFilter">
+                <option value="">All Sections</option>
+                <option value="JSS1">JSS 1</option>
+                <option value="JSS2">JSS 2</option>
+                <option value="JSS3">JSS 3</option>
+                <option value="SS1">SS 1</option>
+                <option value="SS2">SS 2</option>
+                <option value="SS3">SS 3</option>
+                <option value="Higher">Higher</option>
+                <option value="Professional">Professional</option>
+            </select>
+            <div class="view-toggle">
+                <button class="vt-btn active" id="gridBtn" title="Grid">⊞</button>
+                <button class="vt-btn" id="listBtn" title="List">☰</button>
+            </div>
+            <span class="results-count" id="resultsCount">Loading…</span>
+        </div>
+
+        <!-- GRID -->
+        <div class="lessons-grid" id="lessonsGrid">
+            <div class="empty-state">
+                <div class="empty-icon">⏳</div>
+                <h3>Loading lessons…</h3>
+                <p>Fetching the latest lessons for you.</p>
             </div>
         </div>
-    </div>
 
-    <!-- ======================================================
-         TOOLBAR
-    ====================================================== -->
-    <div class="toolbar">
-        <div class="search-wrap">
-            <span class="search-icon">⌕</span>
-            <input type="search" id="searchInput" placeholder="Search lessons…"/>
-        </div>
-        <select class="filter-select" id="sectionFilter">
-            <option value="">All Sections</option>
-            <option value="JSS1">JSS 1</option>
-            <option value="JSS2">JSS 2</option>
-            <option value="JSS3">JSS 3</option>
-            <option value="SS1">SS 1</option>
-            <option value="SS2">SS 2</option>
-            <option value="SS3">SS 3</option>
-            <option value="Higher">Higher</option>
-            <option value="Professional">Professional</option>
-        </select>
-        <div class="view-toggle">
-            <button class="vt-btn active" id="gridBtn" title="Grid">⊞</button>
-            <button class="vt-btn"        id="listBtn" title="List">☰</button>
-        </div>
-        <span class="results-count" id="resultsCount">Loading…</span>
-    </div>
-
-    <!-- ======================================================
-         GRID
-    ====================================================== -->
-    <div class="lessons-grid" id="lessonsGrid">
-        <div class="empty-state">
-            <div class="empty-icon">⏳</div>
-            <h3>Loading lessons…</h3>
-            <p>Fetching the latest lessons for you.</p>
-        </div>
-    </div>
-
-    <!-- FAB (Teacher/SuperAdmin only — shown via JS) -->
-    <a href="/Lesson/CreateLesson" class="fab" id="fab" style="display:none" title="Create lesson">＋</a>
-
-</div>
-
-<script src="../js/lesson.js"></script>
-<script>
-           // 1. The Filter Engine
-        function filterLessons(lessons, query, section) {
-            const q = query.toLowerCase();
-            return lessons.filter(function(l) {
-                const matchesSearch = l.title.toLowerCase().includes(q) ||
-                                      l.description.toLowerCase().includes(q);
-                const matchesSection = !section || l.section == section;
-
-                return matchesSearch && matchesSection;
-            });
+        @* FAB shown only to Teacher / SuperAdmin *@
+        @if (User.IsInRole("Teacher") || User.IsInRole("SuperAdmin"))
+        {
+            <a href="/Lesson/CreateLesson" class="fab" id="fab" title="Create lesson">＋</a>
         }
+    </div>
 
-        // 2. The Render Engine
-        function renderLessons(data, grid, countLabel) {
-            // Update the "Found X lessons" text
-            countLabel.innerText = data.length;
-
-            if (data.length === 0) {
-                grid.innerHTML = '<div class="empty-state"><h3>No lessons found</h3></div>';
-                return;
+    @section Scripts {
+        <script src="~/js/lesson.js" asp-append-version="true"></script>
+        <script>
+            // 1. The Filter Engine
+            function filterLessons(lessons, query, section) {
+                const q = query.toLowerCase();
+                return lessons.filter(function (l) {
+                    const matchesSearch = (l.title || '').toLowerCase().includes(q) ||
+                        (l.description || '').toLowerCase().includes(q);
+                    const matchesSection = !section || (l.section || '') === section;
+                    return matchesSearch && matchesSection;
+                });
             }
 
-            // Generate the HTML for the cards
-            grid.innerHTML = data.map(function(lesson) {
-                return `
-                    <div class="lesson-card">
-                        <div class="card-body">
-                            <span class="badge">${lesson.sectionName ?? 'General'}</span>
-                            <h4>${lesson.title}</h4>
-                            <p>${lesson.description.substring(0, 100)}...</p>
-                            <a href="/Lesson/Details/${lesson.id}" class="btn-view">View Lesson</a>
-                        </div>
-                    </div>`;
-            }).join('');
-        }
-</script>
-</body>
-</html>
+            // 2. The Render Engine
+            function renderLessons(data, grid, countLabel) {
+                countLabel.innerText = data.length;
+                if (!data || data.length === 0) {
+                    grid.innerHTML = '<div class="empty-state"><h3>No lessons found</h3></div>';
+                    return;
+                }
+                grid.innerHTML = data.map(function (lesson) {
+                    return `
+                        <div class="lesson-card">
+                            <div class="card-body">
+                                <span class="badge">${lesson.sectionName ?? 'General'}</span>
+                                <h4>${(lesson.title || '').replace(/</g,'&lt;')}</h4>
+                                <p>${((lesson.description||'').substring(0,100)).replace(/</g,'&lt;')}...</p>
+                                <a href="/Lesson/Details/${lesson.id}" class="btn-view">View Lesson</a>
+                            </div>
+                        </div>`;
+                }).join('');
+            }
+
+            // Wire controls (basic)
+            (function () {
+                var allLessons = [];
+                var grid = document.getElementById('lessonsGrid');
+                var countLabel = document.getElementById('resultsCount');
+                var search = document.getElementById('searchInput');
+                var sectionSelect = document.getElementById('sectionFilter');
+
+                // Fetch lessons
+                fetch('/Lesson/All')
+                    .then(function (r) { return r.json(); })
+                    .then(function (data) {
+                        allLessons = data || [];
+                        renderLessons(allLessons, grid, countLabel);
+                    })
+                    .catch(function () {
+                        grid.innerHTML = '<div class="empty-state"><div class="empty-icon">😔</div><h3>Could not load lessons</h3><p>Please refresh and try again.</p></div>';
+                    });
+
+                function applyFilter() {
+                    var q = (search.value || '').trim();
+                    var s = sectionSelect.value;
+                    renderLessons(filterLessons(allLessons, q, s), grid, countLabel);
+                }
+
+                search.addEventListener('input', applyFilter);
+                sectionSelect.addEventListener('change', applyFilter);
+
+                // view toggle handlers (optional)
+                document.getElementById('gridBtn').addEventListener('click', function () {
+                    this.classList.add('active'); document.getElementById('listBtn').classList.remove('active');
+                    document.getElementById('lessonsGrid').classList.remove('list-view');
+                });
+                document.getElementById('listBtn').addEventListener('click', function () {
+                    this.classList.add('active'); document.getElementById('gridBtn').classList.remove('active');
+                    document.getElementById('lessonsGrid').classList.add('list-view');
+                });
+            })();
+        </script>
+    }
+}

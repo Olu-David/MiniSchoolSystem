@@ -11,7 +11,7 @@
     padding: 0;
 }
 
-html  
+html {
     scroll-behavior: smooth;
 }
 
@@ -24,6 +24,10 @@ body {
 a {
     color: inherit;
 }
+
+a:hover { color: red; } /* valid pseudo-class */
+  /* or */
+  a { color: red; }      /* remove the colon */
 
 ul {
     list-style: none;
@@ -288,6 +292,8 @@ button {
         color: #a855f7;
         border: 1px solid rgba(168,85,247,.25);
     }
+
+
 
 /* Actions */
 .nav-actions {
@@ -924,5 +930,19 @@ footer {
     .announce-bar {
         font-size: 12px;
         padding: 8px 40px 8px 16px;
+    }
+}
+
+/* Hide course toggle bar on laptop-sized screens (replace selector with the actual toggle selector) */
+@media (min-width: 769px) and (max-width: 1024px) {
+    /* Example selectors you may need to replace: .course-toggle, .toggle-track, .theme-toggle, #courseToggle */
+    .course-toggle,
+    .toggle-track,
+    .theme-toggle,
+    [data-role="course-toggle"],
+    #courseToggle {
+        display: none !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
     }
 }

@@ -1,5 +1,9 @@
 ﻿@{
     ViewData["Title"] = "Delete Lesson";
+    if (User.IsInRole("SuperAdmin"))
+    {
+        Layout = "~/Views/Shared/_SuperAdminSidebar.cshtml";
+    }
     Layout = "~/Views/Shared/_Layout.cshtml";
 
     var lesson = ViewBag.Lesson;

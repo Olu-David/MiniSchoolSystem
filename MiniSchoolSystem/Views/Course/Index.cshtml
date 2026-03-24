@@ -5,7 +5,14 @@
 
 @{
     ViewData["Title"] = "Courses";
+
+    if (User.IsInRole("SuperAdmin"))
+    {
+        Layout = "~/Views/Shared/_SuperAdminSidebar.cshtml";
+    }
     Layout = "~/Views/Shared/_Layout.cshtml";
+    
+    
 
     var UserRole = User.FindFirstValue(ClaimTypes.Role);
     var displayName = User.Identity?.Name ?? "User";
@@ -48,10 +55,7 @@
 }
 
 <div class="course-page">
-    @if ( User.IsInRole ("SuperAdmin"))
-    {
-         @await Html.PartialAsync("_SabiSpaceSidebar")
-    }
+
    
     <!-- PAGE HEADER -->
     <div class="page-header">

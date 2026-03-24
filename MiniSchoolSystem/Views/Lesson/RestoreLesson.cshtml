@@ -1,15 +1,49 @@
-﻿<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-    <title>Restore Lesson — SabiSpace</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="../css/lesson.css" />
-</head>
-<body>
+﻿@using Microsoft.AspNetCore.Identity
+@using System.Security.Claims
+@inject SignInManager<UserDb> SignInManager
+@inject UserManager<UserDb> UserManager
+@inject IHttpContextAccessor HttpContextAccessor
+@{
+    ViewData["Title"] = "Restore Lesson";
+    if (User.IsInRole("SuperAdmin"))
+    {
+        Layout = "~/Views/Shared/_SuperAdminSidebar.cshtml";
+    }
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var userRole = User.FindFirstValue(ClaimTypes.Role);
+    var displayName = User.Identity?.Name ?? "User";
+
+    bool isAllowedRole = User.IsInRole("SuperAdmin")
+                      || User.IsInRole("Admin")
+                      || User.IsInRole("Teacher")
+                      || User.IsInRole("Student");
+
+    bool isBlockedUser = User.Identity!.IsAuthenticated && !isAllowedRole;
+    bool isLoggedIn = User.Identity!.IsAuthenticated;
+
+    // prefer server-side reading of ?id when present
+    var qsId = HttpContextAccessor.HttpContext?.Request.Query["id"].ToString();
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/SabiSpace.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/Lesson.css" asp-append-version="true" />
+}
+
+@if (isBlockedUser)
+{
+    <div style="padding:40px;text-align:center">
+        <h2>Access Restricted</h2>
+        <p>Your account doesn't have a recognised role. Contact support.</p>
+    </div>
+}
+else
+{
+    @if (User.IsInRole("SuperAdmin"))
+    {
+        @await Html.PartialAsync("_SabiSpaceSidebar")
+    }
 
     <div class="page-centered">
         <div class="blob blob-sage blob-tl"></div>
@@ -69,10 +103,11 @@
             </div>
 
             <!-- Buttons -->
-            <form id="restoreForm" method="post" style="display:contents">
-                <!-- @Html.AntiForgeryToken() -->
+            <form id="restoreForm" asp-controller="Lesson" asp-action="RestoreLesson" asp-route-id="@(qsId)" method="post" style="display:contents">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="Id" name="id" value="@(qsId)" />
                 <div class="confirm-btns">
-                    <a href="/Lesson" class="btn btn-ghost btn-block">← Cancel</a>
+                    <a asp-controller="Lesson" asp-action="Index" class="btn btn-ghost btn-block">← Cancel</a>
                     <button type="submit" class="btn btn-sage btn-block"
                             id="restoreBtn"
                             onclick="showSubmitSpinner('restoreBtn','restSpin','restTxt','Restoring…')">
@@ -85,58 +120,67 @@
         </div>
     </div>
 
-    <script src="../js/lesson.js"></script>
-    <script>
-        var lessonId = new URLSearchParams(location.search).get('id') || getLessonIdFromUrl();
+    @section Scripts {
+        <script src="~/js/lesson.js" asp-append-version="true"></script>
+        <script>
+            (function () {
+                var lessonId = new URLSearchParams(location.search).get('id') || getLessonIdFromUrl() || '@qsId';
 
-        // NOTE: GetLessons only returns active lessons.
-        // In the real app, the controller passes ViewBag.Lesson which includes deleted ones.
-        // This HTML file uses a separate endpoint if available, or falls back to a placeholder.
+                // Try to fetch deleted lessons; controller may provide a dedicated endpoint
+                fetch('/Lesson/GetDeletedLessons')
+                    .then(function (r) { return r.json(); })
+                    .then(function (lessons) {
+                        var l = lessons.find(function (x) { return String(x.id) === String(lessonId); });
+                        if (!l) return populateFallback();
+                        populate(l);
+                    })
+                    .catch(function () {
+                        populateFallback();
+                    });
 
-        fetch('/Lesson/GetDeletedLessons')   // you may need to add this endpoint
-            .then(function(r) { return r.json(); })
-            .then(function(lessons) {
-                var l = lessons.find(function(x) { return String(x.id) === String(lessonId); });
-                if (!l) return;
-                populate(l);
-            })
-            .catch(function() {
-                // Fallback — just wire the form
-                document.getElementById('restoreForm').action = '/Lesson/RestoreLesson?id=' + lessonId;
-            });
-
-        function populate(l) {
-            document.getElementById('lpTitle').textContent = l.title || 'Lesson';
-            document.getElementById('lpDesc').textContent  = l.description || '';
-            document.getElementById('lpDelBadge').style.display = 'inline-flex';
-
-            if (l.deletedAt) {
-                document.getElementById('lpDeleted').textContent =
-                    '🗑 Deleted: ' + fmtDate(l.deletedAt);
-
-                var daysGone      = (Date.now() - new Date(l.deletedAt).getTime()) / 86400000;
-                var daysRemaining = Math.max(0, Math.ceil(30 - daysGone));
-
-                document.getElementById('timerBox').style.display  = 'flex';
-                document.getElementById('timerDays').textContent   = daysRemaining;
-                document.getElementById('timerTitle').textContent  =
-                    daysRemaining + ' day' + (daysRemaining !== 1 ? 's' : '') + ' remaining';
-
-                if (daysRemaining <= 0) {
-                    document.getElementById('timerSub').innerHTML =
-                        '<span style="color:var(--danger)">Window expired — cannot restore</span>';
-                    document.getElementById('restoreBtn').disabled = true;
-                } else {
-                    var expiry = new Date(new Date(l.deletedAt).getTime() + 30*86400000);
-                    document.getElementById('timerSub').textContent =
-                        'Window closes ' + fmtDate(expiry.toISOString());
+                function populateFallback() {
+                    // Ensure the form action contains the id
+                    var form = document.getElementById('restoreForm');
+                    if (form && lessonId) form.action = '/Lesson/RestoreLesson?id=' + lessonId;
                 }
 
-                initTimerRing(daysRemaining, 30);
-            }
+                function populate(l) {
+                    document.getElementById('lpTitle').textContent = l.title || 'Lesson';
+                    document.getElementById('lpDesc').textContent = l.description || '';
+                    document.getElementById('lpDelBadge').style.display = 'inline-flex';
 
-            document.getElementById('restoreForm').action = '/Lesson/RestoreLesson?id=' + l.id;
-        }
-    </script>
-</body>
-</html>
+                    if (l.deletedAt) {
+                        document.getElementById('lpDeleted').textContent =
+                            '🗑 Deleted: ' + fmtDate(l.deletedAt);
+
+                        var daysGone = (Date.now() - new Date(l.deletedAt).getTime()) / 86400000;
+                        var daysRemaining = Math.max(0, Math.ceil(30 - daysGone));
+
+                        document.getElementById('timerBox').style.display = 'flex';
+                        document.getElementById('timerDays').textContent = daysRemaining;
+                        document.getElementById('timerTitle').textContent =
+                            daysRemaining + ' day' + (daysRemaining !== 1 ? 's' : '') + ' remaining';
+
+                        if (daysRemaining <= 0) {
+                            document.getElementById('timerSub').innerHTML =
+                                '<span style="color:var(--danger)">Window expired — cannot restore</span>';
+                            document.getElementById('restoreBtn').disabled = true;
+                        } else {
+                            var expiry = new Date(new Date(l.deletedAt).getTime() + 30 * 86400000);
+                            document.getElementById('timerSub').textContent =
+                                'Window closes ' + fmtDate(expiry.toISOString());
+                        }
+
+                        initTimerRing(daysRemaining, 30);
+                    }
+
+                    // ensure form action & hidden id match
+                    var form = document.getElementById('restoreForm');
+                    if (form) form.action = '/Lesson/RestoreLesson?id=' + l.id;
+                    var hidden = document.getElementById('Id');
+                    if (hidden) hidden.value = l.id;
+                }
+            })();
+        </script>
+    }
+}

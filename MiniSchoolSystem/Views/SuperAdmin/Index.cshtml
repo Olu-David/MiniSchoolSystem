@@ -1,5 +1,6 @@
-﻿@{
-    ViewData["Title"] = "SuperAdmin";
+﻿@model MiniSchoolSystem.DTO.AdminDashboardViewModel
+@{
+    ViewData["Title"] = "Dashboard";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
@@ -9,77 +10,146 @@
 
 <div class="sa-wrap">
     @await Html.PartialAsync("_SuperAdminSidebar")
-   <partial></partial>
+
     <div class="sa-content">
-        <!-- Mobile sidebar toggle -->
-        <button id="saSidebarToggle" class="sa-btn sa-btn-ghost sa-btn-sm" style="display:none;margin-bottom:16px">
-            ☰ Menu
-        </button>
 
         <div class="sa-page-header">
             <div>
-                <h1 class="sa-page-title">👋 Welcome back, SuperAdmin</h1>
-                <p class="sa-page-sub">Here's what's happening across SabiSpace today.</p>
+                <h1 class="sa-page-title">📊 Dashboard</h1>
+                <p class="sa-page-sub">System-wide statistics and activity overview.</p>
             </div>
-            <a asp-action="Dashboard" class="sa-btn sa-btn-primary">
-                📊 Full Dashboard
-            </a>
+            <span style="font-size:12px;color:var(--text-dim)">Last updated: @DateTime.Now.ToString("dd MMM yyyy, HH:mm")</span>
         </div>
 
-        <!-- Quick stat cards -->
+        <!-- Stat Cards -->
         <div class="sa-stats-grid sa-fade-up">
             <div class="sa-stat-card c-sabi">
                 <div class="sa-stat-icon">🎓</div>
-                <div class="sa-stat-num" data-count data-target="0">—</div>
+                <div class="sa-stat-num" data-count data-target="@Model.TotalStudents">@Model.TotalStudents</div>
                 <div class="sa-stat-label">Total Students</div>
-                <span class="sa-stat-change up">↑ See Dashboard</span>
+                <span class="sa-stat-change up">↑ Registered learners</span>
             </div>
             <div class="sa-stat-card c-sky">
                 <div class="sa-stat-icon">👨‍🏫</div>
-                <div class="sa-stat-num" data-count data-target="0">—</div>
+                <div class="sa-stat-num" data-count data-target="@Model.TotalTeachers">@Model.TotalTeachers</div>
                 <div class="sa-stat-label">Total Teachers</div>
-                <span class="sa-stat-change up">↑ See Dashboard</span>
+                <span class="sa-stat-change up">↑ Active educators</span>
             </div>
             <div class="sa-stat-card c-gold">
                 <div class="sa-stat-icon">📚</div>
-                <div class="sa-stat-num" data-count data-target="0">—</div>
+                <div class="sa-stat-num" data-count data-target="@Model.TotalCourses">@Model.TotalCourses</div>
                 <div class="sa-stat-label">Active Courses</div>
-                <span class="sa-stat-change up">↑ See Dashboard</span>
+                <span class="sa-stat-change up">↑ Live &amp; published</span>
             </div>
             <div class="sa-stat-card c-sage">
                 <div class="sa-stat-icon">💰</div>
-                <div class="sa-stat-num">—</div>
+                <div class="sa-stat-num"
+                     data-count
+                     data-target="@Model.TotalRevenue"
+                     data-prefix="₦"
+                     data-float="true">
+                    ₦@Model.TotalRevenue.ToString("N2")
+                </div>
                 <div class="sa-stat-label">Total Revenue</div>
-                <span class="sa-stat-change up">↑ See Dashboard</span>
+                <span class="sa-stat-change up">↑ Lifetime earnings</span>
             </div>
         </div>
 
-        <!-- Quick links -->
-        <div class="sa-card sa-fade-up">
-            <div class="sa-card-header">
-                <h3 class="sa-card-title">⚡ Quick Actions</h3>
+        <!-- Placeholder stats (ready to wire up) -->
+        <div class="sa-stats-grid sa-fade-up" style="grid-template-columns:repeat(3,1fr)">
+            <div class="sa-stat-card c-purple">
+                <div class="sa-stat-icon">🧠</div>
+                <div class="sa-stat-num">—</div>
+                <div class="sa-stat-label">Quizzes Taken</div>
+                <span class="sa-stat-change" style="color:var(--text-dim);background:transparent">Coming soon</span>
             </div>
-            <div class="sa-card-body" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px">
-                <a asp-action="Dashboard" class="sa-btn sa-btn-ghost" style="justify-content:flex-start;padding:14px 16px">📊 View Dashboard</a>
-                <a asp-action="ManageUsers" class="sa-btn sa-btn-ghost" style="justify-content:flex-start;padding:14px 16px">👥 Manage Users</a>
-                <a asp-action="ManageStaff" class="sa-btn sa-btn-ghost" style="justify-content:flex-start;padding:14px 16px">🧑‍💼 Manage Staff</a>
-                <a asp-action="PromoteToAdmin" class="sa-btn sa-btn-ghost" style="justify-content:flex-start;padding:14px 16px">⬆️ Promote to Admin</a>
+            <div class="sa-stat-card c-sabi">
+                <div class="sa-stat-icon">📝</div>
+                <div class="sa-stat-num">—</div>
+                <div class="sa-stat-label">Assignments Submitted</div>
+                <span class="sa-stat-change" style="color:var(--text-dim);background:transparent">Coming soon</span>
+            </div>
+            <div class="sa-stat-card c-gold">
+                <div class="sa-stat-icon">🏅</div>
+                <div class="sa-stat-num">—</div>
+                <div class="sa-stat-label">Certificates Issued</div>
+                <span class="sa-stat-change" style="color:var(--text-dim);background:transparent">Coming soon</span>
             </div>
         </div>
+
+        <!-- Bottom grid: Activity + Quick links -->
+        <div style="display:grid;grid-template-columns:1fr 340px;gap:24px;margin-top:8px" class="sa-fade-up">
+
+            <!-- Recent Activity (placeholder — wire to real data later) -->
+            <div class="sa-card">
+                <div class="sa-card-header">
+                    <h3 class="sa-card-title">🕐 Recent Activity</h3>
+                    <a href="#" class="sa-btn sa-btn-ghost sa-btn-sm">View all</a>
+                </div>
+                <div class="sa-card-body" style="padding:0 24px">
+                    <div class="sa-activity">
+                        <div class="sa-activity-item">
+                            <div class="sa-activity-dot dot-sabi"></div>
+                            <div>
+                                <div class="sa-activity-text"><strong>New student registered</strong> — activity feed coming soon</div>
+                                <div class="sa-activity-time">Just now</div>
+                            </div>
+                        </div>
+                        <div class="sa-activity-item">
+                            <div class="sa-activity-dot dot-sky"></div>
+                            <div>
+                                <div class="sa-activity-text"><strong>Course published</strong> — wire to real events</div>
+                                <div class="sa-activity-time">2 min ago</div>
+                            </div>
+                        </div>
+                        <div class="sa-activity-item">
+                            <div class="sa-activity-dot dot-gold"></div>
+                            <div>
+                                <div class="sa-activity-text"><strong>Assignment submitted</strong> — pending review</div>
+                                <div class="sa-activity-time">5 min ago</div>
+                            </div>
+                        </div>
+                        <div class="sa-activity-item">
+                            <div class="sa-activity-dot dot-sage"></div>
+                            <div>
+                                <div class="sa-activity-text"><strong>Quiz completed</strong> — score recorded</div>
+                                <div class="sa-activity-time">12 min ago</div>
+                            </div>
+                        </div>
+                        <div class="sa-activity-item">
+                            <div class="sa-activity-dot dot-purple"></div>
+                            <div>
+                                <div class="sa-activity-text"><strong>Certificate issued</strong> — Web Dev course</div>
+                                <div class="sa-activity-time">1 hr ago</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="sa-card">
+                <div class="sa-card-header">
+                    <h3 class="sa-card-title">⚡ Quick Actions</h3>
+                </div>
+                <div class="sa-card-body" style="display:flex;flex-direction:column;gap:10px">
+                    <a asp-action="ManageUsers" class="sa-btn sa-btn-ghost" style="justify-content:flex-start">👥 Manage All Users</a>
+                    <a asp-action="ManageStaff" class="sa-btn sa-btn-ghost" style="justify-content:flex-start">🧑‍💼 Manage Staff</a>
+                    <a asp-action="PromoteToAdmin" class="sa-btn sa-btn-ghost" style="justify-content:flex-start">⬆️ Promote to Admin</a>
+                    <a asp-controller="Course" asp-action="Create" class="sa-btn sa-btn-ghost" style="justify-content:flex-start">➕ Add New Course</a>
+                    <a asp-controller="Lesson" asp-action="Create" class="sa-btn sa-btn-ghost" style="justify-content:flex-start">➕ Add New Lesson</a>
+                    <hr style="border:none;border-top:1px solid var(--border);margin:4px 0">
+                    <a href="#" onclick="saToast('Settings coming soon','info');return false"
+                       class="sa-btn sa-btn-ghost" style="justify-content:flex-start;opacity:.6">⚙️ System Settings</a>
+                    <a href="#" onclick="saToast('Audit log coming soon','info');return false"
+                       class="sa-btn sa-btn-ghost" style="justify-content:flex-start;opacity:.6">📋 Audit Log</a>
+                </div>
+            </div>
+        </div>
+
     </div>
 </div>
 
-<div id="saSidebarOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:899"></div>
-
 @section Scripts {
     <script src="~/js/SuperAdmin.js" asp-append-version="true"></script>
-    <script>
-        // Show sidebar toggle on mobile
-        if (window.innerWidth <= 768) {
-            document.getElementById('saSidebarToggle').style.display = 'inline-flex';
-            document.getElementById('saSidebarOverlay').style.display = 'block';
-            document.getElementById('saSidebarOverlay').style.opacity = '0';
-            document.getElementById('saSidebarOverlay').style.pointerEvents = 'none';
-        }
-    </script>
 }

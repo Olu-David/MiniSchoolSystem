@@ -1,15 +1,49 @@
-﻿<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-    <title>Edit Lesson — SabiSpace</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="../css/lesson.css" />
-</head>
-<body>
+﻿@using Microsoft.AspNetCore.Identity
+@using System.Security.Claims
+@inject SignInManager<UserDb> SignInManager
+@inject UserManager<UserDb> UserManager
+
+@{
+
+    if (User.IsInRole("SuperAdmin"))
+    {
+        Layout = "~/Views/Shared/_SuperAdminSidebar.cshtml";
+    }
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var userRole = User.FindFirstValue(ClaimTypes.Role);
+    var displayName = User.Identity?.Name ?? "User";
+    var currentCtrl = ViewContext.RouteData.Values["controller"]?.ToString();
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
+
+    bool isAllowedRole = User.IsInRole("SuperAdmin")
+                      || User.IsInRole("Admin")
+                      || User.IsInRole("Teacher")
+                      || User.IsInRole("Student");
+
+    bool isBlockedUser = User.Identity!.IsAuthenticated && !isAllowedRole;
+    bool isLoggedIn = User.Identity!.IsAuthenticated;
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/SabiSpace.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/Lesson.css" asp-append-version="true" />
+}
+
+@if (isBlockedUser)
+{
+    <div style="padding:40px;text-align:center">
+        <h2>Access Restricted</h2>
+        <p>Your account doesn't have a recognised role. Contact support.</p>
+    </div>
+}
+else
+{
+    @* render sidebar inside the page when needed (partial must not define sections) *@
+    @if (User.IsInRole("SuperAdmin"))
+    {
+        @await Html.PartialAsync("_SabiSpaceSidebar")
+    }
 
     <div class="lesson-page">
 
@@ -20,8 +54,8 @@
             <div class="page-header-inner">
                 <div>
                     <div class="breadcrumb">
-                        <a href="/">Home</a><span>›</span>
-                        <a href="/Lesson">Lessons</a><span>›</span>
+                        <a asp-controller="Home" asp-action="Index">Home</a><span>›</span>
+                        <a asp-controller="Lesson" asp-action="Index">Lessons</a><span>›</span>
                         <span style="color:var(--text-secondary)">Edit Lesson</span>
                     </div>
                     <h1 class="page-header-title">Edit Lesson</h1>
@@ -163,10 +197,10 @@
 
                 <!-- ACTIONS -->
                 <div class="form-actions">
-                    <a href="/Lesson" class="btn btn-ghost">← Cancel</a>
+                    <a asp-controller="Lesson" asp-action="Index" class="btn btn-ghost">← Cancel</a>
                     <div class="form-actions-right">
                         <a id="deleteBtnBottom" href="#" class="btn btn-danger" style="border-radius:50px">🗑 Delete</a>
-                        <button type="submit" class="btn btn-sabi" id="saveBtn" onclick="handleSave(event)">
+                        <button type="submit" class="btn btn-sabi" id="saveBtn">
                             <span class="btn-spin" id="saveSpin"></span>
                             <span id="saveTxt">💾 Save Changes</span>
                         </button>
@@ -177,73 +211,74 @@
         </div>
     </div>
 
-    <script src="../js/lesson.js"></script>
-    <script>
-        var lessonId = getLessonIdFromUrl();
+    @section Scripts {
+        <script src="~/js/lesson.js" asp-append-version="true"></script>
+        <script>
+            var lessonId = getLessonIdFromUrl();
 
-        // Load lesson data and pre-fill form
-        fetch('/Lesson/GetLessons')
-            .then(function(r) { return r.json(); })
-            .then(function(lessons) {
-                var l = lessons.find(function(x) { return String(x.id) === String(lessonId); });
-                if (!l) return;
-                prefill(l);
-            });
+            // Load lesson data and pre-fill form
+            fetch('/Lesson/GetLessons')
+                .then(function (r) { return r.json(); })
+                .then(function (lessons) {
+                    var l = lessons.find(function (x) { return String(x.id) === String(lessonId); });
+                    if (!l) return;
+                    prefill(l);
+                });
 
-        function prefill(l) {
-            // Wire form action
-            document.getElementById('editForm').action = '/Lesson/EditLesson/' + l.id;
+            function prefill(l) {
+                // Wire form action
+                document.getElementById('editForm').action = '/Lesson/EditLesson/' + l.id;
 
-            // Header
-            document.getElementById('editingTitle').textContent = l.title || '';
-            document.title = 'Edit: ' + (l.title || '') + ' — SabiSpace';
+                // Header
+                document.getElementById('editingTitle').textContent = l.title || '';
+                document.title = 'Edit: ' + (l.title || '') + ' — SabiSpace';
 
-            // Fields
-            document.getElementById('Title').value       = l.title       || '';
-            document.getElementById('Description').value = l.description || '';
-            document.getElementById('Id').value          = l.id;
-            document.getElementById('IdDisplay').value   = l.id;
+                // Fields
+                document.getElementById('Title').value = l.title || '';
+                document.getElementById('Description').value = l.description || '';
+                document.getElementById('Id').value = l.id;
+                document.getElementById('IdDisplay').value = l.id;
 
-            // Select section
-            var sel = document.getElementById('LessonSection');
-            for (var i = 0; i < sel.options.length; i++) {
-                if (sel.options[i].value === l.lessonSection) {
-                    sel.selectedIndex = i; break;
+                // Select section
+                var sel = document.getElementById('LessonSection');
+                for (var i = 0; i < sel.options.length; i++) {
+                    if (sel.options[i].value === l.lessonSection) {
+                        sel.selectedIndex = i; break;
+                    }
                 }
+
+                // Content
+                var c = (l.lessonContents || l.lessonContent || [])[0] || {};
+                document.getElementById('Content').value = c.content || '';
+                countChars(document.getElementById('Content'), 'contentCount', 10000);
+                countChars(document.getElementById('Title'), 'titleCount', 120);
+                countChars(document.getElementById('Description'), 'descCount', 500);
+
+                // Existing file
+                if (c.fileUrl) {
+                    document.getElementById('existingFileWrap').style.display = 'flex';
+                    document.getElementById('existingFileLink').href = c.fileUrl;
+                }
+
+                // Nav buttons
+                document.getElementById('previewBtn').href = '/Lesson/Details/' + l.id;
+                document.getElementById('deleteBtn').href = '/Lesson/DeleteLesson?id=' + l.id;
+                document.getElementById('deleteBtnBottom').href = '/Lesson/DeleteLesson?id=' + l.id;
             }
 
-            // Content
-            var c = (l.lessonContents || l.lessonContent || [])[0] || {};
-            document.getElementById('Content').value = c.content || '';
-            countChars(document.getElementById('Content'), 'contentCount', 10000);
-            countChars(document.getElementById('Title'),       'titleCount',   120);
-            countChars(document.getElementById('Description'), 'descCount',    500);
+            initDragDrop(document.getElementById('fileDrop'));
+            initUnsavedWarning('editForm', 'saveBtn');
 
-            // Existing file
-            if (c.fileUrl) {
-                document.getElementById('existingFileWrap').style.display = 'flex';
-                document.getElementById('existingFileLink').href = c.fileUrl;
+            function handleSave(e) {
+                var content = document.getElementById('Content').value.trim();
+                if (!content) {
+                    e.preventDefault();
+                    document.getElementById('contentErr').classList.add('show');
+                    document.getElementById('Content').classList.add('error');
+                    return;
+                }
+                showSubmitSpinner('saveBtn', 'saveSpin', 'saveTxt', 'Saving…');
             }
-
-            // Nav buttons
-            document.getElementById('previewBtn').href    = '/Lesson/Details/' + l.id;
-            document.getElementById('deleteBtn').href     = '/Lesson/DeleteLesson?id=' + l.id;
-            document.getElementById('deleteBtnBottom').href = '/Lesson/DeleteLesson?id=' + l.id;
-        }
-
-        initDragDrop(document.getElementById('fileDrop'));
-        initUnsavedWarning('editForm', 'saveBtn');
-
-        function handleSave(e) {
-            var content = document.getElementById('Content').value.trim();
-            if (!content) {
-                e.preventDefault();
-                document.getElementById('contentErr').classList.add('show');
-                document.getElementById('Content').classList.add('error');
-                return;
-            }
-            showSubmitSpinner('saveBtn', 'saveSpin', 'saveTxt', 'Saving…');
-        }
-    </script>
-</body>
-</html>
+        </script>
+    }
+}

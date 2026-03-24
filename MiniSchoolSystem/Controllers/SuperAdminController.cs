@@ -17,9 +17,8 @@ namespace MiniSchoolSystem.Controllers
         private readonly UserManager<UserDb> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly AppDbContext _dbContext;
- 
         private readonly IUserService _UserService;
-        private double totalRevenue;
+        
 
         public SuperAdminController(UserManager<UserDb> userManager, RoleManager<IdentityRole> roleManager, AppDbContext dbContext, ICourseService courseService, IFileService fileService, IUserService userService)
         {
@@ -29,11 +28,6 @@ namespace MiniSchoolSystem.Controllers
             _UserService = userService;
         }
 
-        public IActionResult Index()
-        {
-          
-            return View();
-        }
       
 
         [Authorize(Roles = "SuperAdmin")]
@@ -79,7 +73,7 @@ namespace MiniSchoolSystem.Controllers
 
         // GET: System Health / Statistics
         [Authorize(Roles = "SuperAdmin")]
-        public async Task<IActionResult> Dashboard()
+        public async Task<IActionResult> Index()
         {
             // 1. Get Totals (No ID needed - we want EVERYONE)
             var studentCount = await _dbContext.DbStudents.AsNoTracking().CountAsync();
@@ -100,7 +94,7 @@ namespace MiniSchoolSystem.Controllers
                 TotalStudents = studentCount,
                 TotalTeachers = teacherCount,
                 TotalCourses = courseCount,
-                TotalRevenue = totalRevenue
+                //TotalRevenue = totalRevenue
             };
 
             return View(stats);

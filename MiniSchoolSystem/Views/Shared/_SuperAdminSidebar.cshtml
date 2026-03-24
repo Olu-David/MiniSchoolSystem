@@ -14,11 +14,7 @@
 
     <ul class="sa-nav">
         <li class="sa-nav-section">Overview</li>
-        <li>
-            <a asp-controller="SuperAdmin" asp-action="Index" class="@(IsActive("Index") ? "active" : "")">
-                <span class="sa-nav-icon">🏠</span> Home
-            </a>
-        </li>
+        
         <li>
             <a asp-controller="SuperAdmin" asp-action="Dashboard" class="@(IsActive("Dashboard") ? "active" : "")">
                 <span class="sa-nav-icon">📊</span> Dashboard
