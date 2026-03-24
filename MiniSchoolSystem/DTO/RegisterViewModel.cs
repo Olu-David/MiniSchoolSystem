@@ -32,7 +32,7 @@ namespace MiniSchoolSystem.DTO
 
             [Required(ErrorMessage = "Please select a role")]
             public string? Role { get; set; }  // "Student", "Teacher", or "Parent"
-
+           
             
             public Sections Section { get; set; }
         

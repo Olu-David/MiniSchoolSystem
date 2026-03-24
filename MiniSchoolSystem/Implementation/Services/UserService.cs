@@ -121,6 +121,7 @@ namespace MiniSchoolSystem.Implementation.Services
                 Email = model.Email,
                 FullName = $"{model.FirstName} {model.LastName}",
                 PhoneNumber = model.PhoneNumber,
+                UserName=model.Email,
                 UserSection = model.Role == "Student" ? model.Section : null,
                 EmailConfirmed = false // Keep them locked out until they click the link
             };
