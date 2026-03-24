@@ -1,6 +1,5 @@
 ﻿/* ═══════════════════════════════════════════════
    SuperAdmin.css — shared across all SA views
-   Designed to sit on top of Layout.css variables
 ═══════════════════════════════════════════════ */
 
 /* ── Layout shell ── */
@@ -83,7 +82,6 @@
     font-weight: 500;
     color: var(--text-secondary);
     text-decoration: none;
-    border-radius: 0;
     transition: all .2s;
     border-left: 3px solid transparent;
 }
@@ -120,6 +118,43 @@
     background: var(--bg);
     overflow-x: hidden;
 }
+
+/* ── Mobile sidebar toggle button ── */
+.sa-mobile-toggle {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    padding: 10px 16px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-family: 'DM Sans', sans-serif;
+    width: fit-content;
+}
+
+    .sa-mobile-toggle:hover {
+        color: var(--text-primary);
+        border-color: var(--border2);
+    }
+
+/* ── Sidebar overlay (mobile) ── */
+.sa-sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.55);
+    z-index: 899;
+    backdrop-filter: blur(2px);
+}
+
+    .sa-sidebar-overlay.open {
+        display: block;
+    }
 
 /* ── Page header ── */
 .sa-page-header {
@@ -272,7 +307,7 @@
         color: #ef4444;
     }
 
-/* ── Cards / panels ── */
+/* ── Cards ── */
 .sa-card {
     background: var(--bg2);
     border: 1px solid var(--border);
@@ -305,11 +340,13 @@
 /* ── Tables ── */
 .sa-table-wrap {
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .sa-table {
     width: 100%;
     border-collapse: collapse;
+    min-width: 500px;
 }
 
     .sa-table thead th {
@@ -570,7 +607,6 @@
     gap: 12px;
     padding: 14px 0;
     border-bottom: 1px solid var(--border);
-    position: relative;
 }
 
     .sa-activity-item:last-child {
@@ -821,14 +857,33 @@
     border-top: 1px solid var(--border);
 }
 
-/* ── Responsive ── */
+/* ── Fade up ── */
+.sa-fade-up {
+    opacity: 0;
+    transform: translateY(16px);
+    transition: opacity .5s ease, transform .5s ease;
+}
+
+    .sa-fade-up.visible {
+        opacity: 1;
+        transform: none;
+    }
+
+/* ══════════════════════════════════════════════
+   RESPONSIVE — TABLET
+══════════════════════════════════════════════ */
 @media (max-width: 1024px) {
     .sa-stats-grid {
         grid-template-columns: repeat(2, 1fr);
     }
 }
 
+/* ══════════════════════════════════════════════
+   RESPONSIVE — MOBILE
+══════════════════════════════════════════════ */
 @media (max-width: 768px) {
+
+    /* Collapse sidebar off screen */
     .sa-wrap {
         grid-template-columns: 1fr;
     }
@@ -838,30 +893,57 @@
         left: -260px;
         top: 0;
         bottom: 0;
-        width: 240px;
+        width: 260px;
         z-index: 900;
-        transition: left .3s;
+        transition: left .3s cubic-bezier(.22,1,.36,1);
         height: 100vh;
+        top: 0; /* cover full screen on mobile */
+        padding-top: 16px;
     }
 
         .sa-sidebar.open {
             left: 0;
         }
 
-    .sa-content {
-        padding: 20px 16px;
+    /* Show the mobile toggle button */
+    .sa-mobile-toggle {
+        display: flex;
     }
 
+    /* Content takes full width */
+    .sa-content {
+        padding: 16px;
+    }
+
+    /* Stats stack to 2 columns */
     .sa-stats-grid {
         grid-template-columns: repeat(2, 1fr);
-        gap: 14px;
+        gap: 12px;
+        margin-bottom: 20px;
     }
 
+    /* Stat card smaller padding */
+    .sa-stat-card {
+        padding: 16px;
+    }
+
+    .sa-stat-num {
+        font-size: 1.6rem;
+    }
+
+    /* Page header stacks */
     .sa-page-header {
         flex-direction: column;
         align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 20px;
     }
 
+    .sa-page-title {
+        font-size: 1.4rem;
+    }
+
+    /* Filter bar stacks */
     .sa-filter-bar {
         flex-direction: column;
         align-items: stretch;
@@ -870,14 +952,73 @@
     .sa-search {
         min-width: unset;
     }
+
+    .sa-select {
+        width: 100%;
+    }
+
+    /* Card header stacks */
+    .sa-card-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .sa-card-body {
+        padding: 16px;
+    }
+
+    /* Table scrolls horizontally */
+    .sa-table-wrap {
+        border-radius: 0;
+    }
+
+    /* Modal full width on mobile */
+    .sa-modal {
+        padding: 24px 20px;
+        border-radius: 16px;
+    }
+
+    /* Activity text smaller */
+    .sa-activity-text {
+        font-size: 13px;
+    }
 }
 
+/* ══════════════════════════════════════════════
+   RESPONSIVE — SMALL PHONE
+══════════════════════════════════════════════ */
 @media (max-width: 480px) {
     .sa-stats-grid {
         grid-template-columns: 1fr;
+        gap: 10px;
     }
 
     .sa-content {
-        padding: 16px 12px;
+        padding: 12px;
+    }
+
+    .sa-stat-card {
+        padding: 14px;
+    }
+
+    .sa-stat-num {
+        font-size: 1.4rem;
+    }
+
+    .sa-card-body {
+        padding: 12px;
+    }
+
+    /* Buttons full width on small screens */
+    .sa-btn {
+        font-size: 12px;
+        padding: 7px 12px;
+    }
+
+    /* Table cells tighter */
+    .sa-table thead th,
+    .sa-table tbody td {
+        padding: 10px 10px;
+        font-size: 12px;
     }
 }
