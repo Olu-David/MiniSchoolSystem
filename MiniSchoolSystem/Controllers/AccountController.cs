@@ -89,8 +89,8 @@ namespace MiniSchoolSystem.Controllers
                     protocol: Request.Scheme);
 
                 // Step D: Now send the email using your service
-                await _emailService.SendEmailAsync(user.Email??"null", "Confirm your SabiSpace Account",
-                    $"Please confirm your account by clicking here: <a href='{confirmationLink}'>Click Here</a>");
+                _ = Task.Run(() => _emailService.SendEmailAsync(user.Email ?? "null", "Confirm your SabiSpace Account",
+                    $"Please confirm your account by clicking here: <a href='{confirmationLink}'>Click Here</a>")) ;
 
                 // 3. Show the "Check your inbox" page
                 ViewBag.Success = false;
@@ -167,8 +167,8 @@ namespace MiniSchoolSystem.Controllers
                 protocol: Request.Scheme);
 
             // Step D: Now send the email using your service
-            await _emailService.SendEmailAsync(user.Email ?? "null", "Confirm your SabiSpace Account",
-                $"Please confirm your account by clicking here: <a href='{confirmationLink}'>Click Here</a>");
+            _ = Task.Run(() => _emailService.SendEmailAsync(user.Email ?? "null", "Confirm your SabiSpace Account",
+                $"Please confirm your account by clicking here: <a href='{confirmationLink}'>Click Here</a>"));
 
             // 3. Show the "Check your inbox" page
             ViewBag.Success = false;

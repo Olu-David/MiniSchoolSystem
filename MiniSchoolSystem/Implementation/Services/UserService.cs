@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using MiniSchoolSystem.DTO;
 using MiniSchoolSystem.Enums;
@@ -8,6 +9,7 @@ using MiniSchoolSystem.Models;
 using System;
 using System.Text;
 using System.Threading.Tasks;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace MiniSchoolSystem.Implementation.Services
 {
@@ -66,8 +68,8 @@ namespace MiniSchoolSystem.Implementation.Services
             if (user == null || !await _userManager.IsEmailConfirmedAsync(user))
                 return false;
             var token = await _userManager.GeneratePasswordResetTokenAsync(user);
-            await _emailService.SendEmailAsync(user.Email ?? "null", "ForgotPassword", $"Your Reset Code is <b>{token}</b>");
-
+            
+            _ = Task.Run(() => _emailService.SendEmailAsync(user.Email ?? "null", "ForgotPassword", $"Your Reset Code is <b>{token}</b>"));
             return true;
 
         }

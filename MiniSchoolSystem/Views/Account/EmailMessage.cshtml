@@ -370,7 +370,7 @@
             <!-- Resend -->
             <div class="resend-box">
                 <p>Didn't receive it? Check your spam folder, or resend below.</p>
-                <form asp-controller="Auth" asp-action="ResendConfirmation" method="post" class="resend-form" id="resendForm">
+                <form asp-controller="Account" asp-action="ResendConfirmation" method="post" class="resend-form" id="resendForm">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="email" value="@ViewBag.Email" />
                     <button type="submit" class="resend-btn" id="resendBtn">Resend email</button>
