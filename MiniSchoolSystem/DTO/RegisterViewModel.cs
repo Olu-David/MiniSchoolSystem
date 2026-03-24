@@ -15,9 +15,6 @@ namespace MiniSchoolSystem.DTO
             [Display(Name = "Last Name")]
             public string LastName { get; set; } = string.Empty;
 
-            [Required]
-            [Display(Name = "User Name")]
-            public string UserName { get; set; } = string.Empty;
 
             [Required]
             [EmailAddress]
@@ -31,13 +28,12 @@ namespace MiniSchoolSystem.DTO
             [DataType(DataType.Password)]
             [Display(Name = "Confirm password")]
             [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
-            public string ConfirmPassword { get; set; } = string.Empty;
+            public string? ConfirmPassword { get; set; } 
 
             [Required(ErrorMessage = "Please select a role")]
-            public string Role { get; set; } = string.Empty; // "Student", "Teacher", or "Parent"
+            public string? Role { get; set; }  // "Student", "Teacher", or "Parent"
 
-            // This is the field that caused the string conversion error earlier.
-            // Keeping it as a string here makes it compatible with HTML <select> tags.
+            
             public Sections Section { get; set; }
         
         [Phone, Required(ErrorMessage ="Enter PhoneNumber")]

@@ -117,7 +117,7 @@ namespace MiniSchoolSystem.Implementation.Services
             // 1. Create the User object from the ViewModel
             var user = new UserDb
             {
-                UserName = model.Email, // Identity requires a UserName
+                 // Identity requires a UserName
                 Email = model.Email,
                 FullName = $"{model.FirstName} {model.LastName}",
                 PhoneNumber = model.PhoneNumber,
