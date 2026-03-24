@@ -37,7 +37,7 @@ namespace MiniSchoolSystem.Implementation.Services
 
                     var mail = new MailMessage
                     {
-                        From = new MailAddress("Davveeyolusanya1@gmail.com", "MiniSchool System"),
+                        From = new MailAddress("Davveeyolusanya1@gmail.com", "SabiSchool System"),
                         Subject = Subject,
                         Body = Body,
                         IsBodyHtml = true
