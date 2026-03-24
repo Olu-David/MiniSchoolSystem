@@ -168,16 +168,22 @@
                     <label asp-for="Section">Your section / level</label>
                     <select asp-for="Section" class="form-control" id="sectionSelect" required>
                         <option value="">— Select your level —</option>
-                        <option value="JSS1">JSS 1</option>
-                        <option value="JSS2">JSS 2</option>
-                        <option value="JSS3">JSS 3</option>
-                        <option value="SS1">SS 1</option>
-                        <option value="SS2">SS 2</option>
-                        <option value="SS3">SS 3</option>
-                        <option value="Higher">Higher Education</option>
-                        <option value="Professional">Professional</option>
+
+                        <option value="3">JSS 1</option>
+                        <option value="3">JSS 2</option>
+                        <option value="3">JSS 3</option>
+
+                        <option value="4">SS 1</option>
+                        <option value="4">SS 2</option>
+                        <option value="4">SS 3</option>
+
+                        <option value="5">Higher Education</option>
+
+                        <option value="6">Professional</option>
+                        <option value="7">General / Others</option>
                     </select>
-                    <span asp-validation-for="Section" class="field-validation-error"></span>
+                    <span asp-validation-for="Section" class="text-danger"></span>
+ 
                 </div>
 
                 <!-- Password -->
