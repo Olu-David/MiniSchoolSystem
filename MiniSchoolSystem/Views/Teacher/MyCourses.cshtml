@@ -1,7 +1,26 @@
-﻿@model List<MiniSchoolSystem.Models.Course>
+﻿@using Microsoft.AspNetCore.Identity
+@using System.Security.Claims
+@model List<MiniSchoolSystem.Models.Course>
+@inject SignInManager<UserDb> SignInManager;
+@inject UserManager<UserDb> UserManager;
+
+
 @{
     ViewData["Title"] = "My Courses";
-    Layout = "~/Views/Shared/_Layout.cshtml";
+    Layout = null;
+
+    var userRole = User.FindFirstValue(ClaimTypes.Role);
+    var displayName = User.Identity?.Name ?? "User";
+    var currentCtrl = ViewContext.RouteData.Values["controller"]?.ToString();
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
+
+    bool isAllowedRole = User.IsInRole("SuperAdmin")
+                      || User.IsInRole("Admin")
+                      || User.IsInRole("Teacher")
+                      || User.IsInRole("Student");
+
+    bool isBlockedUser = User.Identity!.IsAuthenticated && !isAllowedRole;
+    bool isLoggedIn = User.Identity!.IsAuthenticated;
 }
 
 @section Styles {
@@ -46,7 +65,7 @@
             <a class="nav-item" href="#" onclick="document.getElementById('logoutForm').submit();return false">
                 <span class="nav-icon">🚪</span> Sign Out
             </a>
-            <form id="logoutForm" asp-controller="Auth" asp-action="Logout" method="post" style="display:none">
+            <form id="logoutForm" asp-controller="Account" asp-action="Logout" method="post" style="display:none">
                 @Html.AntiForgeryToken()
             </form>
         </div>

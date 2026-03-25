@@ -1,0 +1,360 @@
+﻿@{
+    ViewData["Title"] = "Start Lesson";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    // ViewBag.Lesson — the Lesson object (set by controller GET action)
+    var lesson = ViewBag.Lesson;
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/sabispace.css" asp-append-version="true" />
+    <style>
+        .enroll-page {
+            min-height: calc(100vh - 68px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 20px;
+            background: var(--bg);
+            position: relative;
+            overflow: hidden;
+        }
+
+            .enroll-page::before {
+                content: '';
+                position: absolute;
+                inset: 0;
+                background-image: radial-gradient(circle, rgba(255,255,255,.04) 1px, transparent 1px);
+                background-size: 28px 28px;
+                pointer-events: none;
+            }
+
+        .ep-blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(100px);
+            pointer-events: none;
+        }
+
+        .ep-b1 {
+            width: 500px;
+            height: 500px;
+            background: rgba(61,186,140,.1);
+            top: -160px;
+            left: -140px;
+            animation: epbd 14s ease-in-out infinite alternate;
+        }
+
+        .ep-b2 {
+            width: 360px;
+            height: 360px;
+            background: rgba(255,92,26,.08);
+            bottom: -110px;
+            right: -110px;
+            animation: epbd 10s ease-in-out infinite alternate;
+        }
+
+        @@keyframes epbd {
+            to {
+                transform: translate(20px,16px) scale(1.06);
+            }
+        }
+
+        .enroll-card {
+            position: relative;
+            z-index: 1;
+            background: var(--bg2);
+            border: 1px solid rgba(61,186,140,.2);
+            border-radius: 28px;
+            padding: 48px 44px;
+            width: 100%;
+            max-width: 540px;
+            box-shadow: 0 32px 80px rgba(0,0,0,.4);
+        }
+
+        .enroll-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 24px;
+            background: var(--sage-dim);
+            border: 1.5px solid rgba(61,186,140,.3);
+            display: grid;
+            place-items: center;
+            font-size: 34px;
+            margin-bottom: 24px;
+            animation: icon-pulse 3s ease-in-out infinite;
+        }
+
+        @@keyframes icon-pulse {
+            0%, 100% {
+                box-shadow: 0 0 0 0 rgba(61,186,140,.15)
+            }
+
+            50% {
+                box-shadow: 0 0 0 14px rgba(61,186,140,0)
+            }
+        }
+
+        .enroll-title {
+            font-family: 'Syne',sans-serif;
+            font-weight: 800;
+            font-size: 1.75rem;
+            letter-spacing: -.6px;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .enroll-sub {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.75;
+            margin-bottom: 28px;
+        }
+
+        /* Lesson preview box */
+        .lesson-preview-box {
+            background: rgba(255,255,255,.04);
+            border: 1px solid var(--border2);
+            border-radius: 16px;
+            padding: 20px 22px;
+            margin-bottom: 28px;
+        }
+
+        .lpb-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-dim);
+            margin-bottom: 12px;
+        }
+
+        .lpb-title {
+            font-family: 'Syne',sans-serif;
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .lpb-meta {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+            .lpb-meta span {
+                font-size: 12px;
+                color: var(--text-secondary);
+            }
+
+        .lpb-section {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 50px;
+            font-size: 11px;
+            font-weight: 700;
+            background: var(--sabi-dim);
+            color: var(--sabi);
+            border: 1px solid rgba(255,92,26,.2);
+        }
+
+        /* Info box */
+        .info-box {
+            background: rgba(61,186,140,.07);
+            border: 1px solid rgba(61,186,140,.2);
+            border-radius: 14px;
+            padding: 16px 18px;
+            margin-bottom: 28px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .ib-icon {
+            font-size: 18px;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .ib-title {
+            font-weight: 700;
+            font-size: 13px;
+            color: var(--sage);
+            margin-bottom: 6px;
+        }
+
+        .ib-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+            .ib-list li {
+                font-size: 13px;
+                color: var(--text-secondary);
+                display: flex;
+                align-items: center;
+                gap: 7px;
+            }
+
+                .ib-list li::before {
+                    content: '·';
+                    font-size: 18px;
+                    color: var(--sage);
+                    line-height: 1;
+                    flex-shrink: 0;
+                }
+
+        /* Buttons */
+        .enroll-btns {
+            display: flex;
+            gap: 12px;
+        }
+
+            .enroll-btns .btn {
+                flex: 1;
+                justify-content: center;
+                border-radius: 14px;
+                padding: 13px 20px;
+                font-size: 14.5px;
+                font-weight: 700;
+            }
+
+        @@media(max-width:540px) {
+            .enroll-card {
+                padding: 36px 24px;
+            }
+
+            .enroll-btns {
+                flex-direction: column;
+            }
+
+            .enroll-title {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+}
+
+<div class="enroll-page">
+    <div class="ep-blob ep-b1"></div>
+    <div class="ep-blob ep-b2"></div>
+
+    <div class="enroll-card">
+
+        <div class="enroll-icon">🎓</div>
+        <h1 class="enroll-title">Ready to start this lesson?</h1>
+        <p class="enroll-sub">
+            You'll be enrolled and can begin watching right away. Your progress will be tracked automatically.
+        </p>
+
+        <div class="lesson-preview-box">
+            <div class="lpb-label">Lesson</div>
+            @if (lesson != null)
+            {
+                <div class="lpb-title">@lesson.Title</div>
+                <div class="lpb-meta">
+                    @if (lesson.LessonSection != null)
+                    {
+                        <span class="lpb-section">@lesson.LessonSection</span>
+                    }
+
+                    @if (lesson.CreatedAt != null && (DateTime)lesson.CreatedAt != default(DateTime))
+                    {
+                        var date = (DateTime)lesson.CreatedAt;
+                        <span>📅 @date.ToString("dd MMM yyyy")</span>
+                    }
+                    else
+                    {
+                        <span>📅 —</span>
+                    }
+                </div>
+     @* ✅ Closed meta div here so description sits below it *@
+
+                @if (!string.IsNullOrEmpty(lesson.Description as string))
+                {
+                    <span style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:13px;color:var(--text-secondary);margin-top:8px;width:100%">
+                        @lesson.Description
+                    </span>
+                }
+            }
+            else
+            {
+                <div class="lpb-title" id="lessonTitle">Loading lesson…</div>
+                <div class="lpb-meta"><span id="lessonMeta">—</span></div>
+            }
+        </div>
+        <!-- What enrolling does -->
+        <div class="info-box">
+            <span class="ib-icon">ℹ️</span>
+            <div>
+                <p class="ib-title">What happens when you enrol</p>
+                <ul class="ib-list">
+                    <li>Lesson is added to your dashboard immediately</li>
+                    <li>Your progress is saved as you watch</li>
+                    <li>You can pause and resume any time</li>
+                    <li>Completing the lesson counts toward your course certificate</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- POST form -->
+        <form asp-controller="Student" asp-action="CreateLessonEnrollment"
+              method="post" id="enrollForm" style="display:contents">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="LessonId" id="lessonIdInput"
+                   value="@(ViewBag.LessonId ?? 0)" />
+            <input type="hidden" name="Sections"
+                   value="@(ViewBag.StudentSection ?? "")" />
+
+            <div class="enroll-btns">
+                <a asp-controller="Lesson" asp-action="Index"
+                   class="btn btn-ghost">← Back</a>
+                <button type="submit" class="btn btn-sage"
+                        id="enrollBtn"
+                        onclick="showEnrollSpinner()">
+                    <span class="btn-spin" id="enrollSpin"
+                          style="border-color:rgba(255,255,255,.3);border-top-color:#fff"></span>
+                    <span id="enrollTxt">🎓 Start Lesson</span>
+                </button>
+            </div>
+        </form>
+
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/sabispace.js" asp-append-version="true"></script>
+    <script>
+        function showEnrollSpinner() {
+            var btn  = document.getElementById('enrollBtn');
+            var spin = document.getElementById('enrollSpin');
+            var txt  = document.getElementById('enrollTxt');
+            btn.disabled = true;
+            spin.style.display = 'block';
+            txt.textContent = 'Enrolling…';
+        }
+
+        // Fetch lesson info if ViewBag.Lesson not set (controller didn't pass it)
+        (function(){
+            var titleEl = document.getElementById('lessonTitle');
+            if (!titleEl) return;
+            var id = new URLSearchParams(location.search).get('lessonId')
+                  || '@(ViewBag.LessonId ?? 0)';
+            if (!id || id === '0') return;
+            document.getElementById('lessonIdInput').value = id;
+            fetch('/Lesson/GetLessons')
+                .then(function(r){ return r.json(); })
+                .then(function(lessons){
+                    var l = lessons.find(function(x){ return String(x.id)===String(id); });
+                    if (!l) return;
+                    titleEl.textContent = l.title || 'Lesson';
+                    var m = document.getElementById('lessonMeta');
+                    if (m) m.textContent = l.lessonSection || '';
+                })
+                .catch(function(){});
+        })();
+    </script>
+}

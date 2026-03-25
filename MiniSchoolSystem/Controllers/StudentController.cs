@@ -35,7 +35,7 @@ namespace MiniSchoolSystem.Controllers
                 return Unauthorized();
             }
            string userName = User.Identity?.Name??"Guest";
-            return View("Welcome" + ",", userName);
+            return View("Welcome", userName);
         }
         public async Task<IActionResult> Index(int pageNumber = 1, int pageSize = 15)
         { 
