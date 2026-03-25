@@ -79,7 +79,7 @@ else
 
             // ── 6. Email Service ──────────────────────────────────
             builder.Services.Configure<EmailSettings>(
-                builder.Configuration.GetSection("EmailSetting"));
+                builder.Configuration.GetSection("EmailSettings"));
             builder.Services.AddScoped<IEmailService, EmailService>();
 
             // ── 7. File Service ───────────────────────────────────

@@ -6,6 +6,7 @@ using MiniSchoolSystem.Enums;
 using MiniSchoolSystem.Implementation.Interfaces;
 using MiniSchoolSystem.Models;
 using Npgsql.Internal;
+using Org.BouncyCastle.Utilities;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace MiniSchoolSystem.Controllers
@@ -152,8 +153,10 @@ namespace MiniSchoolSystem.Controllers
         [HttpPost]
         public async Task<IActionResult> ResendConfirmation(string email)
         {
+            // 1.Safety Check: Always check if email is provided
+                 if (string.IsNullOrEmpty(email)) return BadRequest("Email is required.");
             var user = await _userManager.FindByEmailAsync(email);
-            if (user == null) return Unauthorized();
+            if (user == null) return View("EmailMessage");
 
             // Step C: Generate the Token & Link
             var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
@@ -217,6 +220,32 @@ namespace MiniSchoolSystem.Controllers
 
                 if (appUser != null)
                 {
+                    // 🛑 STEP 1: Check if the user is confirmed BEFORE checking roles
+                    if (!await _userManager.IsEmailConfirmedAsync(appUser))
+                    {
+                        // Auto-trigger a new confirmation email
+                        var token = await _userManager.GenerateEmailConfirmationTokenAsync(appUser);
+                        var encodedToken = Microsoft.AspNetCore.WebUtilities.WebEncoders.Base64UrlEncode(
+                            System.Text.Encoding.UTF8.GetBytes(token));
+
+                        var confirmationLink = Url.Action(
+                            action: "ConfirmEmail",
+                            controller: "Auth",
+                            values: new { userId = appUser.Id, token = encodedToken },
+                            protocol: Request.Scheme);
+
+                        // Step D: Now send the email using your service
+                        _ = Task.Run(() => _emailService.SendEmailAsync(appUser.Email ?? "null", "Confirm your SabiSpace Account",
+                            $"Please confirm your account by clicking here: <a href='{confirmationLink}'>Click Here</a>"));
+
+
+                        // Redirect to a specialized "Check Your Email" page
+                        ViewBag.Email = appUser.Email;
+                        ViewBag.Message = "Your account isn't confirmed yet. We've sent a fresh link to your inbox!";
+                        return View("EmailMessage");
+                    }
+
+
                     if (await _userManager.IsInRoleAsync(appUser, "SuperAdmin"))
                         return RedirectToAction("Index", "SuperAdmin");
 
