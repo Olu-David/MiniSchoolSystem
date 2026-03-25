@@ -1,6 +1,7 @@
 ﻿using MailKit.Net.Smtp;
 using MailKit.Security;
 using Microsoft.Extensions.Options;
+using Microsoft.Identity.Client;
 using MimeKit;
 using MiniSchoolSystem.Implementation.Interfaces;
 using MiniSchoolSystem.Implementation.Settings;
@@ -16,6 +17,7 @@ namespace MiniSchoolSystem.Implementation.Services
         {
             _EmailSettings = emailSettings.Value;
         }
+        
 
         public async Task SendEmailAsync(string toEmail, string subject, string body)
         {
@@ -33,10 +35,11 @@ namespace MiniSchoolSystem.Implementation.Services
                 try
                 {
                     // For Gmail, StartTls is the standard for Port 587
-                    await client.ConnectAsync(_EmailSettings.Host, _EmailSettings.Port, SecureSocketOptions.StartTls);
-
+                    // Use 465 and SslOnConnect for Render
+                    await client.ConnectAsync(_EmailSettings.Host, 465, SecureSocketOptions.SslOnConnect);
                     // Note: Use your App Password here
                     await client.AuthenticateAsync(_EmailSettings.Email, _EmailSettings.Password);
+                    
 
                     await client.SendAsync(message);
 
@@ -51,7 +54,9 @@ namespace MiniSchoolSystem.Implementation.Services
                 {
                     await client.DisconnectAsync(true);
                 }
+                
             }
+           
         }
     }
 }

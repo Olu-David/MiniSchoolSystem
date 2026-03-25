@@ -1,0 +1,234 @@
+﻿@model string
+@{
+    ViewData["Title"] = "Welcome";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    string displayName = Model ?? User.Identity?.Name ?? "Student";
+    string initial = displayName.Length > 0 ? displayName[0].ToString().ToUpper() : "S";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/sabispace.css" asp-append-version="true" />
+    <style>
+        .welcome-page {
+            min-height: calc(100vh - 68px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 20px;
+            background: var(--bg);
+            position: relative;
+            overflow: hidden;
+        }
+
+            .welcome-page::before {
+                content: '';
+                position: absolute;
+                inset: 0;
+                background-image: radial-gradient(circle, rgba(255,255,255,.04) 1px, transparent 1px);
+                background-size: 28px 28px;
+                pointer-events: none;
+            }
+
+        .wlc-blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(100px);
+            pointer-events: none;
+        }
+
+        .wb1 {
+            width: 480px;
+            height: 480px;
+            background: rgba(255,92,26,.14);
+            top: -150px;
+            left: -130px;
+            animation: wbd 12s ease-in-out infinite alternate;
+        }
+
+        .wb2 {
+            width: 340px;
+            height: 340px;
+            background: rgba(245,200,66,.09);
+            bottom: -100px;
+            right: -90px;
+            animation: wbd 9s ease-in-out infinite alternate;
+        }
+
+        @@keyframes wbd {
+            to {
+                transform: translate(20px,16px) scale(1.06);
+            }
+        }
+
+        .welcome-card {
+            position: relative;
+            z-index: 1;
+            background: var(--bg2);
+            border: 1px solid var(--border2);
+            border-radius: 28px;
+            padding: 52px 48px;
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+            box-shadow: 0 32px 80px rgba(0,0,0,.4);
+            animation: wc-in .5s cubic-bezier(.22,1,.36,1);
+        }
+
+        @@keyframes wc-in {
+            from {
+                opacity: 0;
+                transform: translateY(18px)
+            }
+
+            to {
+                opacity: 1;
+                transform: none
+            }
+        }
+
+        .wlc-av {
+            width: 88px;
+            height: 88px;
+            border-radius: 26px;
+            margin: 0 auto 24px;
+            background: linear-gradient(135deg, var(--sabi), var(--gold));
+            display: grid;
+            place-items: center;
+            font-family: 'Syne',sans-serif;
+            font-weight: 800;
+            font-size: 36px;
+            color: #fff;
+            box-shadow: 0 12px 32px rgba(255,92,26,.35);
+            animation: av-float 4s ease-in-out infinite;
+        }
+
+        @@keyframes av-float {
+            0%, 100% {
+                transform: translateY(0)
+            }
+
+            50% {
+                transform: translateY(-8px)
+            }
+        }
+
+        .wlc-greeting {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        .wlc-name {
+            font-family: 'Syne',sans-serif;
+            font-weight: 800;
+            font-size: 2rem;
+            letter-spacing: -.6px;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+            .wlc-name span {
+                color: var(--sabi);
+            }
+
+        .wlc-tagline {
+            font-size: 15px;
+            color: var(--text-secondary);
+            line-height: 1.65;
+            margin-bottom: 36px;
+        }
+
+        .wlc-perks {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 36px;
+            text-align: left;
+        }
+
+        .wlc-perk {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255,255,255,.04);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 13px 16px;
+            transition: border-color .2s;
+        }
+
+            .wlc-perk:hover {
+                border-color: rgba(255,92,26,.2);
+            }
+
+        .wlc-perk-icon {
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .wlc-perk-text {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .wlc-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+            .wlc-actions .btn {
+                flex: 1;
+                justify-content: center;
+                border-radius: 14px;
+                padding: 13px 20px;
+                font-size: 14.5px;
+                font-weight: 700;
+            }
+    </style>
+}
+
+<div class="welcome-page">
+    <div class="wlc-blob wb1"></div>
+    <div class="wlc-blob wb2"></div>
+
+    <div class="welcome-card">
+
+        <div class="wlc-av">@initial</div>
+
+        <p class="wlc-greeting">You're signed in as</p>
+        <h1 class="wlc-name">Welcome, <span>@displayName.Split(' ')[0]</span> 👋</h1>
+        <p class="wlc-tagline">
+            Your SabiSpace learning dashboard is ready. Pick up where you left off or start something new.
+        </p>
+
+        <div class="wlc-perks">
+            <div class="wlc-perk">
+                <span class="wlc-perk-icon">🎓</span>
+                <span class="wlc-perk-text">Live Lessons</span>
+            </div>
+            <div class="wlc-perk">
+                <span class="wlc-perk-icon">🧠</span>
+                <span class="wlc-perk-text">Smart Quizzes</span>
+            </div>
+            <div class="wlc-perk">
+                <span class="wlc-perk-icon">📝</span>
+                <span class="wlc-perk-text">Assignments</span>
+            </div>
+            <div class="wlc-perk">
+                <span class="wlc-perk-icon">🏅</span>
+                <span class="wlc-perk-text">Certificates</span>
+            </div>
+        </div>
+
+        <div class="wlc-actions">
+            <a asp-controller="Student" asp-action="Index" class="btn btn-ghost">My Dashboard</a>
+            <a asp-controller="Lesson" asp-action="Index" class="btn btn-sabi">Start Learning →</a>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/sabispace.js" asp-append-version="true"></script>
+}

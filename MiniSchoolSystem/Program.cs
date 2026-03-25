@@ -98,7 +98,8 @@ else
             // This tells ASP.NET: "Save my security keys in the database table we created"
             builder.Services.AddDataProtection()
                 .PersistKeysToDbContext<AppDbContext>();
-           
+
+            builder.Configuration.AddUserSecrets<Program>();
 
             // ── BUILD APP ─────────────────────────────────────────
             var app = builder.Build();
