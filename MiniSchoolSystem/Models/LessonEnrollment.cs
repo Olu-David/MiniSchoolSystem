@@ -28,6 +28,7 @@ namespace MiniSchoolSystem.Models
 
             [ForeignKey(nameof(LessonId))]
             public virtual Lesson? Lesson { get; set; }
+        public bool IsDeleted { get; set; }
         }
 
     }

@@ -32,34 +32,30 @@ namespace MiniSchoolSystem.Implementation.Services
 
             using (var client = new SmtpClient())
             {
+                
                 try
                 {
-                    // 1. IMPORTANT: Bypass certificate validation for the server environment
+                    // Force the timeout to be shorter so you don't wait forever
+                    client.Timeout = 10000; // 10 seconds
+
+                    // Bypass all certificate checks (Essential for Render/Linux)
                     client.ServerCertificateValidationCallback = (s, c, h, e) => true;
 
-                    // 2. Use Port 465 + SslOnConnect (Best for Render)
-                    // Ensure _EmailSettings.Port is 465 and Host is "smtp.gmail.com"
-                    await client.ConnectAsync(_EmailSettings.Host, 465, SecureSocketOptions.SslOnConnect);
+                    // Use Port 465 - Render usually leaves this open
+                    await client.ConnectAsync("smtp.gmail.com", 465, SecureSocketOptions.SslOnConnect);
 
-                    // 3. Authenticate using your App Password
+                    // Authenticate with your App Password
                     await client.AuthenticateAsync(_EmailSettings.Email, _EmailSettings.Password);
 
                     await client.SendAsync(message);
-
-                    // 4. Use Console.WriteLine so it shows up in Render Logs
-                    Console.WriteLine($"✅ MailKit: Mail sent successfully to {toEmail}");
+                    Console.WriteLine("✅ EMAIL SENT SUCCESSFULLY!");
                 }
                 catch (Exception ex)
                 {
-                    // This will now show up in your Render Dashboard Logs
                     Console.WriteLine($"❌ SMTP ERROR: {ex.Message}");
-                    if (ex.InnerException != null)
-                        Console.WriteLine($"INNER ERROR: {ex.InnerException.Message}");
-                    throw;
-                }
-                finally
-                {
-                    await client.DisconnectAsync(true);
+                    // This tells us if it's a network block or a protocol error
+                    if (ex is System.Net.Sockets.SocketException)
+                        Console.WriteLine("REASON: Render is blocking this Port/IP.");
                 }
             }
         }

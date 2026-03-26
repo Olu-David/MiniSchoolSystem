@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using System;
+using System.Reflection.Emit;
 
 namespace MiniSchoolSystem.Models
 {
@@ -74,10 +75,11 @@ namespace MiniSchoolSystem.Models
 
             // Global Filter for Soft Delete
             builder.Entity<Lesson>().HasQueryFilter(l => !l.IsDeleted);
-        
+            builder.Entity<LessonEnrollment>().HasQueryFilter( le => !le.Lesson!.IsDeleted);
 
-        //DatabaseLine important
-        RolesSeedCreation(builder);
+
+            //DatabaseLine important
+            RolesSeedCreation(builder);
         }
 
         public void RolesSeedCreation(ModelBuilder builder)
