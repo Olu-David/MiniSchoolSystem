@@ -38,7 +38,7 @@ namespace MiniSchoolSystem.Implementation.Services
 
                     // SendGrid SMTP Settings
                     // Host: smtp.sendgrid.net | Port: 587 (Standard for StartTls)
-                    await client.ConnectAsync("smtp.sendgrid.net", 587, SecureSocketOptions.StartTls);
+                    await client.ConnectAsync("smtp.sendgrid.net", 2525, SecureSocketOptions.StartTls);
 
                     // CRITICAL: Username is ALWAYS "apikey". 
                     // Password is your SG.xxxxxxxx API Key from SendGrid dashboard.
