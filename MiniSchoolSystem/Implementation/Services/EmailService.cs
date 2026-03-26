@@ -12,17 +12,17 @@ namespace MiniSchoolSystem.Implementation.Services
     {
         private readonly EmailSettings _EmailSettings;
 
-        
+
         public EmailService(IOptions<EmailSettings> emailSettings)
         {
             _EmailSettings = emailSettings.Value;
         }
-        
+
 
         public async Task SendEmailAsync(string toEmail, string subject, string body)
         {
             var message = new MimeMessage();
-            message.From.Add(new MailboxAddress(_EmailSettings.DisplayName, _EmailSettings.Email??""));
+            message.From.Add(new MailboxAddress(_EmailSettings.DisplayName, _EmailSettings.Email ?? ""));
             message.To.Add(new MailboxAddress("", toEmail));
             message.Subject = subject;
 
@@ -34,29 +34,34 @@ namespace MiniSchoolSystem.Implementation.Services
             {
                 try
                 {
-                    // For Gmail, StartTls is the standard for Port 587
-                    // Use 465 and SslOnConnect for Render
+                    // 1. IMPORTANT: Bypass certificate validation for the server environment
+                    client.ServerCertificateValidationCallback = (s, c, h, e) => true;
+
+                    // 2. Use Port 465 + SslOnConnect (Best for Render)
+                    // Ensure _EmailSettings.Port is 465 and Host is "smtp.gmail.com"
                     await client.ConnectAsync(_EmailSettings.Host, 465, SecureSocketOptions.SslOnConnect);
-                    // Note: Use your App Password here
+
+                    // 3. Authenticate using your App Password
                     await client.AuthenticateAsync(_EmailSettings.Email, _EmailSettings.Password);
-                    
 
                     await client.SendAsync(message);
 
-                    System.Diagnostics.Debug.WriteLine("✅ MailKit: Mail sent successfully to " + toEmail);
+                    // 4. Use Console.WriteLine so it shows up in Render Logs
+                    Console.WriteLine($"✅ MailKit: Mail sent successfully to {toEmail}");
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine("❌ MailKit Error: " + ex.Message);
+                    // This will now show up in your Render Dashboard Logs
+                    Console.WriteLine($"❌ SMTP ERROR: {ex.Message}");
+                    if (ex.InnerException != null)
+                        Console.WriteLine($"INNER ERROR: {ex.InnerException.Message}");
                     throw;
                 }
                 finally
                 {
                     await client.DisconnectAsync(true);
                 }
-                
             }
-           
         }
     }
 }
