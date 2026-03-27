@@ -2,14 +2,11 @@
 {
     public class Verify2FAViewModel
     {
-        public Verify2FAViewModel(string email, string code)
-        {
-            Email = email;
-            Code = code;
-        }
+       
 
-        public string Email { get; set; } 
-        public string Code { get; set; }
-
+        public string? Email { get; set; } 
+        public string? token { get; set; }
+        public bool RememberMe { get; internal set; }
+        public bool RememberClient { get; internal set; }
     }
 }

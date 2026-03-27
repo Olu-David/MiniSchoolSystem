@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using MiniSchoolSystem.DTO;
@@ -49,9 +50,13 @@ namespace MiniSchoolSystem.Controllers
         {
             await _signInManager.SignOutAsync();
 
-            
+
             return RedirectToAction("Index", "Home");
         }
+        //=======================================================================================================
+        //+=============================REGISTRATIN=============================+
+        //=======================================================================================================
+
         [HttpGet]
         public IActionResult Registration()
         {
@@ -60,7 +65,7 @@ namespace MiniSchoolSystem.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-    
+
         public async Task<IActionResult> Registration(RegisterViewModel model)
         {
             // 1. Basic Validation
@@ -69,7 +74,7 @@ namespace MiniSchoolSystem.Controllers
                 return View(model);
             }
 
-           
+
             var result = await _userService.RegistrationAsync(model, null);
 
             if (result.Succeeded)
@@ -83,23 +88,24 @@ namespace MiniSchoolSystem.Controllers
                 var encodedToken = Microsoft.AspNetCore.WebUtilities.WebEncoders.Base64UrlEncode(
                     System.Text.Encoding.UTF8.GetBytes(token));
 
+                // Inside Registration POST
                 var confirmationLink = Url.Action(
                     action: "ConfirmEmail",
-                    controller: "Auth",
+                    controller: "Account", // ✅ Fixed from Auth
                     values: new { userId = user.Id, token = encodedToken },
                     protocol: Request.Scheme);
 
-                // Step D: Now send the email using your service
-                _ = Task.Run(() => _emailService.SendEmailAsync(user.Email ?? "null", "Confirm your SabiSpace Account",
-                    $"Please confirm your account by clicking here: <a href='{confirmationLink}'>Click Here</a>")) ;
+                // ✅ Await this instead of Task.Run
+                await _emailService.SendEmailAsync(user.Email ?? "null", "Confirm your account",
+                    $"Please confirm your account by clicking here: <a href='{confirmationLink}'>Click Here</a>");
+
 
                 // 3. Show the "Check your inbox" page
                 ViewBag.Success = false;
                 ViewBag.Email = model.Email;
-                return RedirectToAction(nameof(EmailMessage));
+                return RedirectToAction(nameof(EmailMessage), new { email = model.Email });
 
 
-                
             }
 
             // 4. Handle Errors
@@ -110,32 +116,37 @@ namespace MiniSchoolSystem.Controllers
 
             return View(model);
         }
-        
+        //=======================================================================================================
+        //+=============================EMAILMESSSAGE=============================+
+        //=======================================================================================================
+
         [HttpGet]
         public IActionResult EmailMessage(string email)
         {
-          ViewBag.Email = email;
-          ViewBag.Message = "Your account is not confirmed. We’ve sent you a new confirmation link.";
-         return View();
-         
-         }
+            ViewBag.Email = email;
+            ViewBag.Message = "Your account is not confirmed. We’ve sent you a new confirmation link.";
+            return View();
+
+        }
 
 
-
-        
         [HttpGet]
         public IActionResult ConfirmEmailSuccess()
         {
             return View();
         }
-        [HttpPost]
-        [ValidateAntiForgeryToken]
+
+        //=============================================================================================
+        // ✅                CONFIRM EMAIL ACTION: DECODE TOKEN & CONF
+        //==============================================================================================
+        [HttpGet]
+        [AllowAnonymous]
         public async Task<IActionResult> ConfirmEmail(string userId, string token)
         {
             if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(token))
             {
                 TempData["Error"] = "Invalid or token Expired";
-                return RedirectToAction("Login"); // Or your ResendConfirmation action
+                return RedirectToAction("Login"); // Or your ResendConfirmadtion action
             }
 
             var user = await _userManager.FindByIdAsync(userId);
@@ -166,11 +177,15 @@ namespace MiniSchoolSystem.Controllers
 
             return View("Error");
         }
+        //=======================================================================================================
+        //+=============================RESENDCONFIRMATION=============================+
+        //=======================================================================================================
+
         [HttpPost]
         public async Task<IActionResult> ResendConfirmation(string email)
         {
             // 1.Safety Check: Always check if email is provided
-                 if (string.IsNullOrEmpty(email)) return BadRequest("Email is required.");
+            if (string.IsNullOrEmpty(email)) return BadRequest("Email is required.");
             var user = await _userManager.FindByEmailAsync(email);
             if (user == null) return View("EmailMessage");
 
@@ -181,19 +196,22 @@ namespace MiniSchoolSystem.Controllers
 
             var confirmationLink = Url.Action(
                 action: "ConfirmEmail",
-                controller: "Auth",
+                controller: "Account",
                 values: new { userId = user.Id, token = encodedToken },
                 protocol: Request.Scheme);
 
             // Step D: Now send the email using your service
-            _ = Task.Run(() => _emailService.SendEmailAsync(user.Email ?? "null", "Confirm your SabiSpace Account",
-                $"Please confirm your account by clicking here: <a href='{confirmationLink}'>Click Here</a>"));
+            await _emailService.SendEmailAsync(user.Email ?? "null", "Confirm your SabiSpace Account",
+                $"Please confirm your account by clicking here: <a href='{confirmationLink}'>Click Here</a>");
 
             // 3. Show the "Check your inbox" page
             ViewBag.Success = false;
             ViewBag.Email = email;
             return View("EmailMessage");
         }
+        //=======================================================================================================
+        //+=============================REDIRECTTODASHBOARD=============================+
+        //=======================================================================================================
 
         private IActionResult RedirectToDashboard()
         {
@@ -205,8 +223,13 @@ namespace MiniSchoolSystem.Controllers
             // No recognised role → send to Home
             return RedirectToAction("Index", "Home");
         }
+
+        //=======================================================================================================
+        //+=============================LOGIN=============================+
+        //=======================================================================================================
+
         [HttpGet]
-        public IActionResult Login( )
+        public IActionResult Login()
         {
             return View();
         }
@@ -226,7 +249,8 @@ namespace MiniSchoolSystem.Controllers
                 return RedirectToAction("TwoFactor", "Account");
             }
 
-            // 2. Handle Unconfirmed Email (result.IsNotAllowed is true if RequireConfirmedEmail is set to true)
+            // 2. Handle Unconfirmed Email 
+            // This triggers if 'options.SignIn.RequireConfirmedEmail = true' in Program.cs
             if (result.IsNotAllowed)
             {
                 var appUser = await _userManager.FindByEmailAsync(model.Email ?? "");
@@ -238,7 +262,7 @@ namespace MiniSchoolSystem.Controllers
 
                     var confirmationLink = Url.Action(
                         action: "ConfirmEmail",
-                        controller: "Account", // 🚩 Changed from "Auth" to "Account"
+                        controller: "Account",
                         values: new { userId = appUser.Id, token = encodedToken },
                         protocol: Request.Scheme);
 
@@ -251,144 +275,100 @@ namespace MiniSchoolSystem.Controllers
                 }
             }
 
-            // 3. Handle Successful Login
+            // 3. Handle Successful Login (FIXED REDIRECTION)
             if (result.Succeeded)
             {
                 var appUser = await _userManager.FindByEmailAsync(model.Email ?? "");
 
+                if (appUser != null)
+                {
+                    // Check roles and redirect to the correct dashboard
+                    if (await _userManager.IsInRoleAsync(appUser, "SuperAdmin"))
+                        return RedirectToAction("Index", "SuperAdmin");
+
+                    if (await _userManager.IsInRoleAsync(appUser, "Admin"))
+                        return RedirectToAction("Index", "Admin");
+
+                    if (await _userManager.IsInRoleAsync(appUser, "Teacher"))
+                        return RedirectToAction("Index", "Teacher");
+
+                    if (await _userManager.IsInRoleAsync(appUser, "Student"))
+                        return RedirectToAction("Index", "Student");
+                }
+
+                // Default fallback if user has no specific role
+                return RedirectToAction("Index", "Home");
+            }
+
+            // 4. Handle Failure (Wrong password/User not found)
+            ModelState.AddModelError("", "Invalid email or password.");
+            return View(model);
+        }
+        //=======================================================================================================
+        //+=============================SENDTWOOFACTORAUTHENTICATION=============================+
+        //=======================================================================================================
 
         [HttpGet]
         public IActionResult SendTwoFactorAuthentication()
         {
             return View();
         }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> SendTwoFactorAuthentication(string Id)
         {
             var appUser = await _userManager.FindByIdAsync(Id);
-            if(appUser==null||!appUser.EmailConfirmed)
+            if (appUser == null || !appUser.EmailConfirmed)
             {
                 ModelState.AddModelError("", "User Not Found");
                 return RedirectToAction(nameof(Registration));
             }
             var result = _userService.Send2FAAsync(appUser);
-            
-            if(result==null)
+
+            if (result == null)
             {
                 return RedirectToAction(nameof(Login));
             }
             return RedirectToAction(nameof(Verify2FaAuth));
         }
+
+        //=======================================================================================================
+        //+=============================VERIFY2FAAUTH=============================+
+        //=======================================================================================================
+
         [HttpGet]
         public IActionResult Verify2FaAuth()
         {
             return View();
         }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Verify2FaAuth(Verify2FAViewModel model)
         {
             if (!ModelState.IsValid) return View(model);
 
-            // 1. Verify the code
             var result = await _userService.Verify2FAAsync(model);
 
             if (result.Succeeded)
             {
-                // 2. Now that they are officially IN, find who they are
-                var appUser = await _userManager.FindByEmailAsync(model.Email);
-                if(appUser==null) return RedirectToAction(nameof(Login));
-            
+                var appUser = await _userManager.FindByEmailAsync(model.Email ?? "");
+                if (appUser == null) return RedirectToAction(nameof(Login));
+
                 if (await _userManager.IsInRoleAsync(appUser, "Student"))
                     return RedirectToAction("Index", "Student");
 
-              
-                
+
             }
-            ModelState.AddModelError("", "Invalid Verification Code"); 
+            ModelState.AddModelError("", "Invalid Verification Code");
             return RedirectToAction("Index", "Home");
-        
-            
         }
 
+        //=======================================================================================================
+        //+=============================DEACTIVATEACCOUNT=============================+
+        //=======================================================================================================
 
-
-        
-        [HttpPost]
-[ValidateAntiForgeryToken]
-public async Task<IActionResult> Login(LoginViewDTO model)
-{
-    if (!ModelState.IsValid) return View(model);
-
-    var appUser = await _userManager.FindByEmailAsync(model.Email ?? "");
-
-    if (appUser == null)
-    {
-        ModelState.AddModelError("", "Invalid login attempt");
-        return View(model);
-    }
-
-    var (result, requires2FA) = await _userService.LoginUserAsync(model);
-
-    // 1️⃣ Handle 2FA
-    if (requires2FA)
-    {
-        TempData["2FAEmail"] = model.Email;
-        return RedirectToAction("TwoFactor", "Account");
-    }
-
-    // 2️⃣ Handle email not confirmed
-    if (result.IsNotAllowed && !appUser.EmailConfirmed)
-    {
-        var token = await _userManager.GenerateEmailConfirmationTokenAsync(appUser);
-
-        var encodedToken = System.Text.Encoding.UTF8.GetBytes(token);
-        encodedToken = Microsoft.AspNetCore.WebUtilities.WebEncoders.Base64UrlEncode(encodedToken);
-
-        var confirmationLink = Url.Action(
-            "ConfirmEmail",
-            "Account",
-            new { userId = appUser.Id, token = encodedToken },
-            Request.Scheme);
-
-        await _emailService.SendEmailAsync(
-            appUser.Email!,
-            "Confirm your account",
-            $"Click here to confirm your email: <a href='{confirmationLink}'>Confirm Email</a>"
-        );
-
-        return RedirectToAction("EmailMessage", new { email = appUser.Email });
-    }
-
-    // 3️⃣ Invalid login
-    if (!result.Succeeded)
-    {
-        ModelState.AddModelError("", "Invalid login attempt");
-        return View(model);
-    }
-
-    // 4️⃣ Role-based redirect
-    if (await _userManager.IsInRoleAsync(appUser, "SuperAdmin"))
-        return RedirectToAction("Index", "SuperAdmin");
-
-    if (await _userManager.IsInRoleAsync(appUser, "Admin"))
-        return RedirectToAction("Index", "Admin");
-
-    if (await _userManager.IsInRoleAsync(appUser, "Teacher"))
-        return RedirectToAction("Index", "Teacher");
-
-    if (await _userManager.IsInRoleAsync(appUser, "Student"))
-        return RedirectToAction("Index", "Student");
-
-    return RedirectToAction("Index", "Home");
-}
-
-
-
-
-
-        
         [HttpGet]
         public IActionResult DeactivateAccount()
         {
@@ -404,11 +384,17 @@ public async Task<IActionResult> Login(LoginViewDTO model)
 
             return RedirectToAction(nameof(Login));
         }
+
+
+        //=======================================================================================================
+        //+=============================FORGOT PASSWORD & RESET PASSWORD=============================+
+        //=======================================================================================================
         [HttpGet]
         public IActionResult ForgotPassword()
         {
             return View();
         }
+
         [HttpPost]
         public async Task<IActionResult> ForgotPassword(string email)
         {
@@ -417,13 +403,15 @@ public async Task<IActionResult> Login(LoginViewDTO model)
 
             var result = await _userService.ForgotPasswordAsync(email);
             ModelState.AddModelError("", "Invalid Password");
-            return RedirectToAction(nameof(ResetPassoword));
+            return RedirectToAction(nameof(ResetPassword));
         }
+
         [HttpGet]
-        public IActionResult ResetPassoword()
+        public IActionResult ResetPassword()
         {
             return View();
         }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ResetPassword(ResetPasswordViewModel model)
@@ -432,19 +420,21 @@ public async Task<IActionResult> Login(LoginViewDTO model)
             {
                 return View(model);
             }
-            var result = await _userService.ResetPasswordAsync(model.Email??"null", model.Token??"null", model.NewPassword ?? "null"    );
+            var result = await _userService.ResetPasswordAsync(model.Email ?? "null", model.Token ?? "null", model.NewPassword ?? "null");
             if (!result.Succeeded)
             {
                 foreach (var error in result.Errors)
                 {
                     ModelState.AddModelError("", error.Description);
-                   
-                }
-                     return View(model);
-              
 
+                }
+                return View(model);
             }
+
             return RedirectToAction(nameof(Login));
+            } 
         }
     }
-}
+
+
+    

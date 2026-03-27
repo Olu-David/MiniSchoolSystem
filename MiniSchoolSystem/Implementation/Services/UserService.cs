@@ -86,56 +86,57 @@ namespace MiniSchoolSystem.Implementation.Services
 
 
         public async Task<SignInResult> Verify2FAAsync(Verify2FAViewModel model)
-{
-    if (string.IsNullOrEmpty(model.Email))
-        throw new ArgumentNullException(nameof(model.Email), "Email is required.");
+        {
+            if (string.IsNullOrEmpty(model.Email))
+                throw new ArgumentNullException(nameof(model.Email), "Email is required.");
 
-    if (string.IsNullOrEmpty(model.Token))
-        throw new ArgumentNullException(nameof(model.Token), "2FA token is required.");
+            if (string.IsNullOrEmpty(model.token))
+                throw new ArgumentNullException(nameof(model.token), "2FA token is required.");
 
-    // Find the user
-    var user = await _userManager.FindByEmailAsync(model.Email);
-    if (user == null)
-        return SignInResult.Failed;
+            // Find the user
+            var user = await _userManager.FindByEmailAsync(model.Email);
+            if (user == null)
+                return SignInResult.Failed;
 
-    // Verify the 2FA token
-    var result = await _signInManager.TwoFactorAuthenticatorSignInAsync(
-        model.Token,
-        isPersistent: model.RememberMe,
-        rememberClient: model.RememberClient
-    );
-
-    return result;
-}
+            // Verify the 2FA token
+            var result = await _signInManager.TwoFactorAuthenticatorSignInAsync(
+                 model.token,
+                 isPersistent: model.RememberMe,
+                 rememberClient: model.RememberClient);
 
         
 
-        public async Task<(SignInResult Result, bool requires2FA)> LoginUserAsync(LoginViewDTO model)
-{
-    var user = await _userManager.FindByEmailAsync(model.Email!);
-
-    if (user == null)
-        return (SignInResult.Failed, false);
-
-    var result = await _signInManager.PasswordSignInAsync(
-        user,
-        model.Password ?? "",
-        false,
-        lockoutOnFailure: false
-    );
-
-    if (result.RequiresTwoFactor)
-    {
-        await Send2FAAsync(user);
-        return (result, true);
-    }
-
-    return (result, false); // ✅ THIS LINE FIXED EVERYTHING
-}    var result = await _signInManager.TwoFactorSignInAsync(TokenOptions.DefaultEmailProvider, model.Code, false, false);
             return result;
+        }
 
-    }
+        public async Task<(SignInResult Result, bool requires2FA)> LoginUserAsync(LoginViewDTO model)
+        {
+            var user = await _userManager.FindByEmailAsync(model.Email!);
 
+            if (user == null)
+                return (SignInResult.Failed, false);
+
+            var result = await _signInManager.PasswordSignInAsync(
+                user,
+                model.Password ?? "",
+                false,
+                lockoutOnFailure: false
+            );
+
+            if (result.RequiresTwoFactor)
+            {
+                await Send2FAAsync(user);
+                return (result, true);
+            }
+
+            return (result, false); // ✅ THIS LINE FIXED EVERYTHING
+        }
+        
+      
+    
+
+
+    
         public async Task<IdentityResult> RegistrationAsync(RegisterViewModel model, string? ConfirmationLink)
         {
             // 1. Create the User object from the ViewModel
@@ -221,6 +222,3 @@ namespace MiniSchoolSystem.Implementation.Services
         }
     }
 }
-
-       
-
