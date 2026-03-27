@@ -1,61 +1,52 @@
-﻿using MailKit.Net.Smtp;
-using MailKit.Security;
-using Microsoft.Extensions.Options;
-using MimeKit;
+﻿using Microsoft.Extensions.Options;
 using MiniSchoolSystem.Implementation.Interfaces;
 using MiniSchoolSystem.Implementation.Settings;
+using SendGrid;
+using SendGrid.Helpers.Mail;
+using System.Net.Mail;
 
 namespace MiniSchoolSystem.Implementation.Services
 {
     public class EmailService : IEmailService
     {
-        private readonly EmailSettings _EmailSettings;
+        private readonly EmailSettings _emailSettings;
 
         public EmailService(IOptions<EmailSettings> emailSettings)
         {
-            _EmailSettings = emailSettings.Value;
+            _emailSettings = emailSettings.Value;
         }
 
         public async Task SendEmailAsync(string toEmail, string subject, string body)
         {
-            var message = new MimeMessage();
-            // NOTE: The 'From' email must be the one you verified in SendGrid (Single Sender)
-            message.From.Add(new MailboxAddress(_EmailSettings.DisplayName, _EmailSettings.Email ?? ""));
-            message.To.Add(MailboxAddress.Parse(toEmail));
-            message.Subject = subject;
+            // The 'Password' field holds your SendGrid API Key (SG.xxx)
+            var client = new SendGridClient(_emailSettings.Password);
 
-            var bodyBuilder = new BodyBuilder { HtmlBody = body };
-            message.Body = bodyBuilder.ToMessageBody();
+            // Setup the 'From' (must be verified in SendGrid) and the 'To'
+            var from = new EmailAddress(_emailSettings.Email, _emailSettings.DisplayName);
+            var to = new EmailAddress(toEmail);
 
-            using (var client = new SmtpClient())
+            // Create the email message (Plain text is empty, HTML is 'body')
+            var msg = MailHelper.CreateSingleEmail(from, to, subject, "", body);
+
+            try
             {
-                try
+                var response = await client.SendEmailAsync(msg);
+
+                if (response.IsSuccessStatusCode)
                 {
-                    client.Timeout = 10000; // 10 seconds
-
-                    // Essential for cloud environments like Render
-                    client.ServerCertificateValidationCallback = (s, c, h, e) => true;
-
-                    // SendGrid SMTP Settings
-                    // Host: smtp.sendgrid.net | Port: 587 (Standard for StartTls)
-                    await client.ConnectAsync("smtp.sendgrid.net", 2525, SecureSocketOptions.StartTls);
-
-                    // CRITICAL: Username is ALWAYS "apikey". 
-                    // Password is your SG.xxxxxxxx API Key from SendGrid dashboard.
-                    await client.AuthenticateAsync(_EmailSettings.Password, _EmailSettings.Password);
-
-                    await client.SendAsync(message);
-                    Console.WriteLine("✅ SENDGRID: Mail sent successfully to " + toEmail);
+                    Console.WriteLine($"✅ Email sent successfully to {toEmail}");
                 }
-                catch (Exception ex)
+                else
                 {
-                    Console.WriteLine($"❌ SENDGRID ERROR: {ex.Message}");
-                    throw;
+                    // This will show you exactly why SendGrid rejected it (e.g., "Unauthorized")
+                    var errorDetails = await response.Body.ReadAsStringAsync();
+                    Console.WriteLine($"❌ SendGrid Error: {response.StatusCode}. Details: {errorDetails}");
                 }
-                finally
-                {
-                    await client.DisconnectAsync(true);
-                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ System Error sending email: {ex.Message}");
+                throw;
             }
         }
     }
