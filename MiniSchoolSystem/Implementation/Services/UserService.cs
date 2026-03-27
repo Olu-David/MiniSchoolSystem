@@ -74,26 +74,7 @@ namespace MiniSchoolSystem.Implementation.Services
 
         }
 
-        public async Task<(SignInResult Result, bool requires2FA)> LoginUserAsync(LoginViewDTO model)
-        {
-            var user = await _userManager.FindByEmailAsync(model.Email!);
-            if (user == null ) return (SignInResult.Failed, false);
-
-            var result = await _signInManager.PasswordSignInAsync(user, model.Password??"", false, lockoutOnFailure: false);
-            if (result.RequiresTwoFactor)
-            {
-                await Send2FAAsync(user);
-                return (SignInResult.TwoFactorRequired, true);
-            }
-            if (result.Succeeded)
-            {
-                return (SignInResult.Success, false);
-                
-            }
-            return (SignInResult.Failed, false);
-
-
-        }
+        
         public async Task Send2FAAsync(UserDb user)
         {
             if (user == null) throw new ArgumentNullException(nameof(user), "Token is missing.");
@@ -108,12 +89,34 @@ namespace MiniSchoolSystem.Implementation.Services
             if (model.Email == null)
                 if (model.Email == null) throw new ArgumentNullException(nameof(model.Email), "Token is missing.");
 
-            var result = await _signInManager.TwoFactorSignInAsync(TokenOptions.DefaultEmailProvider, model.Code, false, false);
+        public async Task<(SignInResult Result, bool requires2FA)> LoginUserAsync(LoginViewDTO model)
+{
+    var user = await _userManager.FindByEmailAsync(model.Email!);
+
+    if (user == null)
+        return (SignInResult.Failed, false);
+
+    var result = await _signInManager.PasswordSignInAsync(
+        user,
+        model.Password ?? "",
+        false,
+        lockoutOnFailure: false
+    );
+
+    if (result.RequiresTwoFactor)
+    {
+        await Send2FAAsync(user);
+        return (result, true);
+    }
+
+    return (result, false); // ✅ THIS LINE FIXED EVERYTHING
+}    var result = await _signInManager.TwoFactorSignInAsync(TokenOptions.DefaultEmailProvider, model.Code, false, false);
             return result;
 
 
 
         }
+
         public async Task<IdentityResult> RegistrationAsync(RegisterViewModel model, string? ConfirmationLink)
         {
             // 1. Create the User object from the ViewModel
