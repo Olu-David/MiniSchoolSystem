@@ -84,10 +84,31 @@ namespace MiniSchoolSystem.Implementation.Services
             await _emailService.SendEmailAsync(user.Email ?? "null", "TwoFactorAuthenticator Code", $"Your Code is {token}");
         }
 
+
         public async Task<SignInResult> Verify2FAAsync(Verify2FAViewModel model)
-        {
-            if (model.Email == null)
-                if (model.Email == null) throw new ArgumentNullException(nameof(model.Email), "Token is missing.");
+{
+    if (string.IsNullOrEmpty(model.Email))
+        throw new ArgumentNullException(nameof(model.Email), "Email is required.");
+
+    if (string.IsNullOrEmpty(model.Token))
+        throw new ArgumentNullException(nameof(model.Token), "2FA token is required.");
+
+    // Find the user
+    var user = await _userManager.FindByEmailAsync(model.Email);
+    if (user == null)
+        return SignInResult.Failed;
+
+    // Verify the 2FA token
+    var result = await _signInManager.TwoFactorAuthenticatorSignInAsync(
+        model.Token,
+        isPersistent: model.RememberMe,
+        rememberClient: model.RememberClient
+    );
+
+    return result;
+}
+
+        
 
         public async Task<(SignInResult Result, bool requires2FA)> LoginUserAsync(LoginViewDTO model)
 {
@@ -113,9 +134,7 @@ namespace MiniSchoolSystem.Implementation.Services
 }    var result = await _signInManager.TwoFactorSignInAsync(TokenOptions.DefaultEmailProvider, model.Code, false, false);
             return result;
 
-
-
-        }
+    }
 
         public async Task<IdentityResult> RegistrationAsync(RegisterViewModel model, string? ConfirmationLink)
         {
