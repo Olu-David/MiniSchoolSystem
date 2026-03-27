@@ -266,6 +266,9 @@ namespace MiniSchoolSystem.Controllers
         
             
         }
+
+
+
         
         [HttpPost]
 [ValidateAntiForgeryToken]
@@ -273,7 +276,6 @@ public async Task<IActionResult> Login(LoginViewDTO model)
 {
     if (!ModelState.IsValid) return View(model);
 
-    // 🔍 STEP 1: Find user
     var appUser = await _userManager.FindByEmailAsync(model.Email ?? "");
 
     if (appUser == null)
@@ -282,13 +284,22 @@ public async Task<IActionResult> Login(LoginViewDTO model)
         return View(model);
     }
 
-    // 📧 STEP 2: Check Email Confirmation FIRST (MAIN FIX)
-    if (!appUser.EmailConfirmed)
+    var (result, requires2FA) = await _userService.LoginUserAsync(model);
+
+    // 1️⃣ Handle 2FA
+    if (requires2FA)
+    {
+        TempData["2FAEmail"] = model.Email;
+        return RedirectToAction("TwoFactor", "Account");
+    }
+
+    // 2️⃣ Handle email not confirmed
+    if (result.IsNotAllowed && !appUser.EmailConfirmed)
     {
         var token = await _userManager.GenerateEmailConfirmationTokenAsync(appUser);
 
-        var encodedToken = Microsoft.AspNetCore.WebUtilities.WebEncoders.Base64UrlEncode(
-            System.Text.Encoding.UTF8.GetBytes(token));
+        var encodedToken = System.Text.Encoding.UTF8.GetBytes(token);
+        encodedToken = Microsoft.AspNetCore.WebUtilities.WebEncoders.Base64UrlEncode(encodedToken);
 
         var confirmationLink = Url.Action(
             "ConfirmEmail",
@@ -299,30 +310,20 @@ public async Task<IActionResult> Login(LoginViewDTO model)
         await _emailService.SendEmailAsync(
             appUser.Email!,
             "Confirm your account",
-            $"Please confirm your account by clicking here: <a href='{confirmationLink}'>Confirm Email</a>"
+            $"Click here to confirm your email: <a href='{confirmationLink}'>Confirm Email</a>"
         );
 
         return RedirectToAction("EmailMessage", new { email = appUser.Email });
     }
 
-    // 🔐 STEP 3: Login AFTER confirmation check
-    var (result, requires2FA) = await _userService.LoginUserAsync(model);
-
-    // 🔐 Handle 2FA
-    if (requires2FA)
-    {
-        TempData["2FAEmail"] = model.Email;
-        return RedirectToAction("TwoFactor", "Account");
-    }
-
-    // ❌ Invalid login
+    // 3️⃣ Invalid login
     if (!result.Succeeded)
     {
         ModelState.AddModelError("", "Invalid login attempt");
         return View(model);
     }
 
-    // ✅ STEP 4: Role-based redirect
+    // 4️⃣ Role-based redirect
     if (await _userManager.IsInRoleAsync(appUser, "SuperAdmin"))
         return RedirectToAction("Index", "SuperAdmin");
 
@@ -337,6 +338,10 @@ public async Task<IActionResult> Login(LoginViewDTO model)
 
     return RedirectToAction("Index", "Home");
 }
+
+
+
+
 
         
         [HttpGet]
