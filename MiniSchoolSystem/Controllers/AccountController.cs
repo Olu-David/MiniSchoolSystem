@@ -146,7 +146,7 @@ namespace MiniSchoolSystem.Controllers
             if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(token))
             {
                 TempData["Error"] = "Invalid or token Expired";
-                return RedirectToAction("Login"); // Or your ResendConfirmadtion action
+                return RedirectToAction("Login"); // Or your ResendConfirmation action
             }
 
             var user = await _userManager.FindByIdAsync(userId);

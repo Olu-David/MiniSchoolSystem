@@ -17,23 +17,26 @@ namespace MiniSchoolSystem.Implementation.Services
 
         public async Task SendEmailAsync(string toEmail, string subject, string body)
         {
-            // 🔐 Safety check for missing credentials
-            if (string.IsNullOrEmpty(_emailSettings.Username) ||
-                string.IsNullOrEmpty(_emailSettings.Password))
+            // 1. Validation Check
+            if (string.IsNullOrEmpty(_emailSettings.Username) || string.IsNullOrEmpty(_emailSettings.Password))
             {
-                throw new Exception("Email credentials (Username/Password) are missing. Check Render Env Variables.");
+                throw new Exception("SMTP Credentials missing. Check Render Environment Variables.");
             }
 
-            using var client = new SmtpClient(_emailSettings.Host, _emailSettings.Port);
+            // 2. Setup SMTP Client for Google/Render
+            using var client = new SmtpClient(_emailSettings.Host, _emailSettings.Port)
+            {
+                UseDefaultCredentials = false, // Critical: Don't use system credentials
+                Credentials = new NetworkCredential(_emailSettings.Username, _emailSettings.Password),
+                EnableSsl = true, // Required for Port 587
+                DeliveryMethod = SmtpDeliveryMethod.Network
+            };
 
-            // Required for Mailtrap and most cloud SMTP servers
-            client.UseDefaultCredentials = false;
-            client.Credentials = new NetworkCredential(_emailSettings.Username, _emailSettings.Password);
-            client.EnableSsl = true;
-
+            // 3. Create the Message
             var mailMessage = new MailMessage
             {
-                From = new MailAddress(_emailSettings.FromEmail, _emailSettings.DisplayName),
+                // FromEmail must be your Gmail address or Google will block it
+                From = new MailAddress(_emailSettings.Username, _emailSettings.DisplayName),
                 Subject = subject,
                 Body = body,
                 IsBodyHtml = true
@@ -44,11 +47,17 @@ namespace MiniSchoolSystem.Implementation.Services
             try
             {
                 await client.SendMailAsync(mailMessage);
-                Console.WriteLine("✅ Email sent to Mailtrap successfully");
+                Console.WriteLine($"✅ Email successfully sent to {toEmail} via Gmail.");
+            }
+            catch (SmtpException smtpEx)
+            {
+                // This catches specific Google SMTP errors (e.g., Auth Failed)
+                Console.WriteLine($"❌ SMTP Error: {smtpEx.StatusCode} - {smtpEx.Message}");
+                throw;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ SMTP Error: {ex.Message}");
+                Console.WriteLine($"❌ General Email Error: {ex.Message}");
                 throw;
             }
         }
