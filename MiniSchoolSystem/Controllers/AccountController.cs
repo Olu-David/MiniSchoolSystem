@@ -110,11 +110,19 @@ namespace MiniSchoolSystem.Controllers
 
             return View(model);
         }
+        
         [HttpGet]
-        public IActionResult EmailMessage()
+        public IActionResult EmailMessage(string email)
         {
-            return View();
-        }
+          ViewBag.Email = email;
+          ViewBag.Message = "Your account is not confirmed. We’ve sent you a new confirmation link.";
+         return View();
+         
+         }
+
+
+
+        
         [HttpGet]
         public IActionResult ConfirmEmailSuccess()
         {
@@ -230,7 +238,7 @@ namespace MiniSchoolSystem.Controllers
 
                     var confirmationLink = Url.Action(
                         action: "ConfirmEmail",
-                        controller: "Account", 
+                        controller: "Account", // 🚩 Changed from "Auth" to "Account"
                         values: new { userId = appUser.Id, token = encodedToken },
                         protocol: Request.Scheme);
 
@@ -248,28 +256,6 @@ namespace MiniSchoolSystem.Controllers
             {
                 var appUser = await _userManager.FindByEmailAsync(model.Email ?? "");
 
-                if (appUser != null)
-                {
-                    if (await _userManager.IsInRoleAsync(appUser, "SuperAdmin"))
-                        return RedirectToAction("Index", "SuperAdmin");
-
-                    if (await _userManager.IsInRoleAsync(appUser, "Admin"))
-                        return RedirectToAction("Index", "Admin");
-
-                    if (await _userManager.IsInRoleAsync(appUser, "Teacher"))
-                        return RedirectToAction("Index", "Teacher");
-
-                    if (await _userManager.IsInRoleAsync(appUser, "Student"))
-                        return RedirectToAction("Index", "Student");
-                }
-
-                return RedirectToAction("Index", "Home");
-            }
-
-            // 4. Handle Failure (Wrong Password/User)
-            ModelState.AddModelError("", "Invalid email or password.");
-            return View(model);
-        }
 
         [HttpGet]
         public IActionResult SendTwoFactorAuthentication()
@@ -325,6 +311,84 @@ namespace MiniSchoolSystem.Controllers
         
             
         }
+
+
+
+        
+        [HttpPost]
+[ValidateAntiForgeryToken]
+public async Task<IActionResult> Login(LoginViewDTO model)
+{
+    if (!ModelState.IsValid) return View(model);
+
+    var appUser = await _userManager.FindByEmailAsync(model.Email ?? "");
+
+    if (appUser == null)
+    {
+        ModelState.AddModelError("", "Invalid login attempt");
+        return View(model);
+    }
+
+    var (result, requires2FA) = await _userService.LoginUserAsync(model);
+
+    // 1️⃣ Handle 2FA
+    if (requires2FA)
+    {
+        TempData["2FAEmail"] = model.Email;
+        return RedirectToAction("TwoFactor", "Account");
+    }
+
+    // 2️⃣ Handle email not confirmed
+    if (result.IsNotAllowed && !appUser.EmailConfirmed)
+    {
+        var token = await _userManager.GenerateEmailConfirmationTokenAsync(appUser);
+
+        var encodedToken = System.Text.Encoding.UTF8.GetBytes(token);
+        encodedToken = Microsoft.AspNetCore.WebUtilities.WebEncoders.Base64UrlEncode(encodedToken);
+
+        var confirmationLink = Url.Action(
+            "ConfirmEmail",
+            "Account",
+            new { userId = appUser.Id, token = encodedToken },
+            Request.Scheme);
+
+        await _emailService.SendEmailAsync(
+            appUser.Email!,
+            "Confirm your account",
+            $"Click here to confirm your email: <a href='{confirmationLink}'>Confirm Email</a>"
+        );
+
+        return RedirectToAction("EmailMessage", new { email = appUser.Email });
+    }
+
+    // 3️⃣ Invalid login
+    if (!result.Succeeded)
+    {
+        ModelState.AddModelError("", "Invalid login attempt");
+        return View(model);
+    }
+
+    // 4️⃣ Role-based redirect
+    if (await _userManager.IsInRoleAsync(appUser, "SuperAdmin"))
+        return RedirectToAction("Index", "SuperAdmin");
+
+    if (await _userManager.IsInRoleAsync(appUser, "Admin"))
+        return RedirectToAction("Index", "Admin");
+
+    if (await _userManager.IsInRoleAsync(appUser, "Teacher"))
+        return RedirectToAction("Index", "Teacher");
+
+    if (await _userManager.IsInRoleAsync(appUser, "Student"))
+        return RedirectToAction("Index", "Student");
+
+    return RedirectToAction("Index", "Home");
+}
+
+
+
+
+
+        
         [HttpGet]
         public IActionResult DeactivateAccount()
         {
