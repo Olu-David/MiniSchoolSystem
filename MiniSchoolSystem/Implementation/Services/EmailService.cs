@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Options;
 using MiniSchoolSystem.Implementation.Interfaces;
 using MiniSchoolSystem.Implementation.Settings;
 using System.Net;
@@ -16,34 +16,44 @@ namespace MiniSchoolSystem.Implementation.Services
         }
 
         public async Task SendEmailAsync(string toEmail, string subject, string body)
-{
-    using (var client = new SmtpClient(_emailSettings.Host, _emailSettings.Port))
-    {
-        client.Credentials = new NetworkCredential(
-            _emailSettings.Email,
-            _emailSettings.Password
-        );
-
-        client.EnableSsl = true;
-
-        var mailMessage = new MailMessage
         {
-            From = new MailAddress(_emailSettings.Email, "Mini School System"),
-            Subject = subject,
-            Body = body, // ✅ using "body" now
-            IsBodyHtml = true
-        };
+            // 🔐 Safety check (VERY IMPORTANT)
+            if (string.IsNullOrEmpty(_emailSettings.Email) ||
+                string.IsNullOrEmpty(_emailSettings.Password) ||
+                string.IsNullOrEmpty(_emailSettings.Host))
+            {
+                throw new Exception("Email settings not configured properly");
+            }
 
-        mailMessage.To.Add(toEmail);
+            using var client = new SmtpClient(_emailSettings.Host, _emailSettings.Port);
 
-        try
-        {
-            await client.SendMailAsync(mailMessage);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Email Failed: {ex.Message}");
-            throw;
+            client.Credentials = new NetworkCredential(
+                _emailSettings.Email,
+                _emailSettings.Password
+            );
+
+            client.EnableSsl = true;
+
+            var mailMessage = new MailMessage
+            {
+                From = new MailAddress(_emailSettings.Email, _emailSettings.DisplayName),
+                Subject = subject,
+                Body = body,
+                IsBodyHtml = true
+            };
+
+            mailMessage.To.Add(toEmail);
+
+            try
+            {
+                await client.SendMailAsync(mailMessage);
+                Console.WriteLine("✅ Email sent successfully");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Email Failed: {ex.Message}");
+                throw;
+            }
         }
     }
 }
