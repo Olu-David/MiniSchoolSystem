@@ -6,7 +6,6 @@ using MiniSchoolSystem.Implementation.Interfaces;
 using MiniSchoolSystem.Implementation.Services;
 using MiniSchoolSystem.Implementation.Settings;
 using MiniSchoolSystem.Models;
-
 namespace MiniSchoolSystem
 {
     public class Program
@@ -14,6 +13,12 @@ namespace MiniSchoolSystem
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+
+            // ── 0. Load Secrets First (CRITICAL) ──────────────────
+            if (builder.Environment.IsDevelopment())
+            {
+                builder.Configuration.AddUserSecrets<Program>();
+            }
 
             // ── 1. MVC ────────────────────────────────────────────
             builder.Services.AddControllersWithViews();
@@ -25,28 +30,26 @@ namespace MiniSchoolSystem
                 options.MinimumSameSitePolicy = SameSiteMode.None;
             });
 
-            // ── 3. Database ───────────────────────────────────────
+            // ── 3. Database (PostgreSQL) ──────────────────────────
             if (builder.Environment.IsDevelopment())
-{
-    var localConn = builder.Configuration.GetConnectionString("DefaultConnection");
+            {
+                var localConn = builder.Configuration.GetConnectionString("DefaultConnection");
+                builder.Services.AddDbContext<AppDbContext>(options =>
+                    options.UseNpgsql(localConn)
+                        .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning)));
+            }
+            else
+            {
+                var rawUrl = Environment.GetEnvironmentVariable("DATABASE_URL")
+                             ?? builder.Configuration.GetConnectionString("DefaultConnection");
 
-    builder.Services.AddDbContext<AppDbContext>(options =>
-        options.UseNpgsql(localConn)  // ✅ Changed from UseSqlServer to UseNpgsql
-            .EnableSensitiveDataLogging()
-            .ConfigureWarnings(w =>
-                w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics
-                    .RelationalEventId.PendingModelChangesWarning)));
-}
-else
-{
-    var rawUrl = Environment.GetEnvironmentVariable("DATABASE_URL")
-                 ?? builder.Configuration.GetConnectionString("DefaultConnection");
+                var npgsqlConn = ConvertPostgresUrl(rawUrl!);
 
-    var npgsqlConn = ConvertPostgresUrl(rawUrl!);
+                builder.Services.AddDbContext<AppDbContext>(options =>
+                    options.UseNpgsql(npgsqlConn, npgsqlOptions =>
+                        npgsqlOptions.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null)));
+            }
 
-    builder.Services.AddDbContext<AppDbContext>(options =>
-        options.UseNpgsql(npgsqlConn));
-}
             // ── 4. Identity ───────────────────────────────────────
             builder.Services.AddIdentity<UserDb, IdentityRole>(options =>
             {
@@ -54,14 +57,8 @@ else
                 options.Password.RequiredLength = 6;
                 options.Password.RequireNonAlphanumeric = false;
                 options.Password.RequireUppercase = false;
-
-                options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
-                options.Lockout.MaxFailedAccessAttempts = 5;
-
                 options.User.RequireUniqueEmail = true;
-
-                // You can turn this to true later after email works
-                options.SignIn.RequireConfirmedEmail = false;
+                options.SignIn.RequireConfirmedEmail = true;
             })
             .AddEntityFrameworkStores<AppDbContext>()
             .AddDefaultTokenProviders();
@@ -77,37 +74,24 @@ else
                 options.SlidingExpiration = true;
             });
 
-            // ── 6. Email Service ──────────────────────────────────
-            builder.Services.Configure<EmailSettings>(
-                builder.Configuration.GetSection("EmailSettings"));
+            // ── 6. Services & Dependency Injection ────────────────
+            builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
+
             builder.Services.AddScoped<IEmailService, EmailService>();
-
-            // ── 7. File Service ───────────────────────────────────
             builder.Services.AddScoped<IFileService, FileService>();
+            builder.Services.AddScoped<IUserService, UserService>();
+            builder.Services.AddScoped<ICourseService, CourseService>();
 
-            // ── 8. User Service ───────────────────────────────────  
-            
-             builder.Services.AddScoped<IUserService, UserService>();
-
-            
-            // ── 9. Course Service ───────────────────────────────────  
-            
-             builder.Services.AddScoped<ICourseService, CourseService>();
-            
-
-            // This tells ASP.NET: "Save my security keys in the database table we created"
+            // ── 7. Data Protection (Keeps users logged in on Render) ─
             builder.Services.AddDataProtection()
                 .PersistKeysToDbContext<AppDbContext>();
 
-            builder.Configuration.AddUserSecrets<Program>();
-
-            // ── BUILD APP ─────────────────────────────────────────
             var app = builder.Build();
 
-            // ── ✅ FIXED: ERROR HANDLING (VERY IMPORTANT) ─────────
+            // ── 8. Middleware & Pipeline ──────────────────────────
             if (app.Environment.IsDevelopment())
             {
-                app.UseDeveloperExceptionPage(); // 🔥 SHOW REAL ERRORS
+                app.UseDeveloperExceptionPage();
             }
             else
             {
@@ -115,7 +99,6 @@ else
                 app.UseHsts();
             }
 
-            // ── Middleware ───────────────────────────────────────
             app.UseHttpsRedirection();
             app.UseStaticFiles();
             app.UseRouting();
@@ -123,7 +106,6 @@ else
             app.UseAuthentication();
             app.UseAuthorization();
 
-            // ── Routes ───────────────────────────────────────────
             app.MapControllerRoute(
                 name: "default",
                 pattern: "{controller=Account}/{action=Login}/{id?}");
@@ -131,9 +113,12 @@ else
             app.Run();
         }
 
-        // ── PostgreSQL Converter ────────────────────────────────
+        // ── PostgreSQL Connection String Fixer ────────────────────
         private static string ConvertPostgresUrl(string url)
         {
+            if (string.IsNullOrEmpty(url)) return url;
+            if (!url.Contains("://")) return url;
+
             var uri = new Uri(url);
             var userInfo = uri.UserInfo.Split(':');
 
