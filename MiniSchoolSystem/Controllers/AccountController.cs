@@ -124,32 +124,40 @@ namespace MiniSchoolSystem.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ConfirmEmail(string userId, string token)
         {
-            if (userId == null || token == null)
+            if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(token))
             {
-                TempData["Error"] = "Invalid or token Epired";
-                return RedirectToAction(nameof(ResendConfirmation));
+                TempData["Error"] = "Invalid or token Expired";
+                return RedirectToAction("Login"); // Or your ResendConfirmation action
             }
 
             var user = await _userManager.FindByIdAsync(userId);
             if (user == null)
             {
-                ViewBag.Success = false;
-
-                return Unauthorized( "User Not Found");
+                return Unauthorized("User Not Found");
             }
 
-
-            // Verify the token and flip the EmailConfirmed bit in the DB
-            var result = await _userService.ConfirmMailAsync(user, token);
-
-            if (result.Succeeded)
+            try
             {
-                return View("ConfirmEmailSuccess"); // A view that says "Success!"
+                // 🚩 CRITICAL STEP: Decode the token from Base64 back to its original format
+                var decodedTokenBytes = Microsoft.AspNetCore.WebUtilities.WebEncoders.Base64UrlDecode(token);
+                var originalToken = System.Text.Encoding.UTF8.GetString(decodedTokenBytes);
+
+                // Pass the ORIGINAL token to your service
+                var result = await _userService.ConfirmMailAsync(user, originalToken);
+
+                if (result.Succeeded)
+                {
+                    return View("ConfirmEmailSuccess");
+                }
+            }
+            catch (Exception)
+            {
+                // If decoding fails, the token was tampered with or malformed
+                return View("Error");
             }
 
             return View("Error");
         }
-
         [HttpPost]
         public async Task<IActionResult> ResendConfirmation(string email)
         {
@@ -195,57 +203,53 @@ namespace MiniSchoolSystem.Controllers
             return View();
         }
 
-       
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(LoginViewDTO model)
         {
-            if (!ModelState.IsValid)
-                return View(model);
-            
+            if (!ModelState.IsValid) return View(model);
 
             var (result, requires2FA) = await _userService.LoginUserAsync(model);
 
+            // 1. Handle 2FA
             if (requires2FA)
             {
                 TempData["2FAEmail"] = model.Email;
                 return RedirectToAction("TwoFactor", "Account");
- 
             }
 
+            // 2. Handle Unconfirmed Email (result.IsNotAllowed is true if RequireConfirmedEmail is set to true)
+            if (result.IsNotAllowed)
+            {
+                var appUser = await _userManager.FindByEmailAsync(model.Email ?? "");
+                if (appUser != null)
+                {
+                    var token = await _userManager.GenerateEmailConfirmationTokenAsync(appUser);
+                    var encodedToken = Microsoft.AspNetCore.WebUtilities.WebEncoders.Base64UrlEncode(
+                        System.Text.Encoding.UTF8.GetBytes(token));
+
+                    var confirmationLink = Url.Action(
+                        action: "ConfirmEmail",
+                        controller: "Account", // 🚩 Changed from "Auth" to "Account"
+                        values: new { userId = appUser.Id, token = encodedToken },
+                        protocol: Request.Scheme);
+
+                    await _emailService.SendEmailAsync(appUser.Email!, "Confirm your account",
+                        $"Please confirm your account by clicking here: <a href='{confirmationLink}'>Click Here</a>");
+
+                    ViewBag.Email = appUser.Email;
+                    ViewBag.Message = "Your account isn't confirmed yet. We've sent a fresh link to your inbox!";
+                    return View("EmailMessage");
+                }
+            }
+
+            // 3. Handle Successful Login
             if (result.Succeeded)
             {
-                // ✅ Get the real user — sign-in already happened inside LoginUserAsync
                 var appUser = await _userManager.FindByEmailAsync(model.Email ?? "");
 
                 if (appUser != null)
                 {
-                    // 🛑 STEP 1: Check if the user is confirmed BEFORE checking roles
-                    if (!await _userManager.IsEmailConfirmedAsync(appUser))
-                    {
-                        // Auto-trigger a new confirmation email
-                        var token = await _userManager.GenerateEmailConfirmationTokenAsync(appUser);
-                        var encodedToken = Microsoft.AspNetCore.WebUtilities.WebEncoders.Base64UrlEncode(
-                            System.Text.Encoding.UTF8.GetBytes(token));
-
-                        var confirmationLink = Url.Action(
-                            action: "ConfirmEmail",
-                            controller: "Auth",
-                            values: new { userId = appUser.Id, token = encodedToken },
-                            protocol: Request.Scheme);
-
-                        // Step D: Now send the email using your service
-                        _ = Task.Run(() => _emailService.SendEmailAsync(appUser.Email ?? "null", "Confirm your SabiSpace Account",
-                            $"Please confirm your account by clicking here: <a href='{confirmationLink}'>Click Here</a>"));
-
-
-                        // Redirect to a specialized "Check Your Email" page
-                        ViewBag.Email = appUser.Email;
-                        ViewBag.Message = "Your account isn't confirmed yet. We've sent a fresh link to your inbox!";
-                        return View("EmailMessage");
-                    }
-
-
                     if (await _userManager.IsInRoleAsync(appUser, "SuperAdmin"))
                         return RedirectToAction("Index", "SuperAdmin");
 
@@ -259,10 +263,10 @@ namespace MiniSchoolSystem.Controllers
                         return RedirectToAction("Index", "Student");
                 }
 
-                // Logged in but no recognised role → Home
                 return RedirectToAction("Index", "Home");
             }
 
+            // 4. Handle Failure (Wrong Password/User)
             ModelState.AddModelError("", "Invalid email or password.");
             return View(model);
         }
