@@ -39,11 +39,13 @@ namespace MiniSchoolSystem.Controllers
         }
         public async Task<IActionResult> Index(int pageNumber = 1, int pageSize = 15)
         { 
-            var UserId=User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var Student = await _DbContext.DbStudents.FirstOrDefaultAsync(m => m.StudentId == UserId);
-            if(Student==null)
+            var UserId= _userManager.GetUserId(User);
+            if(UserId==null) return RedirectToAction("Login", "Account");
+            var Student = await _DbContext.DbStudents
+                 .AsNoTracking().FirstOrDefaultAsync(m => m.StudentId == UserId);
+            if (Student==null)
             {
-                return BadRequest("Student Does not exist");
+                return NotFound($"Student record not found in database for ID: {UserId}");
 
             }
          
