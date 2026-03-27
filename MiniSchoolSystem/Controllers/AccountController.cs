@@ -110,11 +110,19 @@ namespace MiniSchoolSystem.Controllers
 
             return View(model);
         }
+        
         [HttpGet]
-        public IActionResult EmailMessage()
+        public IActionResult EmailMessage(string email)
         {
-            return View();
-        }
+          ViewBag.Email = email;
+          ViewBag.Message = "Your account is not confirmed. We’ve sent you a new confirmation link.";
+         return View();
+         
+         }
+
+
+
+        
         [HttpGet]
         public IActionResult ConfirmEmailSuccess()
         {
@@ -265,76 +273,70 @@ public async Task<IActionResult> Login(LoginViewDTO model)
 {
     if (!ModelState.IsValid) return View(model);
 
+    // 🔍 STEP 1: Find user
+    var appUser = await _userManager.FindByEmailAsync(model.Email ?? "");
+
+    if (appUser == null)
+    {
+        ModelState.AddModelError("", "Invalid login attempt");
+        return View(model);
+    }
+
+    // 📧 STEP 2: Check Email Confirmation FIRST (MAIN FIX)
+    if (!appUser.EmailConfirmed)
+    {
+        var token = await _userManager.GenerateEmailConfirmationTokenAsync(appUser);
+
+        var encodedToken = Microsoft.AspNetCore.WebUtilities.WebEncoders.Base64UrlEncode(
+            System.Text.Encoding.UTF8.GetBytes(token));
+
+        var confirmationLink = Url.Action(
+            "ConfirmEmail",
+            "Account",
+            new { userId = appUser.Id, token = encodedToken },
+            Request.Scheme);
+
+        await _emailService.SendEmailAsync(
+            appUser.Email!,
+            "Confirm your account",
+            $"Please confirm your account by clicking here: <a href='{confirmationLink}'>Confirm Email</a>"
+        );
+
+        return RedirectToAction("EmailMessage", new { email = appUser.Email });
+    }
+
+    // 🔐 STEP 3: Login AFTER confirmation check
     var (result, requires2FA) = await _userService.LoginUserAsync(model);
 
-    // 🔐 1. Handle 2FA
+    // 🔐 Handle 2FA
     if (requires2FA)
     {
         TempData["2FAEmail"] = model.Email;
         return RedirectToAction("TwoFactor", "Account");
     }
 
-    // 📧 2. Handle Email Not Confirmed
-    if (result.IsNotAllowed)
+    // ❌ Invalid login
+    if (!result.Succeeded)
     {
-        var appUser = await _userManager.FindByEmailAsync(model.Email ?? "");
-
-        if (appUser != null && !appUser.EmailConfirmed)
-        {
-            var token = await _userManager.GenerateEmailConfirmationTokenAsync(appUser);
-
-            var encodedToken = Microsoft.AspNetCore.WebUtilities.WebEncoders.Base64UrlEncode(
-                System.Text.Encoding.UTF8.GetBytes(token));
-
-            var confirmationLink = Url.Action(
-                "ConfirmEmail",
-                "Account",
-                new { userId = appUser.Id, token = encodedToken },
-                Request.Scheme);
-
-            await _emailService.SendEmailAsync(
-                appUser.Email!,
-                "Confirm your account",
-                $"Please confirm your account by clicking here: <a href='{confirmationLink}'>Confirm Email</a>"
-            );
-
-            return RedirectToAction("EmailMessage", new
-            {
-                email = appUser.Email
-            });
-        }
+        ModelState.AddModelError("", "Invalid login attempt");
+        return View(model);
     }
 
-    // ✅ 3. Successful Login
-    if (result.Succeeded)
-    {
-        var appUser = await _userManager.FindByEmailAsync(model.Email ?? "");
+    // ✅ STEP 4: Role-based redirect
+    if (await _userManager.IsInRoleAsync(appUser, "SuperAdmin"))
+        return RedirectToAction("Index", "SuperAdmin");
 
-        if (appUser != null)
-        {
-            if (await _userManager.IsInRoleAsync(appUser, "SuperAdmin"))
-                return RedirectToAction("Index", "SuperAdmin");
+    if (await _userManager.IsInRoleAsync(appUser, "Admin"))
+        return RedirectToAction("Index", "Admin");
 
-            if (await _userManager.IsInRoleAsync(appUser, "Admin"))
-                return RedirectToAction("Index", "Admin");
+    if (await _userManager.IsInRoleAsync(appUser, "Teacher"))
+        return RedirectToAction("Index", "Teacher");
 
-            if (await _userManager.IsInRoleAsync(appUser, "Teacher"))
-                return RedirectToAction("Index", "Teacher");
+    if (await _userManager.IsInRoleAsync(appUser, "Student"))
+        return RedirectToAction("Index", "Student");
 
-            if (await _userManager.IsInRoleAsync(appUser, "Student"))
-                return RedirectToAction("Index", "Student");
-        }
-
-        return RedirectToAction("Index", "Home");
-    }
-
-    // ❌ 4. Invalid login
-    ModelState.AddModelError("", "Invalid login attempt");
-    return View(model);
+    return RedirectToAction("Index", "Home");
 }
-
-
-
 
         
         [HttpGet]
