@@ -15,36 +15,35 @@ namespace MiniSchoolSystem.Implementation.Services
             _emailSettings = emailSettings.Value;
         }
 
-        public async Task SendEmailAsync(string email, string subject, string htmlMessage)
+        public async Task SendEmailAsync(string toEmail, string subject, string body)
+{
+    using (var client = new SmtpClient(_emailSettings.Host, _emailSettings.Port))
+    {
+        client.Credentials = new NetworkCredential(
+            _emailSettings.Email,
+            _emailSettings.Password
+        );
+
+        client.EnableSsl = true;
+
+        var mailMessage = new MailMessage
         {
-            // We pull Host, Port, Username, and Password from the Settings object
-            using (var client = new SmtpClient(_emailSettings.Host, _emailSettings.Port))
-            {
-                client.Credentials = new NetworkCredential(_emailSettings.Username, _emailSettings.Password);
-                client.EnableSsl = true;
+            From = new MailAddress(_emailSettings.Email, "Mini School System"),
+            Subject = subject,
+            Body = body, // ✅ using "body" now
+            IsBodyHtml = true
+        };
 
-                var mailMessage = new MailMessage
-                {
-                    // You can use the verified sender from settings if you have one
-                    From = new MailAddress("no-reply@minischoolsystem.com", "Mini School System"),
-                    Subject = subject,
-                    Body = htmlMessage,
-                    IsBodyHtml = true
-                };
+        mailMessage.To.Add(toEmail);
 
-                mailMessage.To.Add(email);
-
-                try
-                {
-                    await client.SendMailAsync(mailMessage);
-                }
-                catch (Exception ex)
-                {
-                    // Helpful for checking logs on Render
-                    Console.WriteLine($"Email Failed: {ex.Message}");
-                    throw;
-                }
-            }
+        try
+        {
+            await client.SendMailAsync(mailMessage);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Email Failed: {ex.Message}");
+            throw;
         }
     }
 }
