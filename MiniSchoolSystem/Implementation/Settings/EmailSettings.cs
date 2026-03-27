@@ -1,9 +1,12 @@
 ﻿namespace MiniSchoolSystem.Implementation.Settings
 {
-        public class EmailSettings
-        {
-            public string Email { get; set; } = string.Empty; 
-            public string Password { get; set; } = string.Empty; 
-            public string DisplayName { get; set; } = "Mini School System";
-        }
+    public class EmailSettings
+    {
+        public string Host { get; set; } = string.Empty;
+        public int Port { get; set; }
+        public string Username { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+        public string FromEmail { get; set; } = "no-reply@minischoolsystem.com";
+        public string DisplayName { get; set; } = "Mini School System";
     }
+}

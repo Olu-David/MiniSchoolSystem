@@ -1,8 +1,7 @@
 ﻿using Microsoft.Extensions.Options;
 using MiniSchoolSystem.Implementation.Interfaces;
 using MiniSchoolSystem.Implementation.Settings;
-using SendGrid;
-using SendGrid.Helpers.Mail;
+using System.Net;
 using System.Net.Mail;
 
 namespace MiniSchoolSystem.Implementation.Services
@@ -16,37 +15,35 @@ namespace MiniSchoolSystem.Implementation.Services
             _emailSettings = emailSettings.Value;
         }
 
-        public async Task SendEmailAsync(string toEmail, string subject, string body)
+        public async Task SendEmailAsync(string email, string subject, string htmlMessage)
         {
-            // The 'Password' field holds your SendGrid API Key (SG.xxx)
-            var client = new SendGridClient(_emailSettings.Password);
-
-            // Setup the 'From' (must be verified in SendGrid) and the 'To'
-            var from = new EmailAddress(_emailSettings.Email, _emailSettings.DisplayName);
-            var to = new EmailAddress(toEmail);
-
-            // Create the email message (Plain text is empty, HTML is 'body')
-            var msg = MailHelper.CreateSingleEmail(from, to, subject, "", body);
-
-            try
+            // We pull Host, Port, Username, and Password from the Settings object
+            using (var client = new SmtpClient(_emailSettings.Host, _emailSettings.Port))
             {
-                var response = await client.SendEmailAsync(msg);
+                client.Credentials = new NetworkCredential(_emailSettings.Username, _emailSettings.Password);
+                client.EnableSsl = true;
 
-                if (response.IsSuccessStatusCode)
+                var mailMessage = new MailMessage
                 {
-                    Console.WriteLine($"✅ Email sent successfully to {toEmail}");
-                }
-                else
+                    // You can use the verified sender from settings if you have one
+                    From = new MailAddress("no-reply@minischoolsystem.com", "Mini School System"),
+                    Subject = subject,
+                    Body = htmlMessage,
+                    IsBodyHtml = true
+                };
+
+                mailMessage.To.Add(email);
+
+                try
                 {
-                    // This will show you exactly why SendGrid rejected it (e.g., "Unauthorized")
-                    var errorDetails = await response.Body.ReadAsStringAsync();
-                    Console.WriteLine($"❌ SendGrid Error: {response.StatusCode}. Details: {errorDetails}");
+                    await client.SendMailAsync(mailMessage);
                 }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"❌ System Error sending email: {ex.Message}");
-                throw;
+                catch (Exception ex)
+                {
+                    // Helpful for checking logs on Render
+                    Console.WriteLine($"Email Failed: {ex.Message}");
+                    throw;
+                }
             }
         }
     }
