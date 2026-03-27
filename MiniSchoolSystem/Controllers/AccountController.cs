@@ -230,7 +230,7 @@ namespace MiniSchoolSystem.Controllers
 
                     var confirmationLink = Url.Action(
                         action: "ConfirmEmail",
-                        controller: "Account", // 🚩 Changed from "Auth" to "Account"
+                        controller: "Account", 
                         values: new { userId = appUser.Id, token = encodedToken },
                         protocol: Request.Scheme);
 
