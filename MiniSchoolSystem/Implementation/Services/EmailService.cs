@@ -17,26 +17,23 @@ namespace MiniSchoolSystem.Implementation.Services
 
         public async Task SendEmailAsync(string toEmail, string subject, string body)
         {
-            // 🔐 Safety check (VERY IMPORTANT)
-            if (string.IsNullOrEmpty(_emailSettings.Email) ||
-                string.IsNullOrEmpty(_emailSettings.Password) ||
-                string.IsNullOrEmpty(_emailSettings.Host))
+            // 🔐 Safety check for missing credentials
+            if (string.IsNullOrEmpty(_emailSettings.Username) ||
+                string.IsNullOrEmpty(_emailSettings.Password))
             {
-                throw new Exception("Email settings not configured properly");
+                throw new Exception("Email credentials (Username/Password) are missing. Check Render Env Variables.");
             }
 
             using var client = new SmtpClient(_emailSettings.Host, _emailSettings.Port);
 
-            client.Credentials = new NetworkCredential(
-                _emailSettings.Email,
-                _emailSettings.Password
-            );
-
+            // Required for Mailtrap and most cloud SMTP servers
+            client.UseDefaultCredentials = false;
+            client.Credentials = new NetworkCredential(_emailSettings.Username, _emailSettings.Password);
             client.EnableSsl = true;
 
             var mailMessage = new MailMessage
             {
-                From = new MailAddress(_emailSettings.Email, _emailSettings.DisplayName),
+                From = new MailAddress(_emailSettings.FromEmail, _emailSettings.DisplayName),
                 Subject = subject,
                 Body = body,
                 IsBodyHtml = true
@@ -47,11 +44,11 @@ namespace MiniSchoolSystem.Implementation.Services
             try
             {
                 await client.SendMailAsync(mailMessage);
-                Console.WriteLine("✅ Email sent successfully");
+                Console.WriteLine("✅ Email sent to Mailtrap successfully");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Email Failed: {ex.Message}");
+                Console.WriteLine($"❌ SMTP Error: {ex.Message}");
                 throw;
             }
         }
