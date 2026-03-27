@@ -2,11 +2,11 @@
 {
     public class EmailSettings
     {
-        public string Host { get; set; } = string.Empty;
-        public int Port { get; set; }
-        public string Username { get; set; } = string.Empty;
-        public string Password { get; set; } = string.Empty;
-        public string FromEmail { get; set; } = "no-reply@minischoolsystem.com";
-        public string DisplayName { get; set; } = "Mini School System";
+        public string Email { get; set; } = default!;        // sender email
+        public string Password { get; set; } = default!;     // app password
+        public string Host { get; set; } = default!;         // SMTP host
+        public int Port { get; set; }                        // SMTP port
+        public string DisplayName { get; set; } = "Mini School System"; // sender name
+    }
     }
 }
