@@ -277,5 +277,6 @@ namespace MiniSchoolSystem.Models
         public DbSet<Course> DbCourse {  get; set; }
         public DbSet<CourseModule>DbModules {  get; set; }
         public DbSet<StudentCourse> DbStudentCourses { get; set; }        
+        public DbSet<Parent> DbParents { get; set; }
     }
 }

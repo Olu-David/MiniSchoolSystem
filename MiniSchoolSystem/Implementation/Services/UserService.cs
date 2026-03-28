@@ -20,14 +20,16 @@ namespace MiniSchoolSystem.Implementation.Services
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly SignInManager<UserDb> _signInManager;
         private readonly IEmailService _emailService;
+        private readonly AppDbContext _dbcontext;
 
-        public UserService(UserManager<UserDb> userManager, ILogger<UserService> logger, RoleManager<IdentityRole> roleManager, SignInManager<UserDb> signInManager, IEmailService emailService)
+        public UserService(UserManager<UserDb> userManager, ILogger<UserService> logger, RoleManager<IdentityRole> roleManager, SignInManager<UserDb> signInManager, IEmailService emailService, AppDbContext dbcontext)
         {
             _userManager = userManager;
             _logger = logger;
             _roleManager = roleManager;
             _signInManager = signInManager;
             _emailService = emailService;
+            _dbcontext = dbcontext;
         }
 
         public bool BelongToASection(UserDb user, Sections sections)
@@ -131,49 +133,64 @@ namespace MiniSchoolSystem.Implementation.Services
 
             return (result, false); // ✅ THIS LINE FIXED EVERYTHING
         }
-        
-      
-    
 
 
-    
+
+
         public async Task<IdentityResult> RegistrationAsync(RegisterViewModel model, string? ConfirmationLink)
         {
-            // 1. Create the User object from the ViewModel
             var user = new UserDb
             {
-                 // Identity requires a UserName
                 Email = model.Email,
                 FullName = $"{model.FirstName} {model.LastName}",
                 PhoneNumber = model.PhoneNumber,
-                UserName=model.Email,
+                UserName = model.Email,
                 UserSection = model.Role == "Student" ? model.Section : null,
-                EmailConfirmed = false // Keep them locked out until they click the link
+                EmailConfirmed = false
             };
 
-            // 2. Save to Database
             var result = await _userManager.CreateAsync(user, model.Password);
 
             if (result.Succeeded)
             {
-                // 3. Handle Roles (Student/Parent/etc.)
                 if (!string.IsNullOrEmpty(model.Role))
                 {
-                    // Create role if it doesn't exist (Safety Check)
                     if (!await _roleManager.RoleExistsAsync(model.Role))
                     {
                         await _roleManager.CreateAsync(new IdentityRole(model.Role));
                     }
 
-                    // Assign the role
                     await _userManager.AddToRoleAsync(user, model.Role);
+
+                    if (model.Role == "Student")
+                    {
+                        var student = new StudentModel
+                        {
+                            StudentId = user.Id,
+                            // Make sure to assign the Section here too if your StudentModel needs it!
+                            StudentSection = model.Section
+                        };
+                        _dbcontext.DbStudents.Add(student);
+                    }
+                    else if (model.Role == "Parent")
+                    {
+                        var parent = new Parent
+                        {
+                            ParentId = user.Id
+                        };
+                        _dbcontext.DbParents.Add(parent);
+                    }
+
+                    // 🔥 CRITICAL MISSING PIECE 🔥
+                    // Without this, the 'DbStudents' table remains empty!
+                    await _dbcontext.SaveChangesAsync();
                 }
             }
 
             return result;
         }
-          
-        
+
+
         public async Task<IdentityResult> ResetPasswordAsync(string email, string token, string password)
         {
             if (string.IsNullOrEmpty(token)) throw new ArgumentNullException(nameof(token), "Token is missing.");
