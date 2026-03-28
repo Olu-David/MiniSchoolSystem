@@ -1,77 +1,82 @@
 ﻿@{
     var ctrl = ViewContext.RouteData.Values["controller"]?.ToString();
     var action = ViewContext.RouteData.Values["action"]?.ToString();
-
     bool IsActive(string a) => action?.Equals(a, StringComparison.OrdinalIgnoreCase) == true;
 }
 
-<aside class="sa-sidebar" id="saSidebar">
-    <div class="sa-sidebar-header">
-        <div class="sa-sidebar-role">🔑 SuperAdmin</div>
-        <div class="sa-sidebar-name">@User.Identity?.Name?.Split('@')[0]</div>
-        <div class="sa-sidebar-email">@User.Identity?.Name</div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - SuperAdmin</title>
+
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+
+    @RenderSection("Styles", required: false)
+</head>
+<body>
+    <div class="sa-wrapper" style="display: flex; min-height: 100vh;">
+
+        <aside class="sa-sidebar" id="saSidebar" style="width: 280px; background: #1a1a1a; color: white;">
+            <div class="sa-sidebar-header" style="padding: 20px; border-bottom: 1px solid #333;">
+                <div class="sa-sidebar-role" style="color: #ffd700; font-weight: bold;">🔑 SuperAdmin</div>
+                <div class="sa-sidebar-name" style="font-size: 1.1rem; margin-top: 5px;">@User.Identity?.Name?.Split('@')[0]</div>
+                <div class="sa-sidebar-email" style="font-size: 0.8rem; opacity: 0.6;">@User.Identity?.Name</div>
+            </div>
+
+            <ul class="sa-nav" style="list-style: none; padding: 20px 0;">
+                <li class="sa-nav-section" style="padding: 10px 20px; text-transform: uppercase; font-size: 0.7rem; color: #666;">Overview</li>
+
+                <li>
+                    <a asp-controller="SuperAdmin" asp-action="Dashboard" class="@(IsActive("Dashboard") ? "active" : "")" style="display: block; padding: 10px 20px; color: white; text-decoration: none;">
+                        <span class="sa-nav-icon">📊</span> Dashboard
+                    </a>
+                </li>
+
+                <li class="sa-nav-section" style="padding: 10px 20px; text-transform: uppercase; font-size: 0.7rem; color: #666;">People</li>
+                <li>
+                    <a asp-controller="SuperAdmin" asp-action="ManageUsers" class="@(IsActive("ManageUsers") ? "active" : "")" style="display: block; padding: 10px 20px; color: white; text-decoration: none;">
+                        <span class="sa-nav-icon">👥</span> All Users
+                    </a>
+                </li>
+                <li>
+                    <a asp-controller="SuperAdmin" asp-action="ManageStaff" class="@(IsActive("ManageStaff") ? "active" : "")" style="display: block; padding: 10px 20px; color: white; text-decoration: none;">
+                        <span class="sa-nav-icon">🧑‍💼</span> Staff
+                    </a>
+                </li>
+
+                <li class="sa-nav-section" style="padding: 10px 20px; text-transform: uppercase; font-size: 0.7rem; color: #666;">Content</li>
+                <li>
+                    <a asp-controller="Course" asp-action="Index" style="display: block; padding: 10px 20px; color: white; text-decoration: none;">
+                        <span class="sa-nav-icon">📚</span> Courses
+                    </a>
+                </li>
+                <li>
+                    <a asp-controller="Lesson" asp-action="Index" style="display: block; padding: 10px 20px; color: white; text-decoration: none;">
+                        <span class="sa-nav-icon">🎓</span> Lessons
+                    </a>
+                </li>
+
+                <li class="sa-nav-section" style="padding: 10px 20px; text-transform: uppercase; font-size: 0.7rem; color: #666;">System</li>
+                <li>
+                    <a href="#" onclick="alert('Settings coming soon'); return false;" style="display: block; padding: 10px 20px; color: white; opacity: 0.6; text-decoration: none;">
+                        <span class="sa-nav-icon">⚙️</span> Settings
+                    </a>
+                </li>
+            </ul>
+        </aside>
+
+        <main role="main" class="sa-main-content" style="flex: 1; padding: 20px; background: #f4f7f6;">
+            @RenderBody()
+        </main>
     </div>
 
-    <ul class="sa-nav">
-        <li class="sa-nav-section">Overview</li>
-        
-        <li>
-            <a asp-controller="SuperAdmin" asp-action="Dashboard" class="@(IsActive("Dashboard") ? "active" : "")">
-                <span class="sa-nav-icon">📊</span> Dashboard
-            </a>
-        </li>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
 
-        <li class="sa-nav-section">People</li>
-        <li>
-            <a asp-controller="SuperAdmin" asp-action="ManageUsers" class="@(IsActive("ManageUsers") ? "active" : "")">
-                <span class="sa-nav-icon">👥</span> All Users
-            </a>
-        </li>
-        <li>
-            <a asp-controller="SuperAdmin" asp-action="ManageStaff" class="@(IsActive("ManageStaff") ? "active" : "")">
-                <span class="sa-nav-icon">🧑‍💼</span> Staff
-            </a>
-        </li>
-        <li>
-            <a asp-controller="SuperAdmin" asp-action="PromoteToAdmin" class="@(IsActive("PromoteToAdmin") ? "active" : "")">
-                <span class="sa-nav-icon">⬆️</span> Promote to Admin
-            </a>
-        </li>
-
-        <li class="sa-nav-section">Content</li>
-        <li>
-            <a asp-controller="Course" asp-action="Index">
-                <span class="sa-nav-icon">📚</span> Courses
-            </a>
-        </li>
-        <li>
-            <a asp-controller="Lesson" asp-action="Index">
-                <span class="sa-nav-icon">🎓</span> Lessons
-            </a>
-        </li>
-        <li>
-            <a asp-controller="Quiz" asp-action="Index">
-                <span class="sa-nav-icon">🧠</span> Quizzes
-            </a>
-        </li>
-        <li>
-            <a asp-controller="Assignment" asp-action="Index">
-                <span class="sa-nav-icon">📝</span> Assignments
-            </a>
-        </li>
-
-        <li class="sa-nav-section">System</li>
-        <li>
-            <a href="#" onclick="saToast('Settings coming soon','info');return false">
-                <span class="sa-nav-icon">⚙️</span> Settings
-                <span class="sa-nav-badge">Soon</span>
-            </a>
-        </li>
-        <li>
-            <a href="#" onclick="saToast('Audit log coming soon','info');return false">
-                <span class="sa-nav-icon">📋</span> Audit Log
-                <span class="sa-nav-badge">Soon</span>
-            </a>
-        </li>
-    </ul>
-</aside>
+    @RenderSection("Scripts", required: false)
+</body>
+</html>
