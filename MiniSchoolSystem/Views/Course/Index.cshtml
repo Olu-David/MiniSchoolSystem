@@ -6,12 +6,12 @@
 @{
     ViewData["Title"] = "Courses";
 
-    if (User.IsInRole("SuperAdmin"))
-    {
-        Layout = "~/Views/Shared/_SuperAdminSidebar.cshtml";
-    }
-    Layout = "~/Views/Shared/_Layout.cshtml";
-    
+    var user = await UserManager.GetUserAsync(User);
+    bool isSuperAdmin = user != null && await UserManager.IsInRoleAsync(user, "SuperAdmin");
+    bool isTeacher = user != null && await UserManager.IsInRoleAsync(user, "Teacher");
+
+    // Set layout based on the boolean we just created
+    Layout = isSuperAdmin ? "~/Views/Shared/_SuperAdminSidebar.cshtml" : "~/Views/Shared/_Layout.cshtml";
     
 
     var UserRole = User.FindFirstValue(ClaimTypes.Role);

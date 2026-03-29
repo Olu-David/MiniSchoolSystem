@@ -1,4 +1,8 @@
-﻿@{
+﻿@using Microsoft.AspNetCore.Identity
+@using System.Security.Claims
+@inject SignInManager<UserDb> SignInManager
+@inject UserManager<UserDb> UserManager
+@{
     ViewData["Title"] = "Lesson Details";
     if (User.IsInRole("SuperAdmin"))
     {

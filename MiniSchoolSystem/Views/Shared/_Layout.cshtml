@@ -185,16 +185,17 @@
                         Home
                     </a>
                 </li>
-                <li>
-                    <a asp-controller="Course" asp-action="Index"
-                       class="@(ctrl == "Course" ? "active" : "")">
-                        Courses
-                    </a>
-                </li>
+               
                 @if (isAuth)
                 {
                     @if (isStaff)
                     {
+                        <li>
+                            <a asp-controller="Course" asp-action="Index"
+                               class="@(ctrl == "Course" ? "active" : "")">
+                                Modules
+                            </a>
+                        </li>
                         <li>
                             <a asp-controller="CourseModule" asp-action="Index"
                                class="@(ctrl == "CourseModule" ? "active" : "")">

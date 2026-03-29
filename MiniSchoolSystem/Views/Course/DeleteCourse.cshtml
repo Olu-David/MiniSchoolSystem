@@ -1,11 +1,19 @@
 ﻿@model MiniSchoolSystem.DTO.EditCourseDTO
+@using Microsoft.AspNetCore.Identity
+@using System.Security.Claims
+@inject SignInManager<UserDb> SignInManager
+@inject UserManager<UserDb> UserManager 
 @{
     ViewData["Title"] = "Duplicate Course";
-    if (User.IsInRole("SuperAdmin"))
-    {
-        Layout = "~/Views/Shared/_SuperAdminSidebar.cshtml";
-    }
-    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var user = await UserManager.GetUserAsync(User);
+    bool isSuperAdmin = user != null && await UserManager.IsInRoleAsync(user, "SuperAdmin");
+    bool isTeacher = user != null && await UserManager.IsInRoleAsync(user, "Teacher");
+
+    // Set layout based on the boolean we just created
+    Layout = isSuperAdmin ? "~/Views/Shared/_SuperAdminSidebar.cshtml" : "~/Views/Shared/_Layout.cshtml";
+
+
 }
 
 @section Styles {
