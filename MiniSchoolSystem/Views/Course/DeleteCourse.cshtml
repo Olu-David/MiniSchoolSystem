@@ -1,6 +1,10 @@
 ﻿@model MiniSchoolSystem.DTO.EditCourseDTO
 @{
     ViewData["Title"] = "Duplicate Course";
+    if (User.IsInRole("SuperAdmin"))
+    {
+        Layout = "~/Views/Shared/_SuperAdminSidebar.cshtml";
+    }
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 

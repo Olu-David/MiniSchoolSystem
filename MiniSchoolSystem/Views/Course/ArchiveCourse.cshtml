@@ -1,5 +1,9 @@
 ﻿@{
     ViewData["Title"] = "Archive Course";
+    if (User.IsInRole("SuperAdmin"))
+    {
+        Layout = "~/Views/Shared/_SuperAdminSidebar.cshtml";
+    }
     Layout = "~/Views/Shared/_Layout.cshtml";
     var course = ViewBag.Course;
 }
